@@ -1,6 +1,6 @@
 # Havefolio MVP Architecture
 
-Status: **Proposed for PER-1 review**
+Status: **Accepted**
 
 Last updated: 2026-09-29
 
@@ -273,7 +273,7 @@ Microservices, CQRS, event sourcing and a search cluster are not default next st
 
 ## 12. Verification gates
 
-PER-1 is ready for acceptance when reviewers confirm:
+PER-1 was accepted after reviewers confirmed:
 
 - The diagram matches the intended CT102 deployment.
 - MVP and post-MVP boundaries match the product brief.
