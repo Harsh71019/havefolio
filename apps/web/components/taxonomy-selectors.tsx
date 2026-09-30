@@ -21,8 +21,8 @@ export function CategorySelector({
   disabled = false,
 }: {
   taxonomy: TaxonomySnapshot;
-  categoryId?: string;
-  subcategoryId?: string;
+  categoryId?: string | undefined;
+  subcategoryId?: string | undefined;
   disabled?: boolean;
   onChange: (categoryId?: string, subcategoryId?: string) => void;
 }): ReactElement {

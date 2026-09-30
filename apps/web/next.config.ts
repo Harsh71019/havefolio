@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       '',
     );
     return Promise.resolve(
-      ['auth', 'taxonomy'].map((domain) => ({
+      ['auth', 'taxonomy', 'items'].map((domain) => ({
         source: `/api/v1/${domain}/:path*`,
         destination: `${base}/${domain}/:path*`,
       })),
