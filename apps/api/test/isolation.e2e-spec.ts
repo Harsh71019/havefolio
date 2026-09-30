@@ -16,10 +16,9 @@ describe('migration and shared-service isolation', () => {
     try {
       await Promise.all(runs.map((run) => run.start()));
       for (const run of runs) {
-        await run.runtime.query('INSERT INTO application_metadata (key, value) VALUES ($1, $2)', [
-          'probe',
-          run.schema,
-        ]);
+        await createDatabase(run.runtime)
+          .insert(applicationMetadata)
+          .values({ key: 'probe', value: run.schema });
         await expect(
           run.runtime.query('CREATE TABLE forbidden (id integer)'),
         ).rejects.toMatchObject({ code: '42501' });

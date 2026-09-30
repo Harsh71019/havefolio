@@ -35,6 +35,6 @@ describe('primary navigation', () => {
     await user.tab();
     const desktop = screen.getAllByRole('navigation', { name: 'Primary' })[0];
     if (!desktop) throw new Error('Missing primary navigation');
-    expect(within(desktop).getByRole('link', { name: 'Home', exact: true })).toHaveFocus();
+    expect(within(desktop).getByRole('link', { name: 'Home' })).toHaveFocus();
   });
 });
