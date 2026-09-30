@@ -33,6 +33,7 @@ describe('private media metadata on real PostgreSQL', () => {
       }).compile();
       const repository: AttachmentRepository = module.get(DatabaseAttachmentRepository);
       const ownerId = randomUUID();
+      await run.runtime.query('INSERT INTO users (id) VALUES ($1)', [ownerId]);
       const id = randomUUID();
       const record: PendingAttachment = {
         id,
@@ -73,16 +74,19 @@ describe('private media metadata on real PostgreSQL', () => {
       const candidates = await repository.recoveryCandidates(new Date(Date.now() + 60_000));
       expect(candidates.some((r) => r.id === id)).toBe(false);
       const childId = randomUUID();
+      const childOwner = randomUUID();
+      await run.runtime.query('INSERT INTO users (id) VALUES ($1)', [childOwner]);
       await repository.insertPending({
         ...record,
         id: childId,
-        ownerId: randomUUID(),
+        ownerId: childOwner,
         objectKey: `havefolio/test/${childId}`,
       });
       await expect(
         run.runtime.query(
-          'UPDATE media_attachments SET parent_id = $1, variant = $2 WHERE id = $3',
-          [id, 'thumbnail', childId],
+          `INSERT INTO media_attachments (id,owner_id,parent_id,kind,variant,object_key,resource_type,format,original_filename,mime_type,byte_size,checksum)
+           VALUES ($1,$2,$3,'photo','thumbnail',$4,'image','jpg','fixture.jpg','image/jpeg',4,$5)`,
+          [randomUUID(), childOwner, id, `havefolio/test/${randomUUID()}`, 'a'.repeat(64)],
         ),
       ).rejects.toMatchObject({ code: '23503' });
       const deleting = await repository.markDeleting(ready!);
