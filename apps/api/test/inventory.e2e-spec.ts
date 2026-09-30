@@ -63,7 +63,7 @@ afterAll(async () => {
 describe('PER-7 real relational constraints', () => {
   it('migrates an empty namespace and repeat migration preserves data and journal', async () => {
     const before = await query(`SELECT count(*) FROM "${run.schema}".__drizzle_migrations`);
-    expect(before.rows[0].count).toBe('3');
+    expect(before.rows[0].count).toBe('4');
     await applyMigrations(run.migration, run.schema);
     expect((await query(`SELECT count(*) FROM "${run.schema}".__drizzle_migrations`)).rows).toEqual(
       before.rows,

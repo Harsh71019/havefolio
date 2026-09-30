@@ -25,12 +25,59 @@ export const applicationMetadata = pgTable('application_metadata', {
   value: text('value').notNull(),
 });
 
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  displayName: text('display_name'),
-  createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
-});
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    displayName: text('display_name'),
+    email: text('email'),
+    passwordHash: text('password_hash'),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('user_email_unique').on(t.email),
+    // Existing identity shells stay credential-free. Only one initial login owner is allowed.
+    uniqueIndex('user_initial_owner_unique')
+      .on(sql`(true)`)
+      .where(sql`${t.email} is not null`),
+    check(
+      'user_credentials_check',
+      sql`(${t.email} is null and ${t.passwordHash} is null) or (${t.email} is not null and ${t.passwordHash} is not null and ${t.email} = lower(btrim(${t.email})) and length(${t.email}) between 3 and 254 and ${t.passwordHash} like '$argon2id$%')`,
+    ),
+  ],
+);
+
+export const authSessions = pgTable(
+  'auth_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true, precision: 3 })
+      .notNull()
+      .defaultNow(),
+    idleExpiresAt: timestamp('idle_expires_at', { withTimezone: true, precision: 3 }).notNull(),
+    absoluteExpiresAt: timestamp('absolute_expires_at', {
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true, precision: 3 }),
+  },
+  (t) => [
+    uniqueIndex('session_token_hash_unique').on(t.tokenHash),
+    index('session_owner_created_idx').on(t.ownerId, t.createdAt, t.id),
+    index('session_expiry_idx').on(t.absoluteExpiresAt),
+    check('session_hash_check', sql`${t.tokenHash} ~ '^[a-f0-9]{64}$'`),
+    check(
+      'session_times_check',
+      sql`isfinite(${t.createdAt}) and isfinite(${t.lastUsedAt}) and isfinite(${t.idleExpiresAt}) and isfinite(${t.absoluteExpiresAt}) and ${t.createdAt} <= ${t.lastUsedAt} and ${t.lastUsedAt} < ${t.idleExpiresAt} and ${t.idleExpiresAt} <= ${t.absoluteExpiresAt} and (${t.revokedAt} is null or isfinite(${t.revokedAt}))`,
+    ),
+  ],
+);
 
 export const categories = pgTable(
   'categories',
