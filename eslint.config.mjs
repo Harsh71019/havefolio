@@ -16,11 +16,18 @@ export default tseslint.config(
       '**/dist/**',
       '**/node_modules/**',
       'apps/web/next-env.d.ts',
+      '**/test-results/**',
+      '**/playwright-report/**',
     ],
   },
   eslint.configs.recommended,
   {
-    files: ['scripts/**/*.mjs', 'apps/worker/test/**/*.mjs'],
+    files: [
+      'scripts/**/*.mjs',
+      'apps/worker/test/**/*.mjs',
+      'packages/**/scripts/**/*.mjs',
+      'packages/**/test/**/*.mjs',
+    ],
     languageOptions: { globals: globals.node },
   },
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
@@ -90,13 +97,18 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/test/**/*.ts'],
+    files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/test/**/*.ts', '**/test/**/*.tsx'],
     rules: {
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
     },
+  },
+  {
+    files: ['packages/db/drizzle.config.ts'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { parserOptions: { projectService: false } },
   },
   prettier,
 );

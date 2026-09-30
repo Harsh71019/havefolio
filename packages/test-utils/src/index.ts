@@ -6,3 +6,6 @@ export function createTestEnvironment(
     ...overrides,
   };
 }
+
+export { IntegrationRun, integrationConfiguration } from './integration.js';
+export type { IntegrationConfiguration } from './integration.js';

@@ -13,12 +13,54 @@ jobs:
     name: Repository gates
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          # Ephemeral runner only; never connect this service to a production network.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['127.0.0.1:5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+      valkey:
+        image: valkey/valkey:8.1.8-alpine
+        ports: ['127.0.0.1:6379:6379']
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 12
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm check
+      - name: Validate dependencies and lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Formatting
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+      - name: TypeScript
+        run: pnpm typecheck
+      - name: Unit and infrastructure tests
+        run: pnpm test:unit
+      - name: React component tests
+        run: pnpm test:components
+      - name: Migration generation and history drift
+        env:
+          MIGRATION_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: pnpm db:check
+      - name: Provision isolated CI resources
+        run: pnpm --filter @havefolio/test-utils exec node scripts/provision-ci.mjs
+      - name: API integration, empty migrations and isolation
+        run: pnpm test:integration
+      - name: Production builds
+        run: pnpm build
+      - name: Install smoke browser
+        run: pnpm --filter @havefolio/web exec playwright install --with-deps chromium
+      - name: Production startup and navigation smoke
+        run: pnpm test:smoke
