@@ -14,6 +14,9 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./*"]
+    },
     "resolveJsonModule": true,
     "tsBuildInfoFile": ".next/cache/tsconfig.tsbuildinfo"
   },

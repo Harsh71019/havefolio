@@ -80,6 +80,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ['packages/ui/src/components/**/*.tsx'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': 'off',
+    },
+  },
+  {
     files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unsafe-argument': 'off',

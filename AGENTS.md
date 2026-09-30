@@ -276,6 +276,8 @@ These rules are not optional implementation details:
 ### Frontend
 
 - Design mobile-first and verify keyboard, screen-reader, contrast, loading, empty, error, and offline/resilient states where relevant.
+- Use shadcn/ui as the first source for reusable primitives and Kibo UI for higher-level components. Check both approved registries before creating a reusable component; custom UI is limited to Havefolio-specific compositions or genuinely missing behaviour.
+- Keep the default neutral shadcn/ui light and dark themes, component variants and system typography until an approved ticket explicitly introduces product theming. Keep shared registry components behind `packages/ui` and verify important responsive/accessibility states in the live application.
 - Use server-side filtering, sorting, and pagination for complete result sets.
 - Keep server and client component boundaries intentional.
 - Never expose service credentials or private storage URLs to browser bundles.
