@@ -157,12 +157,13 @@ export class ItemsService {
     const category = input.categoryId === undefined ? previous?.category_id : input.categoryId;
     const subcategory =
       input.subcategoryId === undefined ? previous?.subcategory_id : input.subcategoryId;
-    const changed =
+    const categoryChanged =
+      !previous || (input.categoryId !== undefined && input.categoryId !== previous.category_id);
+    const subcategoryChanged =
       !previous ||
-      (input.categoryId !== undefined && input.categoryId !== previous.category_id) ||
       (input.subcategoryId !== undefined && input.subcategoryId !== previous.subcategory_id);
     if (subcategory && !category) throw new BadRequestException('INVALID_ITEM_TAXONOMY');
-    if (changed && category) {
+    if (category && (categoryChanged || (subcategory && subcategoryChanged))) {
       const root = (
         await c.query<{ retired_at: Date | null }>(
           'SELECT retired_at FROM categories WHERE owner_id=$1 AND id=$2',
@@ -172,7 +173,7 @@ export class ItemsService {
       if (!root) throw new NotFoundException('ITEM_TAXONOMY_NOT_FOUND');
       if (root.retired_at) throw new ConflictException('ITEM_TAXONOMY_RETIRED');
     }
-    if (changed && subcategory) {
+    if ((categoryChanged || subcategoryChanged) && subcategory) {
       const child = (
         await c.query<{ category_id: string; retired_at: Date | null }>(
           'SELECT category_id,retired_at FROM subcategories WHERE owner_id=$1 AND id=$2',

@@ -257,7 +257,10 @@ describe('owned item HTTP, concurrency and media recovery', () => {
     );
     await patch(item.id, { revision: 2, tagIds: [foreignTag] }).expect(404);
     await patch(item.id, { revision: 2, categoryId: null }).expect(400);
-    await patch(item.id, { revision: 2, categoryId: null, subcategoryId: null, tagIds: [] }).expect(
+    const cleared = await patch(item.id, { revision: 2, subcategoryId: null }).expect(200);
+    expect(cleared.body).toMatchObject({ revision: 3, categoryId: category, subcategoryId: null });
+    await patch(item.id, { revision: 3, subcategoryId: child }).expect(409);
+    await patch(item.id, { revision: 3, categoryId: null, subcategoryId: null, tagIds: [] }).expect(
       200,
     );
     await run.runtime.query('UPDATE categories SET retired_at=NULL WHERE id=$1', [category]);
