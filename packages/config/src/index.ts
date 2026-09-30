@@ -67,7 +67,7 @@ export const apiEnvironmentSchema = z
         const url = new URL(config.DATABASE_URL);
         if (
           !['postgres:', 'postgresql:'].includes(url.protocol) ||
-          /_migrate$/.test(decodeURIComponent(url.username))
+          !/_runtime$/.test(decodeURIComponent(url.username))
         )
           throw new Error();
       } catch {

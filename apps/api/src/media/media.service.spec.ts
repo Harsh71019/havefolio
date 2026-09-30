@@ -268,6 +268,12 @@ describe('media configuration', () => {
     expect(
       apiEnvironmentSchema.safeParse({
         ...valid,
+        DATABASE_URL: 'postgresql://postgres:fixture@localhost/havefolio_test',
+      }).success,
+    ).toBe(false);
+    expect(
+      apiEnvironmentSchema.safeParse({
+        ...valid,
         DATABASE_URL: 'postgresql://fixture_migrate:fixture@localhost/havefolio_test',
       }).success,
     ).toBe(false);
