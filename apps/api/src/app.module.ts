@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { resolve } from 'node:path';
 import { validateApiEnvironment } from '@havefolio/config';
+import { MediaModule } from './media/media.module.js';
 import { OperationsModule } from './operations/operations.module.js';
 
 @Module({
@@ -16,6 +17,7 @@ import { OperationsModule } from './operations/operations.module.js';
       validate: validateApiEnvironment,
     }),
     OperationsModule,
+    MediaModule,
   ],
 })
 export class AppModule {}

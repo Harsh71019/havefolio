@@ -20,14 +20,65 @@ const optionalEnvironmentString = z.preprocess(
   z.string().min(1).optional(),
 );
 
-export const apiEnvironmentSchema = z.object({
-  NODE_ENV: nodeEnvironment,
-  LOG_LEVEL: logLevel,
-  API_HOST: z.string().min(1).default('0.0.0.0'),
-  API_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
-  API_CORS_ORIGIN: z.string().url().default('http://localhost:3000'),
-  API_DOCS_ENABLED: booleanFromEnvironment.default(true),
-});
+export const apiEnvironmentSchema = z
+  .object({
+    NODE_ENV: nodeEnvironment,
+    LOG_LEVEL: logLevel,
+    API_HOST: z.string().min(1).default('0.0.0.0'),
+    API_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
+    API_CORS_ORIGIN: z.string().url().default('http://localhost:3000'),
+    API_DOCS_ENABLED: booleanFromEnvironment.default(true),
+    MEDIA_STORAGE_ENABLED: z.preprocess(
+      (value) => (value === undefined ? false : value),
+      z
+        .union([z.boolean(), z.enum(['true', 'false'])])
+        .transform((value) => value === true || value === 'true'),
+    ),
+    CLOUDINARY_CLOUD_NAME: optionalEnvironmentString,
+    CLOUDINARY_API_KEY: optionalEnvironmentString,
+    CLOUDINARY_API_SECRET: optionalEnvironmentString,
+    DATABASE_URL: optionalEnvironmentString,
+  })
+  .superRefine((config, context) => {
+    if (!config.MEDIA_STORAGE_ENABLED) return;
+    for (const key of [
+      'CLOUDINARY_CLOUD_NAME',
+      'CLOUDINARY_API_KEY',
+      'CLOUDINARY_API_SECRET',
+      'DATABASE_URL',
+    ] as const) {
+      if (!config[key] || config[key].startsWith('REPLACE_WITH_')) {
+        context.addIssue({
+          code: 'custom',
+          path: [key],
+          message: 'Enabled media storage requires protected server configuration',
+        });
+      }
+    }
+    if (config.CLOUDINARY_CLOUD_NAME && !/^[a-z0-9_-]+$/.test(config.CLOUDINARY_CLOUD_NAME)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['CLOUDINARY_CLOUD_NAME'],
+        message: 'Invalid cloud name',
+      });
+    }
+    if (config.DATABASE_URL) {
+      try {
+        const url = new URL(config.DATABASE_URL);
+        if (
+          !['postgres:', 'postgresql:'].includes(url.protocol) ||
+          !/_runtime$/.test(decodeURIComponent(url.username))
+        )
+          throw new Error();
+      } catch {
+        context.addIssue({
+          code: 'custom',
+          path: ['DATABASE_URL'],
+          message: 'Media requires a runtime PostgreSQL connection',
+        });
+      }
+    }
+  });
 
 export const webEnvironmentSchema = z.object({
   NODE_ENV: nodeEnvironment,

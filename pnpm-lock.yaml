@@ -199,6 +199,9 @@ importers:
       '@havefolio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@havefolio/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@havefolio/domain':
         specifier: workspace:*
         version: link:../../packages/domain
@@ -223,6 +226,15 @@ importers:
       class-validator:
         specifier: 0.15.1
         version: 0.15.1
+      cloudinary:
+        specifier: 2.11.0
+        version: 2.11.0
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.0)
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
@@ -230,12 +242,12 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
     devDependencies:
-      '@havefolio/db':
-        specifier: workspace:*
-        version: link:../../packages/db
       '@havefolio/test-utils':
         specifier: workspace:*
         version: link:../../packages/test-utils
+      '@jest/globals':
+        specifier: 30.5.2
+        version: 30.5.2(supports-color@8.1.1)
       '@nestjs/cli':
         specifier: 12.0.8
         version: 12.0.8(@types/node@26.6.3)(prettier@3.9.9)
@@ -251,6 +263,9 @@ importers:
       '@types/node':
         specifier: 26.6.3
         version: 26.6.3
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
       '@types/supertest':
         specifier: 7.2.1
         version: 7.2.1
@@ -3635,6 +3650,10 @@ packages:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
 
+  cloudinary@2.11.0:
+    resolution: {integrity: sha512-o2pAkDDqrzPFE/mn9GCfFjBIGQmPs++Ts6rtkFl4vY528DNHiMovKWjH16HBjeGa9iwI7eAad24aWN2emT0aww==}
+    engines: {node: '>=9'}
+
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
@@ -5055,6 +5074,9 @@ packages:
 
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+
+  lodash@4.18.1:
+    resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
   log-symbols@7.0.1:
     resolution: {integrity: sha512-ja1E3yCr9i/0hmBVaM0bfwDjnGy8I/s6PP4DFp+yP+a+mrHO4Rm7DtmnqROTUkHIkqffC84YY7AeqX6oFk0WFg==}
@@ -9331,6 +9353,10 @@ snapshots:
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
 
+  cloudinary@2.11.0:
+    dependencies:
+      lodash: 4.18.1
+
   clsx@2.1.1: {}
 
   cluster-key-slot@1.1.1: {}
@@ -11025,6 +11051,8 @@ snapshots:
   lodash.memoize@4.1.2: {}
 
   lodash.merge@4.6.2: {}
+
+  lodash@4.18.1: {}
 
   log-symbols@7.0.1:
     dependencies:

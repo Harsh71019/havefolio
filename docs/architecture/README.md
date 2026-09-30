@@ -72,7 +72,6 @@ flowchart LR
         Web["havefolio-web\nNext.js App Router"]
         API["havefolio-api\nNestJS /api/v1"]
         Worker["havefolio-worker\nBullMQ jobs"]
-        Uploads[("Private persistent\nupload volume")]
 
         subgraph Shared["Existing shared-services network"]
             Postgres[("shared-postgres\ndedicated Havefolio DB and roles")]
@@ -86,6 +85,7 @@ flowchart LR
 
     Gatus["Existing Gatus"]
     Beszel["Existing Beszel"]
+    Uploads[("Cloudinary\nauthenticated private media")]
     Providers["Optional enrichment providers\npost-MVP"]
 
     Browser -->|HTTPS| Proxy
@@ -120,7 +120,7 @@ flowchart LR
 - Next.js App Router and TypeScript.
 - Owns rendering, navigation, form UX and accessibility.
 - Uses the API for durable application data and authorisation decisions.
-- Does not receive database, Valkey, upload-volume or Kan credentials.
+- Does not receive database, Valkey, Cloudinary or Kan credentials.
 
 ### `havefolio-api`
 
@@ -153,7 +153,7 @@ flowchart LR
 
 ### Private upload storage
 
-- Starts as a persistent CT102 volume accessed through a storage adapter.
+- Uses Cloudinary authenticated media through a server-only storage adapter (PER-12; ADR-0004).
 - Stores generated object keys, not user-supplied filesystem paths.
 - Keeps upload metadata and ownership in PostgreSQL.
 - Supports replacement by S3-compatible storage without changing domain services.
@@ -224,7 +224,7 @@ Cross-module changes go through application services or explicit interfaces. Mod
 | --- | --- | --- |
 | PostgreSQL unavailable | Readiness fails; dependent API operations return a bounded 503; no writes are acknowledged | Connection timeouts, transaction rollback, Gatus alert and operator recovery |
 | Valkey unavailable | Core PostgreSQL-backed inventory remains usable; queue/reminder actions report degraded state and are reconciled later | Bounded retries, durable intent in PostgreSQL, worker reconnection and reconciliation |
-| Upload volume unavailable/full | Item creation without media remains usable; upload endpoints fail without partial metadata | Readiness dependency detail, preflight capacity checks, quota/space alert and orphan cleanup |
+| Cloudinary unavailable/quota exhausted | Manual item creation remains usable; media operations fail without ready partial metadata | Separate media readiness, provider budget alert and pending-object reconciliation |
 | Enrichment provider unavailable | Manual entry continues; suggestions show unavailable/timeout state | Short timeout, no fabricated fallback, retry only on explicit or safe background action |
 | Thumbnail/OCR job failure | Original valid upload remains private and usable where safe; derived result is marked failed | Idempotent retry with cap; visible operational error after exhaustion |
 | Seq unavailable | Requests continue and JSON console logs remain available | Non-blocking sink, bounded buffer/timeout and Beszel/container log fallback |
@@ -253,7 +253,7 @@ Liveness checks only confirm that a process can respond. Readiness separately re
 - Build immutable images for web, API and worker.
 - Deploy all three application containers together on CT102.
 - Connect API and worker to the existing external `shared-services` network.
-- Mount only the API/worker upload adapter to the persistent media volume.
+- Pass protected Cloudinary credentials only to media-capable server processes; no persistent CT upload mount.
 - Use health checks and explicit resource limits for every container.
 - Keep migrations as an explicit release step using the migration role; application startup must not apply migrations implicitly.
 - A failed migration, smoke test or readiness check blocks release completion.
@@ -288,3 +288,5 @@ PER-1 was accepted after reviewers confirmed:
 - [ADR-0001: Use a TypeScript modular monolith](./adr/0001-use-a-typescript-modular-monolith.md)
 - [ADR-0002: Reuse shared PostgreSQL and Valkey with isolation](./adr/0002-reuse-shared-postgresql-and-valkey.md)
 - [ADR-0003: Store private uploads behind an adapter](./adr/0003-store-private-uploads-behind-an-adapter.md)
+
+See [private Cloudinary operations](../operations/cloudinary-media.md) and [ADR-0004](./adr/0004-use-private-cloudinary-media.md).
