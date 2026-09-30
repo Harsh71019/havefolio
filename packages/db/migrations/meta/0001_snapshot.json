@@ -1,0 +1,331 @@
+{
+  "id": "7fb01cba-cf6f-4a1b-aa3f-80e0d8d4d779",
+  "prevId": "9b52348d-29bf-49a7-973c-8179486e8812",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.application_metadata": {
+      "name": "application_metadata",
+      "schema": "",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.media_attachments": {
+      "name": "media_attachments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variant": {
+          "name": "variant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'cloudinary'"
+        },
+        "object_key": {
+          "name": "object_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_type": {
+          "name": "resource_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "format": {
+          "name": "format",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_asset_id": {
+          "name": "provider_asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_version": {
+          "name": "provider_version",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_filename": {
+          "name": "original_filename",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "byte_size": {
+          "name": "byte_size",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checksum": {
+          "name": "checksum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "width": {
+          "name": "width",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height": {
+          "name": "height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "media_object_key_unique": {
+          "name": "media_object_key_unique",
+          "columns": [
+            {
+              "expression": "object_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_provider_asset_unique": {
+          "name": "media_provider_asset_unique",
+          "columns": [
+            {
+              "expression": "provider_asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_owner_created_idx": {
+          "name": "media_owner_created_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_recovery_idx": {
+          "name": "media_recovery_idx",
+          "columns": [
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_parent_idx": {
+          "name": "media_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "media_parent_owner_fk": {
+          "name": "media_parent_owner_fk",
+          "tableFrom": "media_attachments",
+          "tableTo": "media_attachments",
+          "columnsFrom": [
+            "parent_id",
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id",
+            "owner_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "media_owner_identity_unique": {
+          "name": "media_owner_identity_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "owner_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "media_provider_check": {
+          "name": "media_provider_check",
+          "value": "\"media_attachments\".\"provider\" = 'cloudinary'"
+        },
+        "media_state_check": {
+          "name": "media_state_check",
+          "value": "\"media_attachments\".\"state\" in ('pending','ready','deleting','deleted')"
+        },
+        "media_kind_check": {
+          "name": "media_kind_check",
+          "value": "\"media_attachments\".\"kind\" in ('photo','receipt','warranty')"
+        },
+        "media_variant_check": {
+          "name": "media_variant_check",
+          "value": "(\"media_attachments\".\"variant\" = 'original' and \"media_attachments\".\"parent_id\" is null) or (\"media_attachments\".\"variant\" in ('display','thumbnail') and \"media_attachments\".\"parent_id\" is not null)"
+        },
+        "media_size_check": {
+          "name": "media_size_check",
+          "value": "\"media_attachments\".\"byte_size\" > 0 and \"media_attachments\".\"byte_size\" <= 20971520"
+        },
+        "media_checksum_check": {
+          "name": "media_checksum_check",
+          "value": "\"media_attachments\".\"checksum\" ~ '^[a-f0-9]{64}$'"
+        },
+        "media_ready_check": {
+          "name": "media_ready_check",
+          "value": "\"media_attachments\".\"state\" <> 'ready' or (\"media_attachments\".\"provider_asset_id\" is not null and \"media_attachments\".\"provider_version\" is not null and \"media_attachments\".\"provider_version\" > 0)"
+        },
+        "media_dimensions_check": {
+          "name": "media_dimensions_check",
+          "value": "(\"media_attachments\".\"width\" is null and \"media_attachments\".\"height\" is null) or (\"media_attachments\".\"width\" is not null and \"media_attachments\".\"height\" is not null and \"media_attachments\".\"width\" > 0 and \"media_attachments\".\"height\" > 0 and \"media_attachments\".\"width\" <= 8192 and \"media_attachments\".\"height\" <= 8192 and \"media_attachments\".\"width\"::bigint * \"media_attachments\".\"height\" <= 24000000)"
+        },
+        "media_type_check": {
+          "name": "media_type_check",
+          "value": "(\"media_attachments\".\"resource_type\" = 'raw' and \"media_attachments\".\"format\" = 'pdf' and \"media_attachments\".\"mime_type\" = 'application/pdf' and \"media_attachments\".\"kind\" <> 'photo') or (\"media_attachments\".\"resource_type\" = 'image' and \"media_attachments\".\"byte_size\" <= 10485760 and ((\"media_attachments\".\"format\" = 'jpg' and \"media_attachments\".\"mime_type\" = 'image/jpeg') or (\"media_attachments\".\"format\" = 'png' and \"media_attachments\".\"mime_type\" = 'image/png') or (\"media_attachments\".\"format\" = 'webp' and \"media_attachments\".\"mime_type\" = 'image/webp')))"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

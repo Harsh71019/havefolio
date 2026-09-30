@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted interface; initial local-volume choice superseded by [ADR-0004](./0004-use-private-cloudinary-media.md) on 2026-09-30 (PER-12).
 
 ## Context
 

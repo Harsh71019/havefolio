@@ -4,7 +4,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import type { Pool, Client } from 'pg';
 import * as schema from './schema.js';
 
-export { applicationMetadata } from './schema.js';
+export { applicationMetadata, mediaAttachments } from './schema.js';
 
 export function createDatabase(client: Pool | Client): NodePgDatabase<typeof schema> {
   return drizzle(client, { schema });
