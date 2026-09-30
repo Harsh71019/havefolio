@@ -67,7 +67,19 @@ describe('migration and shared-service isolation', () => {
       expect(removed.rows[0].present).toBe(false);
       // Shared authenticated ACL rejects an out-of-namespace write.
       if (process.env.TEST_VALKEY_ACL_ENFORCED === 'true') {
-        await expect(b.valkey.set('outside:per4:forbidden', 'probe')).rejects.toThrow(/NOPERM/);
+        const probeKey = `outside:${b.schema}:forbidden`;
+        let written = false;
+        try {
+          await expect(
+            b.valkey.set(probeKey, 'probe', 'EX', 60, 'NX').then((result) => {
+              written = result === 'OK';
+              return result;
+            }),
+          ).rejects.toThrow(/NOPERM/);
+        } finally {
+          // If a misconfigured ACL accepts the probe, remove only the key we created.
+          if (written) await b.valkey.del(probeKey);
+        }
       }
     } finally {
       const results = await Promise.allSettled(
