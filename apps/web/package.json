@@ -13,6 +13,7 @@
     "@havefolio/contracts": "workspace:*",
     "@havefolio/ui": "workspace:*",
     "@next/env": "16.3.7",
+    "lucide-react": "1.49.0",
     "next": "16.3.7",
     "react": "19.3.0",
     "react-dom": "19.3.0"

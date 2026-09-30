@@ -1,0 +1,118 @@
+@import '@fontsource-variable/manrope';
+@import '@fontsource-variable/newsreader';
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@source '../../../../apps/web';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Newsreader Variable', ui-serif, Georgia, serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+}
+
+:root {
+  color-scheme: light;
+  --radius: 0.875rem;
+  --background: #eef1ed;
+  --foreground: #202923;
+  --card: #fbfcf9;
+  --card-foreground: #202923;
+  --popover: #fbfcf9;
+  --popover-foreground: #202923;
+  --primary: #315d45;
+  --primary-foreground: #f7fbf8;
+  --secondary: #dde6df;
+  --secondary-foreground: #263c2e;
+  --muted: #e4e9e3;
+  --muted-foreground: #637067;
+  --accent: #d7e5df;
+  --accent-foreground: #244333;
+  --destructive: #b42318;
+  --border: #c8d1ca;
+  --input: #b8c5bb;
+  --ring: #47775b;
+  --chart-1: #315d45;
+  --chart-2: #4c6c78;
+  --chart-3: #b0792a;
+  --chart-4: #7b6b9e;
+  --chart-5: #8b6d56;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    min-width: 20rem;
+    background: var(--background);
+  }
+
+  body {
+    @apply min-h-svh bg-background font-sans text-foreground antialiased;
+    margin: 0;
+    background-image:
+      linear-gradient(rgb(255 255 255 / 28%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 28%) 1px, transparent 1px);
+    background-size: 2.5rem 2.5rem;
+  }
+
+  ::selection {
+    color: var(--primary-foreground);
+    background: var(--primary);
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ring) 70%, white);
+    outline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
