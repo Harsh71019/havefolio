@@ -6,9 +6,17 @@ Ticket: **PER-6**
 
 ## Current decision
 
-Havefolio uses the default neutral shadcn/ui theme and component styles. The project does not add a custom colour palette, display font, surface treatment or branded component variant at this stage.
+Havefolio uses the default neutral shadcn/ui light and dark themes and component styles. The project does not add a custom colour palette, display font, surface treatment or branded component variant at this stage.
 
 The only global additions to the generated shadcn/ui stylesheet are the Tailwind source path required by the monorepo. Product-specific visual theming can be introduced later through a dedicated ticket when real product screens provide enough context to evaluate it.
+
+## Theme behaviour
+
+- The first visit follows the operating-system light or dark preference.
+- The top-right toggle switches directly between the default shadcn/ui light and dark themes.
+- The selected theme is stored by `next-themes` and restored on later visits.
+- Theme state is applied as a class on the document element; no product-specific colour overrides are added.
+- Theme transitions are disabled during a switch to avoid partially themed frames.
 
 ## Product language
 
@@ -33,6 +41,7 @@ Do not restyle imported registry primitives globally. Product layouts may compos
 
 - Primary navigation keeps at least 44 px touch targets even where the stock component size is smaller.
 - Keyboard focus uses the default shadcn/ui focus treatment and is not communicated by colour alone.
+- The theme toggle has an accessible name and remains keyboard operable in both themes.
 - Mobile navigation works at 360 px without horizontal scrolling.
 - Status text accompanies every status colour or indicator.
 - Reusable components are verified in the live application at narrow and desktop widths.
