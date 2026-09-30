@@ -1,0 +1,64 @@
+import { z } from 'zod';
+
+const nodeEnvironment = z.enum(['development', 'test', 'production']).default('development');
+const logLevel = z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info');
+
+const booleanFromEnvironment = z.preprocess((value) => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true';
+  }
+
+  return value;
+}, z.boolean());
+
+const optionalEnvironmentString = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  z.string().min(1).optional(),
+);
+
+export const apiEnvironmentSchema = z.object({
+  NODE_ENV: nodeEnvironment,
+  LOG_LEVEL: logLevel,
+  API_HOST: z.string().min(1).default('0.0.0.0'),
+  API_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
+  API_CORS_ORIGIN: z.string().url().default('http://localhost:3000'),
+  API_DOCS_ENABLED: booleanFromEnvironment.default(true),
+});
+
+export const webEnvironmentSchema = z.object({
+  NODE_ENV: nodeEnvironment,
+  WEB_PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
+  NEXT_PUBLIC_API_BASE_URL: z.string().url().default('http://localhost:3001/api/v1'),
+});
+
+export const workerEnvironmentSchema = z.object({
+  NODE_ENV: nodeEnvironment,
+  LOG_LEVEL: logLevel,
+  WORKER_QUEUE_ENABLED: booleanFromEnvironment.default(false),
+  VALKEY_HOST: z.string().min(1).default('127.0.0.1'),
+  VALKEY_PORT: z.coerce.number().int().min(1).max(65_535).default(6379),
+  VALKEY_USERNAME: optionalEnvironmentString,
+  VALKEY_PASSWORD: optionalEnvironmentString,
+  VALKEY_DATABASE: z.coerce.number().int().min(0).default(0),
+  VALKEY_PREFIX: z.string().min(1).default('havefolio'),
+});
+
+export type ApiEnvironment = z.infer<typeof apiEnvironmentSchema>;
+export type WebEnvironment = z.infer<typeof webEnvironmentSchema>;
+export type WorkerEnvironment = z.infer<typeof workerEnvironmentSchema>;
+
+export function validateApiEnvironment(config: Record<string, unknown>): ApiEnvironment {
+  return apiEnvironmentSchema.parse(config);
+}
+
+export function validateWebEnvironment(config: Record<string, unknown>): WebEnvironment {
+  return webEnvironmentSchema.parse(config);
+}
+
+export function validateWorkerEnvironment(config: Record<string, unknown>): WorkerEnvironment {
+  return workerEnvironmentSchema.parse(config);
+}
