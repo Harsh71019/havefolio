@@ -32,6 +32,10 @@ export const users = pgTable(
     displayName: text('display_name'),
     email: text('email'),
     passwordHash: text('password_hash'),
+    taxonomyDefaultsSeededAt: timestamp('taxonomy_defaults_seeded_at', {
+      withTimezone: true,
+      precision: 3,
+    }),
     createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },

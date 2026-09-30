@@ -7,6 +7,18 @@ loadEnvConfig(resolve(process.cwd(), '../..'));
 validateWebEnvironment(process.env);
 
 const nextConfig: NextConfig = {
+  rewrites() {
+    const base = (process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001/api/v1').replace(
+      /\/$/,
+      '',
+    );
+    return Promise.resolve(
+      ['auth', 'taxonomy'].map((domain) => ({
+        source: `/api/v1/${domain}/:path*`,
+        destination: `${base}/${domain}/:path*`,
+      })),
+    );
+  },
   output: 'standalone',
   poweredByHeader: false,
   reactStrictMode: true,

@@ -6,10 +6,12 @@ import {
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
+import { taxonomyErrorCodes } from '@havefolio/contracts';
 import { STATUS_CODES } from 'node:http';
 import type { Response } from 'express';
 
 const safeMessages = new Set([
+  ...taxonomyErrorCodes,
   'AUTH_REQUIRED',
   'INVALID_CREDENTIALS',
   'REGISTRATION_UNAVAILABLE',

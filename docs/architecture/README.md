@@ -292,3 +292,5 @@ PER-1 was accepted after reviewers confirmed:
 - [ADR-0003: Store private uploads behind an adapter](./adr/0003-store-private-uploads-behind-an-adapter.md)
 
 See [private Cloudinary operations](../operations/cloudinary-media.md) and [ADR-0004](./adr/0004-use-private-cloudinary-media.md).
+
+- [PER-9 taxonomy management](taxonomy-management.md): owner-scoped categories/subcategories/tags, safe reassignment, explicit defaults, reusable selectors and settings UI.
