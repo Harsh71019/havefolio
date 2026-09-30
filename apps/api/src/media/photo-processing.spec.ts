@@ -119,7 +119,12 @@ describe('photo decoding and sanitization', () => {
   });
   it('rejects successfully decoded animated WebP', async () => {
     const frame = await fixture().png().toBuffer();
-    const bytes = await sharp([frame, frame], { join: { animated: true } })
+    const second = await sharp({
+      create: { width: 640, height: 480, channels: 3, background: '#123456' },
+    })
+      .png()
+      .toBuffer();
+    const bytes = await sharp([frame, second], { join: { animated: true } })
       .webp({ loop: 0, delay: [100, 100] })
       .toBuffer();
     expect((await sharp(bytes).metadata()).pages).toBe(2);
