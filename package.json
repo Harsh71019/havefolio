@@ -16,8 +16,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "pnpm build:packages && eslint .",
-    "test": "pnpm build:packages && pnpm --filter './apps/**' -r --if-present test",
-    "typecheck": "pnpm build:packages && pnpm --filter './apps/**' -r --if-present typecheck"
+    "test": "pnpm test:infra && pnpm --filter './apps/**' -r --if-present test",
+    "typecheck": "pnpm build:packages && pnpm --filter './apps/**' -r --if-present typecheck",
+    "test:infra": "pnpm build:packages && python3 -m unittest discover -s scripts/shared-services -p \"test_*.py\" && node --test scripts/shared-services/config.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

@@ -19,6 +19,10 @@ export default tseslint.config(
     ],
   },
   eslint.configs.recommended,
+  {
+    files: ['scripts/**/*.mjs', 'apps/worker/test/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+  },
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
     ...config,
     files: typescriptFiles,
