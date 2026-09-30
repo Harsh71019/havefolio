@@ -34,6 +34,8 @@ function row(input: PendingAttachment): Attachment {
   return {
     ...input,
     parentId: null,
+    itemId: null,
+    position: 0,
     variant: 'original',
     provider: 'cloudinary',
     providerAssetId: null,

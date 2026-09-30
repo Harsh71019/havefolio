@@ -190,6 +190,8 @@ Cross-module changes go through application services or explicit interfaces. Mod
 - Original user input is preserved separately from enrichment suggestions and provenance.
 - Every user-owned query is scoped by owner identity at the API and database-query level.
 
+See [PER-7 inventory schema and relationships](./inventory-domain.md) for the enforced model, ownership, money/date precision, provenance and deletion rules.
+
 ## 7. Request and background-job flow
 
 ### Synchronous command
