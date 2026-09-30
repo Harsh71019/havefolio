@@ -19,7 +19,8 @@
     "build": "tsc -p tsconfig.json",
     "db:generate": "drizzle-kit generate",
     "db:check": "node scripts/check-migrations.mjs",
-    "db:migrate": "pnpm build && node scripts/migrate.mjs"
+    "db:migrate": "pnpm build && node scripts/migrate.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.3",

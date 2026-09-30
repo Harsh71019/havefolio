@@ -1,6 +1,6 @@
 import { mkdtemp, cp, rm, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import config from '../drizzle.config.ts';
 
@@ -55,7 +55,7 @@ try {
       '--schema',
       config.schema,
       '--out',
-      temporary,
+      relative(process.cwd(), temporary),
       '--name',
       'drift_check',
     ],
@@ -66,6 +66,7 @@ try {
   );
   if (
     result.status !== 0 ||
+    !result.stdout.includes('No schema changes, nothing to migrate') ||
     JSON.stringify(before) !== JSON.stringify(await inventory(temporary))
   ) {
     throw new Error('Schema drift: generate and commit a reviewed forward migration.');

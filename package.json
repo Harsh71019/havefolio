@@ -19,7 +19,7 @@
     "test": "pnpm test:unit && pnpm test:components",
     "typecheck": "pnpm build:packages && pnpm --filter './apps/**' -r --if-present typecheck",
     "test:infra": "pnpm build:packages && python3 -m unittest discover -s scripts/shared-services -p \"test_*.py\" && node --test scripts/shared-services/config.test.mjs",
-    "test:unit": "pnpm test:infra && pnpm --filter @havefolio/test-utils test && pnpm --filter @havefolio/api test:unit",
+    "test:unit": "pnpm test:infra && pnpm --filter @havefolio/db test && pnpm --filter @havefolio/test-utils test && pnpm --filter @havefolio/api test:unit",
     "test:integration": "pnpm build:packages && pnpm --filter @havefolio/api test:integration",
     "test:components": "pnpm build:packages && pnpm --filter @havefolio/web test:components",
     "test:smoke": "pnpm --filter @havefolio/web test:smoke",
