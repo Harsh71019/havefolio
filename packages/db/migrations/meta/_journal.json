@@ -36,6 +36,20 @@
       "when": 1790772965550,
       "tag": "0004_taxonomy_defaults",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790784202937,
+      "tag": "0005_confirmed_media_detachment",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790784942020,
+      "tag": "0006_item_keyset_indexes",
+      "breakpoints": true
     }
   ]
 }

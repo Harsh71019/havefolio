@@ -202,8 +202,14 @@ export class TaxonomyRepository implements OnModuleDestroy {
         owner,
         id,
       ]);
-    if (kind === 'tags')
+    if (kind === 'tags') {
+      // Removing relationships changes the item snapshot and must invalidate last-seen revisions.
+      await client.query(
+        `WITH changed AS (UPDATE items i SET revision=revision+1 WHERE i.owner_id=$1 AND EXISTS (SELECT 1 FROM item_tags t WHERE t.owner_id=$1 AND t.item_id=i.id AND t.tag_id=$2) RETURNING i.id) INSERT INTO lifecycle_events(owner_id,item_id,event_type,occurred_at,metadata) SELECT $1,id,'details_updated',clock_timestamp(),$3::jsonb FROM changed`,
+        [owner, id, JSON.stringify({ reason: 'taxonomy_tag_removed', tagId: id })],
+      );
       await client.query('DELETE FROM item_tags WHERE owner_id=$1 AND tag_id=$2', [owner, id]);
+    }
     await client.query(`DELETE FROM ${kind} WHERE owner_id=$1 AND id=$2`, [owner, id]);
   }
   async claimDefaults(client: PoolClient, owner: string): Promise<boolean> {

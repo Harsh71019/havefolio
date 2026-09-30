@@ -1,3 +1,4 @@
+import { ItemsModule } from './items/items.module.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { resolve } from 'node:path';
@@ -20,6 +21,7 @@ import { OperationsModule } from './operations/operations.module.js';
     }),
     AuthModule,
     TaxonomyModule,
+    ItemsModule,
     OperationsModule,
     MediaModule,
   ],

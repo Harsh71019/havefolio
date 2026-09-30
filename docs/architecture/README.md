@@ -294,3 +294,4 @@ PER-1 was accepted after reviewers confirmed:
 See [private Cloudinary operations](../operations/cloudinary-media.md) and [ADR-0004](./adr/0004-use-private-cloudinary-media.md).
 
 - [PER-9 taxonomy management](taxonomy-management.md): owner-scoped categories/subcategories/tags, safe reassignment, explicit defaults, reusable selectors and settings UI.
+- [PER-10 owned-item API](owned-item-api.md): owner-scoped CRUD, revision-protected lifecycle actions, precise purchase facts and recoverable private-media erasure.
