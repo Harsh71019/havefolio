@@ -81,6 +81,7 @@ export class IntegrationRun {
       password: config.valkeyPassword,
       db: 0,
       lazyConnect: true,
+      enableReadyCheck: false,
       enableOfflineQueue: false,
       maxRetriesPerRequest: 0,
       retryStrategy: () => null,

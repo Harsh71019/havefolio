@@ -22,6 +22,13 @@
       "when": 1790758678000,
       "tag": "0002_inventory_domain",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790763982217,
+      "tag": "0003_private_owner_auth",
+      "breakpoints": true
     }
   ]
 }

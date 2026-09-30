@@ -225,7 +225,7 @@ See [PER-7 inventory schema and relationships](./inventory-domain.md) for the en
 | Failure | Expected behaviour | Recovery/mitigation |
 | --- | --- | --- |
 | PostgreSQL unavailable | Readiness fails; dependent API operations return a bounded 503; no writes are acknowledged | Connection timeouts, transaction rollback, Gatus alert and operator recovery |
-| Valkey unavailable | Core PostgreSQL-backed inventory remains usable; queue/reminder actions report degraded state and are reconciled later | Bounded retries, durable intent in PostgreSQL, worker reconnection and reconciliation |
+| Valkey unavailable | Existing PostgreSQL-backed sessions and inventory remain usable; login/registration fail closed with 503, queue/reminder actions report degraded state | Bounded retries, durable intent in PostgreSQL, worker reconnection and reconciliation |
 | Cloudinary unavailable/quota exhausted | Manual item creation remains usable; media operations fail without ready partial metadata | Separate media readiness, provider budget alert and pending-object reconciliation |
 | Enrichment provider unavailable | Manual entry continues; suggestions show unavailable/timeout state | Short timeout, no fabricated fallback, retry only on explicit or safe background action |
 | Thumbnail/OCR job failure | Original valid upload remains private and usable where safe; derived result is marked failed | Idempotent retry with cap; visible operational error after exhaustion |
@@ -241,9 +241,9 @@ Liveness checks only confirm that a process can respond. Readiness separately re
 
 - NPMplus terminates external TLS; internal routing remains limited to the expected Docker networks.
 - API authentication and owner authorisation protect every private resource.
-- Cookies use secure, HTTP-only and appropriate same-site settings when cookie sessions are selected in PER-8.
+- PER-8 uses opaque PostgreSQL sessions with HttpOnly, SameSite Strict cookies and Secure host-only cookies in production. See [authentication operations](../operations/authentication.md).
 - State-changing browser requests receive CSRF protection appropriate to the chosen session design.
-- Passwords use an established memory-hard password hash; exact parameters belong to PER-8.
+- Passwords use an established memory-hard password hash; PER-8 defaults to Argon2id with 64 MiB, three iterations and one lane.
 - Runtime and migration database roles are separate and least-privilege.
 - Uploads reject unsafe types, oversized payloads and path traversal attempts.
 - Secrets live in protected deployment environment files and never in images, browser bundles, logs or Git.

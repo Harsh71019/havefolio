@@ -70,6 +70,10 @@ try {
     '+get',
     '+set',
     '+del',
+    '+eval',
+    '+incr',
+    '+expire',
+    '+ttl',
     '+client|setinfo',
   );
   await appendFile(
