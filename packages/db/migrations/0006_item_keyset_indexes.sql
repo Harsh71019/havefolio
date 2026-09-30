@@ -1,0 +1,2 @@
+CREATE INDEX "item_owner_keyset_idx" ON "items" USING btree ("owner_id","id");--> statement-breakpoint
+CREATE INDEX "event_owner_item_keyset_idx" ON "lifecycle_events" USING btree ("owner_id","item_id","id");

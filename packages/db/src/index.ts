@@ -19,3 +19,5 @@ export async function applyMigrations(
     migrationsSchema,
   });
 }
+
+export { currencyCodes } from './currencies.js';
