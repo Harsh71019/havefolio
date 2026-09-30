@@ -29,6 +29,13 @@
       "when": 1790763982217,
       "tag": "0003_private_owner_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790772965550,
+      "tag": "0004_taxonomy_defaults",
+      "breakpoints": true
     }
   ]
 }

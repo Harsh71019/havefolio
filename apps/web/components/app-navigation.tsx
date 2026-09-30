@@ -1,6 +1,6 @@
 'use client';
 
-import { Archive, Heart, House, LockKeyhole, Target } from 'lucide-react';
+import { Archive, Heart, House, LockKeyhole, Settings, Target } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactElement } from 'react';
@@ -11,6 +11,7 @@ const navigationItems = [
   { href: '/store', icon: Archive, label: 'My Store' },
   { href: '/wants', icon: Heart, label: 'Wants' },
   { href: '/goals', icon: Target, label: 'Goals' },
+  { href: '/settings/taxonomy', icon: Settings, label: 'Settings' },
 ] as const;
 
 export function AppNavigation(): ReactElement {
@@ -56,7 +57,7 @@ export function AppNavigation(): ReactElement {
 
       <nav
         aria-label="Primary"
-        className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-4 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
+        className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
       >
         {navigationItems.map((item) => {
           const active = pathname === item.href;

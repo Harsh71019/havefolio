@@ -17,6 +17,7 @@ describe('primary navigation', () => {
         '/store',
         '/wants',
         '/goals',
+        '/settings/taxonomy',
       ]);
       expect(within(navigation).getByRole('link', { name: 'My Store' })).toHaveAttribute(
         'aria-current',

@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "taxonomy_defaults_seeded_at" timestamp (3) with time zone;
