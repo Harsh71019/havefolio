@@ -19,14 +19,14 @@ export function CollectionEmptyState({
   title: string;
 }>): ReactElement {
   return (
-    <Card className="border-dashed py-0 shadow-none">
+    <Card className="border-dashed py-0">
       <CardContent className="p-0">
         <Empty className="min-h-80">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <Icon aria-hidden="true" />
             </EmptyMedia>
-            <EmptyTitle className="font-display text-2xl font-medium">{title}</EmptyTitle>
+            <EmptyTitle>{title}</EmptyTitle>
             <EmptyDescription>{description}</EmptyDescription>
           </EmptyHeader>
         </Empty>

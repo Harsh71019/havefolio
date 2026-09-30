@@ -30,8 +30,8 @@ export function OwnedItemCard({
   useLabel,
 }: OwnedItemCardProps): ReactNode {
   return (
-    <Card className={cn('overflow-hidden py-0 shadow-none', className)}>
-      <div className="grid aspect-[4/3] place-items-center bg-secondary text-muted-foreground">
+    <Card className={cn('overflow-hidden py-0', className)}>
+      <div className="grid aspect-[4/3] place-items-center bg-muted text-muted-foreground">
         {media ?? (
           <div className="flex flex-col items-center gap-2 text-sm">
             <ImageIcon aria-hidden="true" className="size-7" />
@@ -41,17 +41,13 @@ export function OwnedItemCard({
       </div>
       <CardHeader className="gap-3 px-5 pt-5">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-            {category}
-          </span>
+          <span className="text-xs font-medium text-muted-foreground">{category}</span>
           <Pill className="shrink-0" variant="outline">
             <PillIndicator variant={statusTone} />
             {status}
           </Pill>
         </div>
-        <CardTitle className="font-display text-2xl font-medium tracking-[-0.02em]">
-          {name}
-        </CardTitle>
+        <CardTitle>{name}</CardTitle>
       </CardHeader>
       <CardContent className="px-5 pb-5 text-sm">
         <dl className="grid grid-cols-3 gap-3">
