@@ -10,6 +10,6 @@ import { MediaService } from './media.service.js';
     { provide: PrivateMediaStorage, useClass: CloudinaryStorage },
     MediaService,
   ],
-  exports: [MediaService],
+  exports: [MediaService, PrivateMediaStorage],
 })
 export class MediaModule {}

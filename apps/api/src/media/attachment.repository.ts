@@ -1,7 +1,7 @@
 import { Injectable, ServiceUnavailableException, type OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createDatabase, mediaAttachments } from '@havefolio/db';
-import { and, asc, eq, inArray, lt, ne } from 'drizzle-orm';
+import { and, asc, eq, inArray, lt, ne, or } from 'drizzle-orm';
 import { Pool } from 'pg';
 import type { StoredAsset } from './storage.js';
 
@@ -20,6 +20,7 @@ export type PendingAttachment = Pick<
   | 'checksum'
 >;
 export abstract class AttachmentRepository {
+  abstract markPhotoFamilyDeleting(ownerId: string, id: string): Promise<void>;
   abstract insertPending(input: PendingAttachment): Promise<void>;
   abstract findOwned(ownerId: string, id: string): Promise<Attachment | undefined>;
   abstract markReady(
@@ -68,6 +69,34 @@ export class DatabaseAttachmentRepository extends AttachmentRepository implement
     await this.pool?.end();
   }
 
+  async markPhotoFamilyDeleting(ownerId: string, id: string): Promise<void> {
+    await this.run(async (db) => {
+      await db.transaction(async (tx) => {
+        const parent = await tx
+          .select()
+          .from(mediaAttachments)
+          .where(and(eq(mediaAttachments.ownerId, ownerId), eq(mediaAttachments.id, id)))
+          .limit(1);
+        if (
+          !parent[0] ||
+          parent[0].kind !== 'photo' ||
+          parent[0].variant !== 'original' ||
+          !['ready', 'deleting'].includes(parent[0].state)
+        )
+          throw new Error();
+        await tx
+          .update(mediaAttachments)
+          .set({ state: 'deleting', updatedAt: new Date() })
+          .where(
+            and(
+              eq(mediaAttachments.ownerId, ownerId),
+              or(eq(mediaAttachments.id, id), eq(mediaAttachments.parentId, id)),
+              inArray(mediaAttachments.state, ['ready', 'deleting']),
+            ),
+          );
+      });
+    });
+  }
   async insertPending(input: PendingAttachment): Promise<void> {
     await this.run(async (db) => {
       await db.insert(mediaAttachments).values({ ...input, variant: 'original' });

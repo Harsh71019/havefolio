@@ -57,6 +57,18 @@ describe('MediaService', () => {
   }> {
     const rows = new Map<string, Attachment>();
     const repository: MockedPort<AttachmentRepository> = {
+      markPhotoFamilyDeleting: jest.fn<AttachmentRepository['markPhotoFamilyDeleting']>(
+        (who, id) => {
+          for (const row of rows.values())
+            if (
+              row.ownerId === who &&
+              (row.id === id || row.parentId === id) &&
+              ['ready', 'deleting'].includes(row.state)
+            )
+              row.state = 'deleting';
+          return Promise.resolve();
+        },
+      ),
       insertPending: jest.fn<AttachmentRepository['insertPending']>((input: PendingAttachment) => {
         rows.set(input.id, row(input));
         return Promise.resolve();
