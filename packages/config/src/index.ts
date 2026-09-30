@@ -35,17 +35,49 @@ export const webEnvironmentSchema = z.object({
   NEXT_PUBLIC_API_BASE_URL: z.string().url().default('http://localhost:3001/api/v1'),
 });
 
-export const workerEnvironmentSchema = z.object({
-  NODE_ENV: nodeEnvironment,
-  LOG_LEVEL: logLevel,
-  WORKER_QUEUE_ENABLED: booleanFromEnvironment.default(false),
-  VALKEY_HOST: z.string().min(1).default('127.0.0.1'),
-  VALKEY_PORT: z.coerce.number().int().min(1).max(65_535).default(6379),
-  VALKEY_USERNAME: optionalEnvironmentString,
-  VALKEY_PASSWORD: optionalEnvironmentString,
-  VALKEY_DATABASE: z.coerce.number().int().min(0).default(0),
-  VALKEY_PREFIX: z.string().min(1).default('havefolio'),
-});
+export const workerEnvironmentSchema = z
+  .object({
+    NODE_ENV: nodeEnvironment,
+    LOG_LEVEL: logLevel,
+    WORKER_QUEUE_ENABLED: booleanFromEnvironment.default(false),
+    VALKEY_HOST: z.literal('shared-redis').default('shared-redis'),
+    VALKEY_PORT: z.coerce.number().int().min(1).max(65_535).default(6379),
+    VALKEY_USERNAME: optionalEnvironmentString,
+    VALKEY_PASSWORD: optionalEnvironmentString,
+    VALKEY_DATABASE: z.coerce.number().int().min(0).default(0),
+    VALKEY_PREFIX: z
+      .string()
+      .regex(/^havefolio:(dev|test|production)(:[A-Za-z0-9_-]+)*$/)
+      .default('havefolio:dev'),
+  })
+  .superRefine((config, context) => {
+    if (!config.WORKER_QUEUE_ENABLED) return;
+    const environment = config.NODE_ENV === 'development' ? 'dev' : config.NODE_ENV;
+    if (
+      !config.VALKEY_PREFIX.startsWith(`havefolio:${environment}:`) &&
+      config.VALKEY_PREFIX !== `havefolio:${environment}`
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['VALKEY_PREFIX'],
+        message: 'Queue prefix must match NODE_ENV',
+      });
+    }
+    if (config.VALKEY_USERNAME !== `havefolio_${environment}_worker` || !config.VALKEY_PASSWORD) {
+      context.addIssue({
+        code: 'custom',
+        path: ['VALKEY_USERNAME'],
+        message: 'Enabled queues require dedicated environment worker credentials',
+      });
+    }
+    if (config.VALKEY_DATABASE !== 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['VALKEY_DATABASE'],
+        message: 'Shared Valkey uses database zero and ACL prefix isolation',
+      });
+    }
+  });
 
 export type ApiEnvironment = z.infer<typeof apiEnvironmentSchema>;
 export type WebEnvironment = z.infer<typeof webEnvironmentSchema>;
