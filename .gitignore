@@ -25,3 +25,7 @@ tmp/
 # Python operator tools
 __pycache__/
 *.pyc
+
+# Browser test output
+test-results/
+playwright-report/

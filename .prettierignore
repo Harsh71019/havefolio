@@ -5,3 +5,8 @@ dist/
 node_modules/
 pnpm-lock.yaml
 *.md
+
+# Deterministic Drizzle generator output
+packages/db/migrations/
+test-results/
+playwright-report/
