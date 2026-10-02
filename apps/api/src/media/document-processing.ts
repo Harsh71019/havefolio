@@ -22,6 +22,13 @@ export const DOCUMENT_LIMITS = {
   timeoutMs: 10_000,
   rssKiB: 256 * 1024,
 } as const;
+// Linux omits VmRSS once a process is a zombie awaiting the parent's close event.
+export function pdfMemoryOverBudget(status: string): boolean {
+  const rss = /^VmRSS:\s+(\d+)/m.exec(status);
+  // A missing VmRSS means the kernel has detached the process address space,
+  // including a brief exiting state before it becomes a zombie.
+  return rss !== null && Number(rss[1]) > DOCUMENT_LIMITS.rssKiB;
+}
 export interface ProcessedDocument {
   bytes: Buffer;
   checksum: string;
@@ -138,8 +145,9 @@ export class DocumentProcessor {
         failed = false,
         monitoring = false;
       const kill = (): void => {
-        failed = true;
-        child.kill('SIGKILL');
+        // A completed parser may disappear between sampling and its close event.
+        // Mark failure only when an actual live process was terminated.
+        if (child.exitCode === null && child.kill('SIGKILL')) failed = true;
       };
       const deadline = setTimeout(kill, DOCUMENT_LIMITS.timeoutMs);
       // RSS bounds include typed-array/decompressor allocations outside the V8 heap.
@@ -149,10 +157,12 @@ export class DocumentProcessor {
         if (process.platform === 'linux') {
           void readFile(`/proc/${child.pid}/status`, 'utf8')
             .then((status) => {
-              const rss = /^VmRSS:\s+(\d+)/m.exec(status);
-              if (!rss || Number(rss[1]) > DOCUMENT_LIMITS.rssKiB) kill();
+              if (pdfMemoryOverBudget(status)) kill();
             })
-            .catch(() => kill())
+            .catch((error: NodeJS.ErrnoException) => {
+              // ENOENT means the process has exited; close validates its exit code/output.
+              if (error.code !== 'ENOENT') kill();
+            })
             .finally(() => {
               monitoring = false;
             });
@@ -165,9 +175,11 @@ export class DocumentProcessor {
           (error, stdout) => {
             monitoring = false;
             if (
-              error ||
-              !Number.isFinite(Number(stdout.trim())) ||
-              Number(stdout.trim()) > DOCUMENT_LIMITS.rssKiB
+              (error && error.code !== 1) ||
+              (!error &&
+                (!stdout.trim() ||
+                  !Number.isFinite(Number(stdout.trim())) ||
+                  Number(stdout.trim()) > DOCUMENT_LIMITS.rssKiB))
             )
               kill();
           },

@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { PDF, PdfName, PdfDict, PdfString, PdfStream, PdfArray } from '@libpdf/core';
 import sharp from 'sharp';
 import { deflateSync } from 'node:zlib';
-import { DocumentProcessor, DOCUMENT_LIMITS } from './document-processing.js';
+import { DocumentProcessor, DOCUMENT_LIMITS, pdfMemoryOverBudget } from './document-processing.js';
 import { PhotoProcessor } from './photo-processing.js';
 jest.setTimeout(30000);
 const processor = new DocumentProcessor(new PhotoProcessor());
@@ -204,5 +204,13 @@ describe('bounded private document processing', () => {
     jest.advanceTimersByTime(DOCUMENT_LIMITS.timeoutMs);
     jest.useRealTimers();
     await assertion;
+  });
+  it('does not reject a Linux parser whose address space has exited; excess RSS stays closed', () => {
+    expect(pdfMemoryOverBudget('State:\tZ (zombie)\n')).toBe(false);
+    expect(pdfMemoryOverBudget('State:\tR (running)\nVmRSS:\t80000 kB\n')).toBe(false);
+    expect(pdfMemoryOverBudget('State:\tR (running)\n')).toBe(false);
+    expect(
+      pdfMemoryOverBudget(`State:\tR (running)\nVmRSS:\t${DOCUMENT_LIMITS.rssKiB + 1} kB\n`),
+    ).toBe(true);
   });
 });
