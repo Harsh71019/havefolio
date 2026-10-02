@@ -189,4 +189,40 @@ describe('Cloudinary private storage contract', () => {
     expect(raw.pathname).toBe('/v1_1/fixture-cloud/raw/download');
     expect(raw.searchParams.get('public_id')).toBe(`${input.key}.pdf`);
   });
+  it('buffers server-only authenticated document access with byte bounds and a deadline', async () => {
+    const storage = await setup();
+    const bytes = Buffer.from('synthetic document');
+    const fetcher = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(bytes, { headers: { 'content-length': String(bytes.length) } }),
+      );
+    expect(await storage.read(`${input.key}.pdf`, 'raw', 'pdf', bytes.length)).toEqual(bytes);
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.stringContaining('/raw/download?'),
+      expect.objectContaining({ redirect: 'error', signal: expect.any(AbortSignal) }),
+    );
+    const signed = new URL(fetcher.mock.calls[0]![0] as string);
+    expect(signed.searchParams.get('type')).toBe('authenticated');
+    expect(Number(signed.searchParams.get('expires_at'))).toBeGreaterThan(
+      Math.floor(Date.now() / 1000),
+    );
+    for (const response of [
+      new Response('wrong'),
+      new Response(bytes, { status: 403 }),
+      new Response(bytes, { headers: { 'content-length': '99999' } }),
+    ]) {
+      fetcher.mockResolvedValueOnce(response);
+      await expect(storage.read(`${input.key}.pdf`, 'raw', 'pdf', bytes.length)).rejects.toThrow(
+        'MEDIA_STORAGE_UNAVAILABLE',
+      );
+    }
+    fetcher.mockRejectedValueOnce(new Error('credential and private path'));
+    await expect(storage.read(`${input.key}.pdf`, 'raw', 'pdf', bytes.length)).rejects.toThrow(
+      'MEDIA_STORAGE_UNAVAILABLE',
+    );
+    await expect(
+      storage.read(`${input.key}.pdf`, 'raw', 'pdf', 20 * 1024 * 1024 + 1),
+    ).rejects.toThrow('INVALID_MEDIA');
+  });
 });

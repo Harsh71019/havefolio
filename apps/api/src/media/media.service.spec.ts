@@ -112,6 +112,7 @@ describe('MediaService', () => {
       ),
     };
     const storage: MockedPort<PrivateMediaStorage> = {
+      read: jest.fn<PrivateMediaStorage['read']>(),
       put: jest.fn<PrivateMediaStorage['put']>(() =>
         Promise.resolve({ assetId: 'provider-id', version: 123, width: 2, height: 2 }),
       ),

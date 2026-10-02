@@ -94,7 +94,8 @@ describe('owned item HTTP, concurrency and media recovery', () => {
     taxonomy = module.get(TaxonomyService);
     app = module.createNestApplication<NestExpressApplication>({ logger: false });
     configureApplication(app);
-    await app.init();
+    // Keep one listening server so keep-alive clients cannot reuse closed ephemeral listeners.
+    await app.listen(0, '127.0.0.1');
     const roots = (
       await run.runtime.query<{ id: string }>(
         "INSERT INTO categories(owner_id,name) VALUES($1,'Kitchen'),($2,'Foreign') RETURNING id",

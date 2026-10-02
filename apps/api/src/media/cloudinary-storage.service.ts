@@ -134,6 +134,42 @@ export class CloudinaryStorage extends PrivateMediaStorage {
     }
   }
 
+  async read(
+    key: string,
+    resourceType: ResourceType,
+    format: Format,
+    byteSize: number,
+  ): Promise<Buffer> {
+    this.assertKey(key, resourceType);
+    if (!Number.isSafeInteger(byteSize) || byteSize < 1 || byteSize > 20 * 1024 * 1024)
+      throw new BadRequestException('INVALID_MEDIA');
+    const chunks: Buffer[] = [];
+    try {
+      const response = await fetch(this.download(key, resourceType, format), {
+        redirect: 'error',
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!response.ok || !response.body) throw new Error();
+      const declared = response.headers.get('content-length');
+      if (declared && Number(declared) !== byteSize) {
+        await response.body.cancel();
+        throw new Error();
+      }
+      let size = 0;
+      for await (const chunk of response.body) {
+        size += chunk.length;
+        if (size > byteSize) throw new Error();
+        chunks.push(Buffer.from(chunk));
+      }
+      if (size !== byteSize) throw new Error();
+      return Buffer.concat(chunks);
+    } catch {
+      throw new ServiceUnavailableException('MEDIA_STORAGE_UNAVAILABLE');
+    } finally {
+      chunks.forEach((c) => c.fill(0));
+    }
+  }
+
   download(key: string, resourceType: ResourceType, format: Format): string {
     this.assertKey(key, resourceType);
     try {

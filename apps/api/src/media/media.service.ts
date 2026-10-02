@@ -168,6 +168,14 @@ export class MediaService {
     await this.cleanup(row);
   }
 
+  // Internal document compensation only; re-read under owner locks before calling.
+  async discardPending(ownerId: string, id: string): Promise<void> {
+    const row = await this.owned(ownerId, id);
+    if (row.kind === 'photo' || row.state !== 'pending')
+      throw new ConflictException('MEDIA_NOT_READY');
+    await this.cleanup(row);
+  }
+
   private async cleanup(row: Attachment): Promise<void> {
     if (await this.repository.hasChildren(row.ownerId, row.id))
       throw new ConflictException('MEDIA_HAS_VARIANTS');

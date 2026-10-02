@@ -163,7 +163,7 @@ export class ItemPhotosService {
             await this.item(c, owner, item);
             const position = (
               await c.query<{ position: number }>(
-                "SELECT coalesce(max(position)+1,0) AS position FROM media_attachments WHERE owner_id=$1 AND item_id=$2 AND variant='original' AND state='ready'",
+                "SELECT coalesce(max(position)+1,0) AS position FROM media_attachments WHERE owner_id=$1 AND item_id=$2 AND kind='photo' AND variant='original' AND state='ready'",
                 [owner, item],
               )
             ).rows[0]!.position;
