@@ -99,9 +99,18 @@ type Mock = {
   actions: Entry[];
   deletes: number;
   conflictNextPatch?: Entry;
+  refunds: Entry[];
+  refundWrites: Entry[];
 };
 async function mock(page: Page, start: Entry, options: { photos?: boolean } = {}): Promise<Mock> {
-  const state: Mock = { item: { ...start }, patches: [], actions: [], deletes: 0 };
+  const state: Mock = {
+    item: { ...start },
+    patches: [],
+    actions: [],
+    deletes: 0,
+    refunds: [],
+    refundWrites: [],
+  };
   const itemId = String(start.id);
   await page.route('**/api/v1/taxonomy**', (route) => route.fulfill({ json: taxonomy }));
   await page.route(/\/api\/v1\/items\?/, (route) =>
@@ -148,6 +157,53 @@ async function mock(page: Page, start: Entry, options: { photos?: boolean } = {}
       revision: Number(state.item.revision) + 1,
     };
     return route.fulfill({ json: state.item });
+  });
+  // PER-22 refunds: exact bigint totals; the purchase amount is never changed.
+  const refundSnapshot = (): Entry => {
+    const paid = state.item.pricePaidMinor as string | null;
+    const refunded = state.refunds.reduce((t, r) => t + BigInt(r.amountMinor as string), 0n);
+    return {
+      revision: state.item.revision,
+      ownershipStatus: state.item.ownershipStatus,
+      acquisitionType: state.item.acquisitionType,
+      totals: {
+        currency: state.item.currency,
+        amountPaidMinor: paid,
+        refundedMinor: refunded.toString(),
+        netMinor: paid === null ? null : (BigInt(paid) - refunded).toString(),
+      },
+      refunds: state.refunds,
+    };
+  };
+  await page.route(`**/api/v1/items/${itemId}/refunds**`, (route) => {
+    const method = route.request().method();
+    if (method === 'GET') return route.fulfill({ json: refundSnapshot() });
+    const body = route.request().postDataJSON() as Entry;
+    state.refundWrites.push({ method, ...body });
+    if (body.revision !== state.item.revision)
+      return route.fulfill({ status: 409, json: { message: 'STALE_ITEM_REVISION' } });
+    if (method === 'POST')
+      state.refunds = [
+        ...state.refunds,
+        {
+          id: id(800 + state.refunds.length),
+          amountMinor: body.amountMinor,
+          currency: body.currency,
+          refundDate: body.refundDate ?? {
+            precision: 'unknown',
+            year: null,
+            month: null,
+            day: null,
+          },
+          note: body.note ?? null,
+          createdAt: '2026-09-25T05:30:00.000Z',
+          updatedAt: '2026-09-25T05:30:00.000Z',
+        },
+      ];
+    else if (method === 'DELETE') state.refunds = state.refunds.slice(0, -1);
+    else return route.fallback();
+    state.item = { ...state.item, revision: Number(state.item.revision) + 1 };
+    return route.fulfill({ status: method === 'POST' ? 201 : 200, json: refundSnapshot() });
   });
   await page.route(`**/api/v1/items/${itemId}/history**`, (route) =>
     route.fulfill({
@@ -430,4 +486,50 @@ test('rejects unsafe return paths and shows recovery states', async ({ page }) =
   await page.goto(`/items/${id(8)}`);
   await expect(page.getByRole('heading', { name: 'Please sign in again' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
+});
+
+test('returns and refunds keep purchase, refunded and net recorded spend distinct', async ({
+  page,
+}, testInfo) => {
+  const state = await mock(page, { ...complete, ownershipStatus: 'returned' });
+  await page.goto(`/items/${id(1)}`);
+  const refunds = page.getByRole('region', { name: 'Returns and refunds' });
+  await expect(refunds.getByText('Marked as returned. No refund is recorded yet')).toBeVisible();
+  // Keyboard-only: reach and open the dialog, fill the amount, choose year-only, add a note.
+  await refunds.getByRole('button', { name: 'Record a refund' }).focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Record a refund' });
+  await expect(dialog.getByText('Up to ₹2,499 can be recorded.')).toBeVisible();
+  await dialog.getByLabel('Amount refunded (INR)').fill('1,000.50');
+  await dialog.getByRole('radio', { name: 'Year only' }).check();
+  await dialog.getByRole('textbox', { name: 'Year', exact: true }).fill('2026');
+  await dialog.getByLabel('Note (optional)').fill('Store credit came as cash');
+  await dialog.getByRole('button', { name: 'Record refund' }).press('Enter');
+  await expect(dialog).toBeHidden();
+  expect(state.refundWrites).toEqual([
+    {
+      method: 'POST',
+      revision: 4,
+      amountMinor: '100050',
+      currency: 'INR',
+      refundDate: { precision: 'year', year: 2026, month: null, day: null },
+      note: 'Store credit came as cash',
+    },
+  ]);
+  expect(state.actions).toEqual([]);
+  await expect(refunds.getByText('₹1,498.50')).toBeVisible();
+  await expect(refunds.getByText('₹1,000.50')).toHaveCount(2);
+  await expect(
+    refunds.getByText('Amount paid minus refunds received. Not a current or resale value.'),
+  ).toBeVisible();
+  // The purchase card keeps the original amount.
+  await expect(page.getByRole('region', { name: 'Purchase' }).getByText('₹2,499')).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(false);
+  // Let the transient confirmation toast clear so the capture shows the settled card.
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 10000 });
+  await refunds.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `../../docs/screenshots/per-22-${testInfo.project.name}.png` });
 });
