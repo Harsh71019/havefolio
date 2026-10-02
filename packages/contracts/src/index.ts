@@ -118,6 +118,24 @@ export interface ItemResponse {
   originalSource: string;
 }
 
+/** Current cover for browse cards: the first ready photo, identified for authenticated delivery. */
+export interface ItemCoverSummary {
+  photoId: string;
+  width: number;
+  height: number;
+  altText: string | null;
+  decorative: boolean;
+}
+export interface ItemListEntry extends ItemResponse {
+  cover: ItemCoverSummary | null;
+}
+/** Bounded UUID-keyset page from `GET /api/v1/items`. */
+export interface ItemsPage {
+  items: ItemListEntry[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
 export interface OwnerResponse {
   id: string;
   email: string;

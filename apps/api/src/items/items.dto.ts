@@ -230,8 +230,28 @@ export class ItemDto {
   @ApiProperty({ enum: ['manual', 'url', 'barcode', 'photo', 'receipt', 'import'] })
   originalSource!: string;
 }
+/** Current cover summary for browse cards; never contains provider identifiers or URLs. */
+export class ItemCoverDto {
+  @ApiProperty({
+    format: 'uuid',
+    description: 'Ready photo original ID for authenticated content.',
+  })
+  photoId!: string;
+  @ApiProperty() width!: number;
+  @ApiProperty() height!: number;
+  @ApiProperty({ type: String, nullable: true }) altText!: string | null;
+  @ApiProperty() decorative!: boolean;
+}
+export class ItemListEntryDto extends ItemDto {
+  @ApiProperty({
+    type: ItemCoverDto,
+    nullable: true,
+    description: 'First ready photo by gallery order; null when the item has no ready photo.',
+  })
+  cover!: ItemCoverDto | null;
+}
 export class ItemsPageDto {
-  @ApiProperty({ type: [ItemDto] }) items!: ItemDto[];
+  @ApiProperty({ type: [ItemListEntryDto] }) items!: ItemListEntryDto[];
   @ApiProperty({ type: String, nullable: true, format: 'uuid' }) nextCursor!: string | null;
   @ApiProperty() hasMore!: boolean;
 }

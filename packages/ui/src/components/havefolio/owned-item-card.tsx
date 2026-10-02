@@ -1,71 +1,96 @@
 import { ImageIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '#components/card';
-import { Pill, PillIndicator } from '#components/kibo-ui/pill';
+import { Pill } from '#components/kibo-ui/pill';
 import { cn } from '#lib/utils';
 
+export type OwnedItemFact = { label: string; value: string; muted?: boolean };
+
 export type OwnedItemCardProps = {
-  ageLabel: string;
-  category: string;
-  className?: string;
-  footer?: ReactNode;
-  media?: ReactNode;
+  /** Prefix for element ids so a wrapping link can reference the name, status and facts. */
+  idPrefix: string;
   name: string;
-  priceLabel: string;
+  /** Category context, for example "Kitchen › Appliances". */
+  context?: string;
   status: string;
-  statusTone?: 'success' | 'error' | 'warning' | 'info';
-  useLabel: string;
+  statusIcon?: ReactNode;
+  /** Extra screen-reader wording for the status, for example ", no longer owned". */
+  statusNote?: string;
+  /** No longer owned: shown with text and a muted cover, never colour alone. */
+  inactive?: boolean;
+  facts: OwnedItemFact[];
+  media?: ReactNode;
+  footer?: ReactNode;
+  className?: string;
 };
 
 export function OwnedItemCard({
-  ageLabel,
-  category,
   className,
+  context,
+  facts,
   footer,
+  idPrefix,
+  inactive = false,
   media,
   name,
-  priceLabel,
   status,
-  statusTone = 'success',
-  useLabel,
+  statusIcon,
+  statusNote,
 }: OwnedItemCardProps): ReactNode {
   return (
-    <Card className={cn('overflow-hidden py-0', className)}>
-      <div className="grid aspect-[4/3] place-items-center bg-muted text-muted-foreground">
+    <Card className={cn('h-full gap-0 overflow-hidden py-0', className)}>
+      <div
+        className={cn(
+          'relative aspect-[4/3] bg-muted text-muted-foreground',
+          inactive && 'opacity-70 grayscale',
+        )}
+      >
         {media ?? (
-          <div className="flex flex-col items-center gap-2 text-sm">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm">
             <ImageIcon aria-hidden="true" className="size-7" />
             <span>No photo yet</span>
           </div>
         )}
       </div>
-      <CardHeader className="gap-3 px-5 pt-5">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-medium text-muted-foreground">{category}</span>
-          <Pill className="shrink-0" variant="outline">
-            <PillIndicator variant={statusTone} />
+      <CardHeader className="gap-2 px-4 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {context ? (
+            <span className="min-w-0 truncate text-xs font-medium text-muted-foreground">
+              {context}
+            </span>
+          ) : null}
+          <Pill
+            id={`${idPrefix}-status`}
+            className="shrink-0 [&_svg]:size-3.5"
+            variant={inactive ? 'outline' : 'secondary'}
+          >
+            {statusIcon}
             {status}
+            {statusNote ? <span className="sr-only">{statusNote}</span> : null}
           </Pill>
         </div>
-        <CardTitle>{name}</CardTitle>
+        <CardTitle id={`${idPrefix}-name`} className="leading-snug break-words">
+          {name}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="px-5 pb-5 text-sm">
-        <dl className="grid grid-cols-3 gap-3">
-          <ItemFact label="Paid" value={priceLabel} />
-          <ItemFact label="Age" value={ageLabel} />
-          <ItemFact label="Use" value={useLabel} />
+      <CardContent className="px-4 pb-4 text-sm">
+        <dl id={`${idPrefix}-facts`} className="divide-y">
+          {facts.map((fact) => (
+            <div key={fact.label} className="flex items-baseline justify-between gap-3 py-1.5">
+              <dt className="shrink-0 text-xs text-muted-foreground">{fact.label}</dt>
+              <dd
+                className={cn(
+                  'min-w-0 text-right',
+                  fact.muted ? 'text-muted-foreground italic' : 'font-medium',
+                )}
+              >
+                {fact.value}
+              </dd>
+            </div>
+          ))}
         </dl>
       </CardContent>
-      {footer ? <div className="border-t px-5 py-4">{footer}</div> : null}
+      {footer ? <div className="mt-auto border-t px-4 py-3">{footer}</div> : null}
     </Card>
-  );
-}
-
-function ItemFact({ label, value }: Readonly<{ label: string; value: string }>): ReactNode {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-1 truncate font-semibold">{value}</dd>
-    </div>
   );
 }
