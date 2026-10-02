@@ -19,6 +19,8 @@ test('capture preview, partial failure, retry and neutral 360px themes', async (
   let count = 0;
   const attempts: string[] = [];
   await page.route(`**/api/v1/items/${item}/photos`, async (route) => {
+    if (route.request().method() === 'GET')
+      return route.fulfill({ json: { revision: 1, photos: [] } });
     attempts.push(route.request().headers()['upload-id']!);
     count++;
     if (count === 1) await waiting;
@@ -76,6 +78,9 @@ test('capture preview, partial failure, retry and neutral 360px themes', async (
   }
 });
 test('removal and unsupported selection remain accessible', async ({ page }) => {
+  await page.route(`**/api/v1/items/${item}/photos`, (route) =>
+    route.fulfill({ json: { revision: 1, photos: [] } }),
+  );
   await page.goto(`/items/${item}/photos/new`);
   await page.getByLabel('Choose from gallery or files').setInputFiles(photo);
   await page.getByRole('button', { name: 'Remove photo 1' }).click();
@@ -86,6 +91,6 @@ test('removal and unsupported selection remain accessible', async ({ page }) => 
     buffer: Buffer.from('synthetic unsupported'),
   });
   await expect(
-    page.getByRole('alert').filter({ hasText: 'Choose JPEG, PNG or WebP' }),
-  ).toContainText('HEIC/HEIF is not supported');
+    page.getByRole('alert').filter({ hasText: 'HEIC/HEIF is not supported' }),
+  ).toContainText('JPEG, PNG or WebP');
 });

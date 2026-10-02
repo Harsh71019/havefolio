@@ -43,6 +43,7 @@ function row(input: PendingAttachment): Attachment {
     state: 'pending',
     width: null,
     height: null,
+    altText: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

@@ -24,7 +24,9 @@ describe('private item photo HTTP and recovery', () => {
     token = newToken();
   let app: NestExpressApplication;
   let bytes: Buffer;
+  const stored = new Map<string, Buffer>();
   const put = jest.fn(async (input: StoreInput) => {
+    stored.set(input.key, Buffer.from(input.bytes));
     const m = await sharp(input.bytes).metadata();
     return { assetId: randomUUID(), version: 1, width: m.width, height: m.height };
   });
@@ -85,6 +87,7 @@ describe('private item photo HTTP and recovery', () => {
         put,
         delete: remove,
         download: () => 'https://example.test/short-lived-synthetic',
+        read: (key: string) => Promise.resolve(Buffer.from(stored.get(key) ?? Buffer.alloc(0))),
       })
       .compile();
     app = module.createNestApplication<NestExpressApplication>({ logger: false });
@@ -316,11 +319,153 @@ describe('private item photo HTTP and recovery', () => {
       .send({ revision: state.revision })
       .expect(200);
   });
+  it('persists bounded owner alt text and explicit decorative state', async () => {
+    const item = await create();
+    await upload(item.id).attach('photos', bytes, 'IMG_0001.jpg').expect(201);
+    let state = await snapshot(item.id);
+    const photo = state.photos[0]!;
+    expect(photo).toMatchObject({ altText: null, decorative: false });
+    const describe = (body: object): ReturnType<ReturnType<typeof request>['patch']> =>
+      http()
+        .patch(`/api/v1/items/${item.id}/photos/${photo.id}`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .send(body);
+    state = (
+      await describe({
+        revision: state.revision,
+        altText: '  Blue kettle on the counter  ',
+        decorative: false,
+      }).expect(200)
+    ).body as PhotoSnapshotDto;
+    expect(state.photos[0]).toMatchObject({
+      altText: 'Blue kettle on the counter',
+      decorative: false,
+    });
+    await describe({ revision: state.revision - 1, altText: 'Stale', decorative: false }).expect(
+      409,
+    );
+    for (const invalid of [
+      { revision: state.revision, altText: 'x'.repeat(251), decorative: false },
+      { revision: state.revision, altText: 'Not empty', decorative: true },
+      { revision: state.revision, altText: 'Tab\tcontrol', decorative: false },
+      { revision: state.revision, decorative: false },
+      { revision: state.revision, altText: 'Extra', decorative: false, ownerId: other },
+    ])
+      await describe(invalid).expect(400);
+    await describe({ revision: state.revision, altText: '😀'.repeat(250), decorative: false })
+      .expect(200)
+      .then((r) => (state = r.body as PhotoSnapshotDto));
+    state = (
+      await describe({ revision: state.revision, altText: null, decorative: true }).expect(200)
+    ).body as PhotoSnapshotDto;
+    expect(state.photos[0]).toMatchObject({ altText: null, decorative: true });
+    state = (
+      await describe({ revision: state.revision, altText: '', decorative: false }).expect(200)
+    ).body as PhotoSnapshotDto;
+    expect(state.photos[0]).toMatchObject({ altText: null, decorative: false });
+    await http()
+      .patch(`/api/v1/items/${item.id}/photos/${randomUUID()}`)
+      .set('Cookie', `havefolio_session=${token}`)
+      .send({ revision: state.revision, altText: 'Missing', decorative: false })
+      .expect(404);
+    await expect(
+      run.runtime.query("UPDATE media_attachments SET alt_text='Variant' WHERE parent_id=$1", [
+        photo.id,
+      ]),
+    ).rejects.toThrow();
+    await describe({ revision: state.revision, altText: 'Private words', decorative: false })
+      .expect(200)
+      .then((r) => (state = r.body as PhotoSnapshotDto));
+    await http()
+      .delete(`/api/v1/items/${item.id}/photos/${photo.id}`)
+      .set('Cookie', `havefolio_session=${token}`)
+      .send({ revision: state.revision })
+      .expect(200);
+    const tombstone = await run.runtime.query<{ alt_text: string | null }>(
+      'SELECT alt_text FROM media_attachments WHERE id=$1',
+      [photo.id],
+    );
+    expect(tombstone.rows[0]!.alt_text).toBeNull();
+  });
+  it('delivers verified same-origin variant bytes without provider details', async () => {
+    const item = await create();
+    await upload(item.id).attach('photos', bytes, 'synthetic.jpg').expect(201);
+    const photo = (await snapshot(item.id)).photos[0]!;
+    const path = `/api/v1/items/${item.id}/photos/${photo.id}/content`;
+    const res = await http()
+      .get(`${path}/thumbnail`)
+      .set('Cookie', `havefolio_session=${token}`)
+      .buffer(true)
+      .expect(200);
+    expect(res.headers['content-type']).toBe('image/webp');
+    expect(res.headers['cache-control']).toBe('private, no-store');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['referrer-policy']).toBe('no-referrer');
+    expect(res.headers['content-disposition']).toBe('inline');
+    expect(JSON.stringify(res.headers)).not.toMatch(/havefolio\/|cloudinary|example\.test/);
+    expect((await sharp(res.body as Buffer).metadata()).format).toBe('webp');
+    await http().get(`${path}/display`).set('Cookie', `havefolio_session=${token}`).expect(200);
+    await http().get(`${path}/display`).expect(401);
+    await http().get(`${path}/original`).set('Cookie', `havefolio_session=${token}`).expect(400);
+    await http()
+      .get(`/api/v1/items/${item.id}/photos/${randomUUID()}/content/thumbnail`)
+      .set('Cookie', `havefolio_session=${token}`)
+      .expect(404);
+    for (const key of stored.keys()) stored.set(key, Buffer.from('tampered'));
+    const tampered = await http()
+      .get(`${path}/thumbnail`)
+      .set('Cookie', `havefolio_session=${token}`)
+      .expect(503);
+    expect(JSON.stringify(tampered.body)).not.toMatch(/havefolio\/|cloudinary|example\.test/);
+  });
+  it('excludes receipts and warranties from gallery, cover, description and delivery', async () => {
+    const item = await create();
+    await upload(item.id).attach('photos', bytes, 'synthetic.jpg').expect(201);
+    const documents: string[] = [];
+    for (const kind of ['receipt', 'warranty']) {
+      const id = randomUUID();
+      documents.push(id);
+      await run.runtime.query(
+        "INSERT INTO media_attachments(id,owner_id,item_id,kind,variant,state,object_key,resource_type,format,provider_asset_id,provider_version,original_filename,mime_type,byte_size,checksum) VALUES($1,$2,$3,$4,'original','ready',$5,'raw','pdf',$6,1,'synthetic.pdf','application/pdf',10,$7)",
+        [id, owner, item.id, kind, `havefolio/test/${id}.pdf`, randomUUID(), 'b'.repeat(64)],
+      );
+    }
+    const state = await snapshot(item.id);
+    expect(state.photos.map((p) => p.id)).not.toEqual(expect.arrayContaining(documents));
+    expect(state.photos).toHaveLength(1);
+    for (const id of documents) {
+      await http()
+        .patch(`/api/v1/items/${item.id}/photos/order`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .send({ revision: state.revision, photoIds: [id, state.photos[0]!.id] })
+        .expect(409);
+      await http()
+        .patch(`/api/v1/items/${item.id}/photos/${id}`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .send({ revision: state.revision, altText: 'Receipt', decorative: false })
+        .expect(404);
+      await http()
+        .get(`/api/v1/items/${item.id}/photos/${id}/content/display`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .expect(404);
+    }
+    await expect(
+      run.runtime.query("UPDATE media_attachments SET alt_text='Receipt' WHERE id=$1", [
+        documents[0],
+      ]),
+    ).rejects.toThrow();
+    expect((await snapshot(item.id)).photos[0]!.cover).toBe(true);
+  });
   it('publishes multipart, response and failure contracts', () => {
     const doc = SwaggerModule.createDocument(app, new DocumentBuilder().addCookieAuth().build());
     const endpoint = doc.paths['/api/v1/items/{itemId}/photos']!.post!;
     expect(endpoint.requestBody).toHaveProperty('content.multipart/form-data');
     for (const code of ['201', '400', '401', '404', '409', '413', '503'])
       expect(endpoint.responses[code]).toBeDefined();
+    const photo = doc.paths['/api/v1/items/{itemId}/photos/{photoId}']!;
+    expect(photo.patch?.requestBody).toHaveProperty('content.application/json');
+    expect(
+      doc.paths['/api/v1/items/{itemId}/photos/{photoId}/content/{variant}']?.get,
+    ).toBeDefined();
   });
 });

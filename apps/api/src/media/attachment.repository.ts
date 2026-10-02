@@ -173,6 +173,7 @@ export class DatabaseAttachmentRepository extends AttachmentRepository implement
         .set({
           state: 'deleted',
           originalFilename: 'deleted',
+          altText: null,
           checksum: '0'.repeat(64),
           width: null,
           height: null,

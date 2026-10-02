@@ -50,6 +50,13 @@
       "when": 1790784942020,
       "tag": "0006_item_keyset_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790917673320,
+      "tag": "0007_photo_alt_text",
+      "breakpoints": true
     }
   ]
 }
