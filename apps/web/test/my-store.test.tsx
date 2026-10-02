@@ -282,7 +282,7 @@ describe('My Store page', () => {
     expect(kettle).toHaveAccessibleDescription(
       /Paid ₹2,499 Acquired 12 Mar 2024 · 2 years ago Use Often/,
     );
-    expect(kettle).toHaveAttribute('href', `/items/${uuid(1)}/photos?from=store`);
+    expect(kettle).toHaveAttribute('href', `/items/${uuid(1)}`);
     const image = within(kettle).getByRole('img', { name: 'Steel kettle' });
     expect(image.getAttribute('src')).toBe(
       `/api/v1/items/${uuid(1)}/photos/${uuid(501)}/content/thumbnail`,
@@ -460,5 +460,36 @@ describe('My Store page', () => {
     expect(document.body.textContent).not.toMatch(
       /\b(buy|cart|checkout|resell|sell now|recommended|deal|hurry)\b/i,
     );
+  });
+});
+
+describe('item navigation context', () => {
+  afterEach(() => {
+    window.history.replaceState(null, '', '/');
+    window.sessionStorage.clear();
+  });
+
+  it('opens item details carrying the sanitized current browse state', async () => {
+    window.history.replaceState(null, '', '/store?q=kettle&sort=price&currency=INR&evil=1');
+    render(<MyStore source={source([page([item(1, { name: 'Kettle' })])])} now={now} />);
+    await screen.findByRole('link', { name: /^Kettle\b/ });
+    expect(card('Kettle')).toHaveAttribute(
+      'href',
+      `/items/${uuid(1)}?returnTo=${encodeURIComponent('/store?q=kettle&sort=price&currency=INR')}`,
+    );
+    expect(card('Kettle')).toHaveTextContent('View details');
+  });
+
+  it('confirms a deletion once without revealing anything else', async () => {
+    window.sessionStorage.setItem('havefolio:item-deleted', 'Old kettle');
+    const { unmount } = render(<MyStore source={source([page([item(2)])])} now={now} />);
+    expect(
+      await screen.findByText('“Old kettle” and its private photos and documents were deleted.'),
+    ).toBeInTheDocument();
+    expect(window.sessionStorage.getItem('havefolio:item-deleted')).toBeNull();
+    unmount();
+    render(<MyStore source={source([page([item(2)])])} now={now} />);
+    await screen.findByRole('link', { name: /^Item 2\b/ });
+    expect(screen.queryByText(/were deleted/)).toBeNull();
   });
 });

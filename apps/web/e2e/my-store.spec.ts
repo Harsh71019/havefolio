@@ -198,8 +198,8 @@ test('populated, mixed-lifecycle store is responsive, private and keyboard navig
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: /^Mixer grinder Owned/ })).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(new RegExp(`/items/${id(2)}/photos\\?from=store$`));
-  await expect(page.getByRole('link', { name: 'Back to My Store' })).toHaveAttribute(
+  await expect(page).toHaveURL(new RegExp(`/items/${id(2)}$`));
+  await expect(page.getByRole('link', { name: 'Back to My Store' }).first()).toHaveAttribute(
     'href',
     '/store',
   );

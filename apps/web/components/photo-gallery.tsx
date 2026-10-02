@@ -56,6 +56,7 @@ import { PrivatePhoto } from '@havefolio/ui/components/havefolio/private-photo';
 import { Skeleton } from '@havefolio/ui/components/skeleton';
 import { toast } from '@havefolio/ui/components/sonner';
 import { PhotoDescriptionDialog } from './photo-description-dialog';
+import { itemDetailHref } from './navigation-context';
 import { PhotoUploadPanel } from './photo-upload-panel';
 import {
   deletePhoto,
@@ -103,10 +104,13 @@ type Dialogs =
 export function PhotoGallery({
   itemId,
   fromStore = false,
+  returnTo,
 }: {
   itemId: string;
   /** Opened from My Store: the back link returns there instead of the item page. */
   fromStore?: boolean;
+  /** The item page's My Store context, re-validated and carried back to the item page. */
+  returnTo?: string | undefined;
 }): React.JSX.Element {
   const [snapshot, setSnapshot] = useState<ItemPhotoSnapshot | undefined>();
   const [loadError, setLoadError] = useState<string | undefined>();
@@ -388,7 +392,7 @@ export function PhotoGallery({
           {fromStore ? (
             <Link href="/store">Back to My Store</Link>
           ) : (
-            <Link href={`/items/${itemId}`}>Back to item</Link>
+            <Link href={itemDetailHref(itemId, returnTo)}>Back to item</Link>
           )}
         </Button>
       </header>
