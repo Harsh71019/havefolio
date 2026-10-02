@@ -5,7 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { PoolClient } from 'pg';
-import { currencyCodes } from '@havefolio/db';
+import {
+  approximateDate,
+  isCurrencyCode,
+  isFinancialDomainError,
+  parseMinorUnitAmount,
+  refundTotals,
+} from '@havefolio/domain';
+import { domain, refundConstraintException } from './financial-errors.js';
 import { MediaService } from '../media/media.service.js';
 import { ItemsRepository } from './items.repository.js';
 import {
@@ -16,7 +23,6 @@ import {
   type ItemDto,
   type ItemsPageDto,
   type EventsPageDto,
-  type PurchaseDateDto,
 } from './items.dto.js';
 import { InventoryQueryService } from './inventory-query.service.js';
 import type { ItemsQueryDto } from './inventory-query.dto.js';
@@ -68,30 +74,64 @@ export class ItemsService {
     private readonly media: MediaService,
     private readonly inventory: InventoryQueryService,
   ) {}
+  // Item endpoints keep their established public codes; the shared domain objects decide validity.
   private validate(input: Partial<CreateItemDto>): void {
-    if (
-      input.currency !== undefined &&
-      !currencyCodes.includes(input.currency as (typeof currencyCodes)[number])
-    )
+    if (input.currency !== undefined && !isCurrencyCode(input.currency))
       throw new BadRequestException('INVALID_ITEM');
-    if (input.pricePaidMinor != null && BigInt(input.pricePaidMinor) > 9223372036854775807n)
-      throw new BadRequestException('INVALID_ITEM');
+    if (input.pricePaidMinor != null) {
+      try {
+        parseMinorUnitAmount(input.pricePaidMinor);
+      } catch (error) {
+        if (isFinancialDomainError(error)) throw new BadRequestException('INVALID_ITEM');
+        throw error;
+      }
+    }
     if (input.specifications && Buffer.byteLength(JSON.stringify(input.specifications)) > 16384)
       throw new BadRequestException('INVALID_ITEM');
-    if (input.purchaseDate !== undefined) this.validateDate(input.purchaseDate);
-  }
-  private validateDate(date: PurchaseDateDto): void {
-    const { precision, year, month, day } = date;
-    const required =
-      precision === 'unknown' ? 0 : precision === 'year' ? 1 : precision === 'month' ? 2 : 3;
-    const values = [year, month, day];
-    if (values.some((value, index) => (index < required ? value == null : value != null)))
-      throw new BadRequestException('INVALID_ITEM_DATE');
-    if (required === 3) {
-      const leap = year! % 400 === 0 || (year! % 4 === 0 && year! % 100 !== 0);
-      const days = month === 2 ? (leap ? 29 : 28) : [4, 6, 9, 11].includes(month!) ? 30 : 31;
-      if (day! > days) throw new BadRequestException('INVALID_ITEM_DATE');
+    if (input.purchaseDate !== undefined) {
+      try {
+        approximateDate(input.purchaseDate);
+      } catch (error) {
+        if (isFinancialDomainError(error)) throw new BadRequestException('INVALID_ITEM_DATE');
+        throw error;
+      }
     }
+  }
+  /**
+   * Corrections to the original purchase must stay consistent with recorded refunds: the
+   * currency cannot change under them, and the amount paid cannot drop below their total.
+   */
+  private async refundsRemainValid(
+    c: PoolClient,
+    owner: string,
+    id: string,
+    input: UpdateItemDto,
+    old: StoredItem,
+  ): Promise<void> {
+    if (
+      input.pricePaidMinor === undefined &&
+      input.currency === undefined &&
+      input.acquisitionType === undefined
+    )
+      return;
+    const refunds = (
+      await c.query<{ currency: string; amountMinor: string }>(
+        'SELECT currency,amount_minor AS "amountMinor" FROM item_refunds WHERE owner_id=$1 AND item_id=$2 LIMIT 51',
+        [owner, id],
+      )
+    ).rows;
+    if (!refunds.length) return;
+    domain(() =>
+      refundTotals(
+        {
+          currency: input.currency ?? old.currency,
+          pricePaidMinor:
+            input.pricePaidMinor === undefined ? old.price_paid_minor : input.pricePaidMinor,
+          acquisitionType: input.acquisitionType ?? old.acquisition_type,
+        },
+        refunds,
+      ),
+    );
   }
   private serialize(row: StoredItem, tagIds: string[]): ItemDto {
     return {
@@ -267,6 +307,7 @@ export class ItemsService {
     return this.repository.transaction(owner, async (c) => {
       const old = await this.owned(c, owner, id, input.revision);
       await this.taxonomy(c, owner, input, old);
+      await this.refundsRemainValid(c, owner, id, input, old);
       const keys = (Object.keys(columns) as (keyof typeof columns)[]).filter(
         (k) => input[k] !== undefined,
       );
@@ -282,10 +323,14 @@ export class ItemsService {
         );
       }
       const assignments = names.map((n, i) => `${n}=$${i + 4}`);
-      const updated = await c.query(
-        `UPDATE items SET revision=revision+1${assignments.length ? ',' + assignments.join(',') : ''} WHERE owner_id=$1 AND id=$2 AND revision=$3`,
-        [owner, id, input.revision, ...values],
-      );
+      const updated = await c
+        .query(
+          `UPDATE items SET revision=revision+1${assignments.length ? ',' + assignments.join(',') : ''} WHERE owner_id=$1 AND id=$2 AND revision=$3`,
+          [owner, id, input.revision, ...values],
+        )
+        .catch((error: unknown) => {
+          throw refundConstraintException(error) ?? error;
+        });
       if (updated.rowCount !== 1) throw new ConflictException('STALE_ITEM_REVISION');
       await this.tags(c, owner, id, input.tagIds);
       const changed = Object.keys(input).filter((k) => k !== 'revision');

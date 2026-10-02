@@ -2,11 +2,8 @@ import { render, screen, within, waitFor, fireEvent } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import type { ItemResponse, OwnerResponse, TaxonomySnapshot } from '@havefolio/contracts';
-import {
-  parseDisplayAmountToMinorUnits,
-  formatMinorUnitsToDisplay,
-  getCurrencyMinorUnitDigits,
-} from '@havefolio/contracts';
+import { currencyMinorDigits } from '@havefolio/domain';
+import { amountEntryToMinor, minorToAmountEntry } from '../components/money-entry';
 import { AddItemForm } from '../components/add-item-form';
 import {
   saveItemDraft,
@@ -122,47 +119,49 @@ afterEach(() => {
 
 describe('money, currency, and date conversion logic', () => {
   it('correctly maps currency decimal exponents', () => {
-    expect(getCurrencyMinorUnitDigits('INR')).toBe(2);
-    expect(getCurrencyMinorUnitDigits('USD')).toBe(2);
-    expect(getCurrencyMinorUnitDigits('JPY')).toBe(0);
-    expect(getCurrencyMinorUnitDigits('KRW')).toBe(0);
-    expect(getCurrencyMinorUnitDigits('KWD')).toBe(3);
-    expect(getCurrencyMinorUnitDigits('BHD')).toBe(3);
+    expect(currencyMinorDigits('INR')).toBe(2);
+    expect(currencyMinorDigits('USD')).toBe(2);
+    expect(currencyMinorDigits('JPY')).toBe(0);
+    expect(currencyMinorDigits('KRW')).toBe(0);
+    expect(currencyMinorDigits('KWD')).toBe(3);
+    expect(currencyMinorDigits('BHD')).toBe(3);
   });
 
   it('converts display amounts to minor units without floating point rounding errors', () => {
-    expect(parseDisplayAmountToMinorUnits('1250', 'INR')).toBe('125000');
-    expect(parseDisplayAmountToMinorUnits('1250.5', 'INR')).toBe('125050');
-    expect(parseDisplayAmountToMinorUnits('1250.50', 'INR')).toBe('125050');
-    expect(parseDisplayAmountToMinorUnits('0.05', 'INR')).toBe('5');
-    expect(parseDisplayAmountToMinorUnits('0', 'INR')).toBe('0');
-    expect(parseDisplayAmountToMinorUnits('0.00', 'INR')).toBe('0');
+    expect(amountEntryToMinor('1250', 'INR')).toBe('125000');
+    expect(amountEntryToMinor('1250.5', 'INR')).toBe('125050');
+    expect(amountEntryToMinor('1250.50', 'INR')).toBe('125050');
+    expect(amountEntryToMinor('0.05', 'INR')).toBe('5');
+    expect(amountEntryToMinor('0', 'INR')).toBe('0');
+    expect(amountEntryToMinor('0.00', 'INR')).toBe('0');
 
     // 0 decimal currencies
-    expect(parseDisplayAmountToMinorUnits('5000', 'JPY')).toBe('5000');
+    expect(amountEntryToMinor('5000', 'JPY')).toBe('5000');
 
     // 3 decimal currencies
-    expect(parseDisplayAmountToMinorUnits('1.250', 'KWD')).toBe('1250');
-    expect(parseDisplayAmountToMinorUnits('1.25', 'KWD')).toBe('1250');
+    expect(amountEntryToMinor('1.250', 'KWD')).toBe('1250');
+    expect(amountEntryToMinor('1.25', 'KWD')).toBe('1250');
   });
 
   it('rejects invalid amounts or excessive precision', () => {
-    expect(() => parseDisplayAmountToMinorUnits('12.345', 'INR')).toThrow(/decimal place/);
-    expect(() => parseDisplayAmountToMinorUnits('10.5', 'JPY')).toThrow(
-      /cannot have decimal places/,
-    );
-    expect(() => parseDisplayAmountToMinorUnits('-50', 'INR')).toThrow(/valid positive number/);
-    expect(() => parseDisplayAmountToMinorUnits('abc', 'INR')).toThrow(/valid positive number/);
-    expect(() => parseDisplayAmountToMinorUnits('', 'INR')).toThrow(/required/);
+    expect(() => amountEntryToMinor('12.345', 'INR')).toThrow(/decimal place/);
+    expect(() => amountEntryToMinor('10.5', 'JPY')).toThrow(/cannot have decimal places/);
+    expect(() => amountEntryToMinor('-50', 'INR')).toThrow(/valid positive number/);
+    expect(() => amountEntryToMinor('abc', 'INR')).toThrow(/valid positive number/);
+    expect(() => amountEntryToMinor('', 'INR')).toThrow(/valid positive number/);
+    // Malformed grouping is rejected rather than reinterpreted as a different amount.
+    expect(() => amountEntryToMinor('1,2,3', 'INR')).toThrow(/valid positive number/);
+    expect(amountEntryToMinor('1,29,999.50', 'INR')).toBe('12999950');
+    expect(() => amountEntryToMinor('100000000000000000000', 'INR')).toThrow(/larger than/);
   });
 
   it('formats minor units to display string', () => {
-    expect(formatMinorUnitsToDisplay('125000', 'INR')).toBe('1250.00');
-    expect(formatMinorUnitsToDisplay('50', 'INR')).toBe('0.50');
-    expect(formatMinorUnitsToDisplay('5', 'INR')).toBe('0.05');
-    expect(formatMinorUnitsToDisplay('0', 'INR')).toBe('0.00');
-    expect(formatMinorUnitsToDisplay('5000', 'JPY')).toBe('5000');
-    expect(formatMinorUnitsToDisplay(null, 'INR')).toBe('');
+    expect(minorToAmountEntry('125000', 'INR')).toBe('1250.00');
+    expect(minorToAmountEntry('50', 'INR')).toBe('0.50');
+    expect(minorToAmountEntry('5', 'INR')).toBe('0.05');
+    expect(minorToAmountEntry('0', 'INR')).toBe('0.00');
+    expect(minorToAmountEntry('5000', 'JPY')).toBe('5000');
+    expect(minorToAmountEntry(null, 'INR')).toBe('');
   });
 });
 

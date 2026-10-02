@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import {
   pgTable,
   text,
@@ -16,9 +16,26 @@ import {
   boolean,
   date,
   primaryKey,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 
-import { currencyCodes } from './currencies.js';
+import { currencyCodes } from '@havefolio/domain';
+
+/** Exact/month/year/unknown components with real Gregorian days (PER-7, reused by PER-22). */
+function approximateDateCheck(
+  precision: AnyPgColumn,
+  year: AnyPgColumn,
+  month: AnyPgColumn,
+  day: AnyPgColumn,
+): SQL {
+  return sql`
+    (${precision} = 'unknown' and ${year} is null and ${month} is null and ${day} is null) or
+    (${precision} = 'year' and ${year} is not null and ${year} between 1 and 9999 and ${month} is null and ${day} is null) or
+    (${precision} = 'month' and ${year} is not null and ${year} between 1 and 9999 and ${month} is not null and ${month} between 1 and 12 and ${day} is null) or
+    (${precision} = 'exact' and ${year} is not null and ${year} between 1 and 9999 and ${month} is not null and ${month} between 1 and 12 and ${day} is not null and ${day} between 1 and
+      case when ${month} = 2 then case when ${year} % 400 = 0 or (${year} % 4 = 0 and ${year} % 100 <> 0) then 29 else 28 end
+      when ${month} in (4,6,9,11) then 30 else 31 end)`;
+}
 
 export const applicationMetadata = pgTable('application_metadata', {
   key: text('key').primaryKey(),
@@ -190,6 +207,8 @@ export const items = pgTable(
   },
   (t) => [
     unique('item_owner_identity_unique').on(t.id, t.ownerId),
+    // Refunds reference (item, owner, currency): no cross-owner or cross-currency refund can exist.
+    unique('item_owner_currency_identity_unique').on(t.id, t.ownerId, t.currency),
     foreignKey({
       columns: [t.categoryId, t.ownerId],
       foreignColumns: [categories.id, categories.ownerId],
@@ -215,13 +234,7 @@ export const items = pgTable(
     ),
     check(
       'item_date_precision_check',
-      sql`
-    (${t.purchaseDatePrecision} = 'unknown' and ${t.purchaseYear} is null and ${t.purchaseMonth} is null and ${t.purchaseDay} is null) or
-    (${t.purchaseDatePrecision} = 'year' and ${t.purchaseYear} is not null and ${t.purchaseYear} between 1 and 9999 and ${t.purchaseMonth} is null and ${t.purchaseDay} is null) or
-    (${t.purchaseDatePrecision} = 'month' and ${t.purchaseYear} is not null and ${t.purchaseYear} between 1 and 9999 and ${t.purchaseMonth} is not null and ${t.purchaseMonth} between 1 and 12 and ${t.purchaseDay} is null) or
-    (${t.purchaseDatePrecision} = 'exact' and ${t.purchaseYear} is not null and ${t.purchaseYear} between 1 and 9999 and ${t.purchaseMonth} is not null and ${t.purchaseMonth} between 1 and 12 and ${t.purchaseDay} is not null and ${t.purchaseDay} between 1 and
-      case when ${t.purchaseMonth} = 2 then case when ${t.purchaseYear} % 400 = 0 or (${t.purchaseYear} % 4 = 0 and ${t.purchaseYear} % 100 <> 0) then 29 else 28 end
-      when ${t.purchaseMonth} in (4,6,9,11) then 30 else 31 end)`,
+      approximateDateCheck(t.purchaseDatePrecision, t.purchaseYear, t.purchaseMonth, t.purchaseDay),
     ),
     check(
       'item_acquisition_check',
@@ -261,6 +274,14 @@ export const items = pgTable(
     index('item_owner_status_created_idx').on(t.ownerId, t.ownershipStatus, t.createdAt, t.id),
     index('item_owner_category_idx').on(t.ownerId, t.categoryId, t.subcategoryId),
     index('item_subcategory_owner_idx').on(t.subcategoryId, t.categoryId, t.ownerId),
+    // PER-20 purchase-date spending buckets; never record-created time.
+    index('item_owner_purchase_date_idx').on(
+      t.ownerId,
+      t.purchaseYear,
+      t.purchaseMonth,
+      t.purchaseDay,
+      t.id,
+    ),
   ],
 );
 
@@ -331,6 +352,8 @@ export const lifecycleEvents = pgTable(
         'used',
         'repaired',
         'refund_recorded',
+        'refund_corrected',
+        'refund_deleted',
         'correction',
       ],
     }).notNull(),
@@ -346,13 +369,64 @@ export const lifecycleEvents = pgTable(
     }).onDelete('cascade'),
     check(
       'event_type_check',
-      sql`${t.eventType} in ('created','details_updated','ownership_changed','condition_changed','usage_changed','used','repaired','refund_recorded','correction')`,
+      sql`${t.eventType} in ('created','details_updated','ownership_changed','condition_changed','usage_changed','used','repaired','refund_recorded','refund_corrected','refund_deleted','correction')`,
     ),
     check('event_metadata_check', sql`jsonb_typeof(${t.metadata}) = 'object'`),
     check('event_time_check', sql`isfinite(${t.occurredAt})`),
     index('event_owner_item_keyset_idx').on(t.ownerId, t.itemId, t.id),
     index('event_owner_item_time_idx').on(t.ownerId, t.itemId, t.occurredAt, t.id),
     index('event_item_owner_idx').on(t.itemId, t.ownerId),
+  ],
+);
+
+/**
+ * Confirmed refunds the owner received for an item (PER-22). A refund is its own record and
+ * never mutates the historical purchase amount. Ownership status changes never create one.
+ * Rows cascade with their item for privacy erasure; owners may also correct or delete them.
+ */
+export const itemRefunds = pgTable(
+  'item_refunds',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    itemId: uuid('item_id').notNull(),
+    currency: text('currency').notNull(),
+    amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
+    refundDatePrecision: text('refund_date_precision', {
+      enum: ['exact', 'month', 'year', 'unknown'],
+    })
+      .notNull()
+      .default('unknown'),
+    refundYear: smallint('refund_year'),
+    refundMonth: smallint('refund_month'),
+    refundDay: smallint('refund_day'),
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Same owner and same currency as the purchase; currency changes are blocked while refunds exist.
+    foreignKey({
+      columns: [t.itemId, t.ownerId, t.currency],
+      foreignColumns: [items.id, items.ownerId, items.currency],
+      name: 'refund_item_owner_currency_fk',
+    })
+      .onDelete('cascade')
+      .onUpdate('restrict'),
+    check('refund_amount_check', sql`${t.amountMinor} > 0`),
+    check(
+      'refund_date_precision_check',
+      approximateDateCheck(t.refundDatePrecision, t.refundYear, t.refundMonth, t.refundDay),
+    ),
+    check(
+      'refund_note_check',
+      sql`${t.note} is null or (char_length(${t.note}) between 1 and 1000 and ${t.note} = btrim(${t.note}))`,
+    ),
+    index('refund_item_owner_currency_idx').on(t.itemId, t.ownerId, t.currency),
+    index('refund_owner_item_created_idx').on(t.ownerId, t.itemId, t.createdAt, t.id),
+    index('refund_owner_currency_idx').on(t.ownerId, t.currency, t.itemId),
   ],
 );
 

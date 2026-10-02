@@ -9,12 +9,11 @@ import {
   pricePaid,
   purchaseDateText,
 } from './item-detail-presentation';
+import { amountEntryToMinor, minorToAmountEntry } from './money-entry';
 import {
   itemAcquisitions,
   itemConditions,
   itemFrequencies,
-  parseDisplayAmountToMinorUnits,
-  formatMinorUnitsToDisplay,
   popularCurrencies,
   type DatePrecision,
   type ItemAcquisition,
@@ -25,6 +24,7 @@ import {
   type TaxonomySnapshot,
   type UpdateItemRequest,
 } from '@havefolio/contracts';
+import { daysInMonth } from '@havefolio/domain';
 import { Alert, AlertDescription, AlertTitle } from '@havefolio/ui/components/alert';
 import { Button } from '@havefolio/ui/components/button';
 import {
@@ -97,9 +97,7 @@ export function draftFrom(item: ItemResponse): ItemDraft {
     priceKnown: item.pricePaidMinor === null ? 'unknown' : 'known',
     currency: item.currency,
     amount:
-      item.pricePaidMinor === null
-        ? ''
-        : formatMinorUnitsToDisplay(item.pricePaidMinor, item.currency),
+      item.pricePaidMinor === null ? '' : minorToAmountEntry(item.pricePaidMinor, item.currency),
     precision: d.precision,
     exactDate:
       d.precision === 'exact' ? `${pad(d.year, 4)}-${pad(d.month, 2)}-${pad(d.day, 2)}` : '',
@@ -163,7 +161,7 @@ export function sectionChanges(
         errors.amount = 'Enter the amount you paid, 0 if nothing, or choose “Not recorded”.';
       else
         try {
-          price = parseDisplayAmountToMinorUnits(draft.amount, draft.currency);
+          price = amountEntryToMinor(draft.amount, draft.currency);
         } catch (error) {
           errors.amount = error instanceof Error ? error.message : 'Enter a valid amount.';
         }
@@ -175,9 +173,7 @@ export function sectionChanges(
     if (draft.precision === 'exact') {
       const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(draft.exactDate);
       const [y, m, d] = match ? [Number(match[1]), Number(match[2]), Number(match[3])] : [0, 0, 0];
-      const leap = y % 400 === 0 || (y % 4 === 0 && y % 100 !== 0);
-      const days = m === 2 ? (leap ? 29 : 28) : [4, 6, 9, 11].includes(m) ? 30 : 31;
-      if (!match || y < 1 || m < 1 || m > 12 || d < 1 || d > days)
+      if (!match || y < 1 || m < 1 || m > 12 || d < 1 || d > daysInMonth(y, m))
         errors.exactDate = 'Enter the full date, or choose a less precise option.';
       else date = { precision: 'exact', year: y, month: m, day: d };
     } else if (draft.precision === 'month') {

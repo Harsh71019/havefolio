@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type {
+  CorrectRefundRequest,
   ItemActionRequest,
   ItemDocument,
   ItemDocumentKind,
@@ -30,9 +31,11 @@ import type {
   ItemEventsPage,
   ItemListEntry,
   ItemPhotoSnapshot,
+  ItemRefundsSnapshot,
   ItemResponse,
   ItemsPage,
   ItemStatus,
+  RecordRefundRequest,
   TaxonomySnapshot,
   UpdateItemRequest,
 } from '@havefolio/contracts';
@@ -77,14 +80,19 @@ import {
 import { ItemEditDialog, type EditSection, type ItemDraft } from './item-edit-dialog';
 import { ItemHistory, type HistoryState } from './item-history';
 import { DeleteItemSection, LifecycleActions } from './item-lifecycle';
+import { ItemRefunds } from './item-refunds';
 import { isInactive, statusLabel } from './item-presentation';
 import {
+  correctRefund,
   deleteItem,
+  deleteRefund,
   ItemRequestError,
   readItem,
   readItemHistory,
+  readRefunds,
   readRelatedItems,
   recordItemAction,
+  recordRefund,
   updateItem,
 } from './items-client';
 import {
@@ -114,6 +122,14 @@ export interface ItemDetailsApi {
     file: File,
   ): Promise<ItemDocument>;
   deleteDocument(id: string, documentId: string, revision: number): Promise<ItemDocumentSnapshot>;
+  readRefunds(id: string): Promise<ItemRefundsSnapshot>;
+  recordRefund(id: string, input: RecordRefundRequest): Promise<ItemRefundsSnapshot>;
+  correctRefund(
+    id: string,
+    refundId: string,
+    input: CorrectRefundRequest,
+  ): Promise<ItemRefundsSnapshot>;
+  deleteRefund(id: string, refundId: string, revision: number): Promise<ItemRefundsSnapshot>;
 }
 
 export const apiItemDetails: ItemDetailsApi = {
@@ -128,6 +144,10 @@ export const apiItemDetails: ItemDetailsApi = {
   fetchDocuments,
   uploadDocument,
   deleteDocument,
+  readRefunds,
+  recordRefund,
+  correctRefund,
+  deleteRefund,
 };
 
 const statusIcons: Record<ItemStatus, LucideIcon> = {
@@ -202,6 +222,7 @@ export function ItemDetails({
   const [history, setHistory] = useState<HistoryState>({ kind: 'loading' });
   const [photos, setPhotos] = useState<Loadable<ItemPhotoSnapshot>>({ kind: 'loading' });
   const [documents, setDocuments] = useState<Loadable<ItemDocumentSnapshot>>({ kind: 'loading' });
+  const [refunds, setRefunds] = useState<Loadable<ItemRefundsSnapshot>>({ kind: 'loading' });
   const [relatedState, setRelated] = useState<
     { key: string; label: string; items: ItemListEntry[] } | undefined
   >();
@@ -252,6 +273,14 @@ export function ItemDetails({
     }
   }, [api, itemId]);
 
+  const loadRefunds = useCallback(async (): Promise<void> => {
+    try {
+      setRefunds({ kind: 'ready', value: await api.readRefunds(itemId) });
+    } catch (error) {
+      setRefunds({ kind: 'failed', message: asItemError(error).message });
+    }
+  }, [api, itemId]);
+
   const loadItem = useCallback(async (): Promise<ItemResponse | undefined> => {
     try {
       const item = await api.readItem(itemId);
@@ -273,6 +302,7 @@ export function ItemDetails({
         void loadHistory();
         void loadPhotos();
         void loadDocuments();
+        void loadRefunds();
         api
           .loadTaxonomy()
           .then((t) => active && setTaxonomy(t))
@@ -282,7 +312,7 @@ export function ItemDetails({
     return () => {
       active = false;
     };
-  }, [api, itemId, loadDocuments, loadHistory, loadPhotos]);
+  }, [api, itemId, loadDocuments, loadHistory, loadPhotos, loadRefunds]);
 
   const item = load.kind === 'ready' ? load.item : undefined;
   const relatedKey = item ? `${item.categoryId ?? ''}|${item.tagIds[0] ?? ''}` : '';
@@ -326,6 +356,7 @@ export function ItemDetails({
             void loadHistory();
             void loadPhotos();
             void loadDocuments();
+            void loadRefunds();
           });
         }}
       />
@@ -336,6 +367,27 @@ export function ItemDetails({
     setLoad({ kind: 'ready', item: next });
     announce(message);
     void loadHistory();
+    // Purchase corrections change the amount refunds are measured against.
+    void loadRefunds();
+  };
+  /** Refund writes advance the item revision; keep the item, history and totals in step. */
+  const refundChange = async (
+    write: () => Promise<ItemRefundsSnapshot>,
+    message: string,
+  ): Promise<void> => {
+    try {
+      setRefunds({ kind: 'ready', value: await write() });
+    } catch (error) {
+      const failed = asItemError(error);
+      if (failed.stale || failed.code === 'REFUND_NOT_FOUND') {
+        await Promise.all([loadRefunds(), loadItem()]);
+        void loadHistory();
+      }
+      throw failed;
+    }
+    await loadItem();
+    void loadHistory();
+    announce(message);
   };
   const categoryName = (id: string | null): string | undefined =>
     id ? taxonomy?.categories.find((c) => c.id === id)?.name : undefined;
@@ -448,6 +500,34 @@ export function ItemDetails({
               ]}
             />
           </DetailCard>
+
+          <Card>
+            <CardContent>
+              <ItemRefunds
+                state={refunds}
+                online={online}
+                onRetry={() => {
+                  setRefunds({ kind: 'loading' });
+                  void loadRefunds();
+                }}
+                onRecord={(input) =>
+                  refundChange(() => api.recordRefund(current.id, input), 'Refund recorded.')
+                }
+                onCorrect={(refundId, input) =>
+                  refundChange(
+                    () => api.correctRefund(current.id, refundId, input),
+                    'Refund corrected.',
+                  )
+                }
+                onDelete={(refundId, revision) =>
+                  refundChange(
+                    () => api.deleteRefund(current.id, refundId, revision),
+                    'Refund record deleted.',
+                  )
+                }
+              />
+            </CardContent>
+          </Card>
 
           <DetailCard
             title="Condition and use"
