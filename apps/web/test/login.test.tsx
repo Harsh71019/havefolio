@@ -43,3 +43,21 @@ describe('owner sign-in', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
+
+it('lets the owner reveal and hide the password without changing it', () => {
+  render(<LoginForm />);
+  const input = screen.getByLabelText('Password');
+  fireEvent.change(input, { target: { value: 'a synthetic long password' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+  expect(input).toHaveAttribute('type', 'text');
+  expect(input).toHaveValue('a synthetic long password');
+  fireEvent.click(screen.getByRole('button', { name: 'Hide password' }));
+  expect(input).toHaveAttribute('type', 'password');
+});
+
+it('announces a connection failure and leaves the form retryable', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('synthetic network failure')));
+  submit();
+  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to connect');
+  expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+});

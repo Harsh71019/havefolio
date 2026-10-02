@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, type ReactElement, type FormEvent } from 'react';
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@havefolio/ui/components/button';
 import { Input } from '@havefolio/ui/components/input';
@@ -10,6 +11,7 @@ export function LoginForm(): ReactElement {
   const router = useRouter();
   const busy = useRef(false);
   const [pending, setPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -46,7 +48,12 @@ export function LoginForm(): ReactElement {
     }
   }
   return (
-    <form onSubmit={submit} className="mt-8 space-y-5" aria-busy={pending}>
+    <form
+      onSubmit={submit}
+      className="mt-8 space-y-5"
+      aria-busy={pending}
+      aria-describedby={error ? 'login-error' : undefined}
+    >
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -56,27 +63,50 @@ export function LoginForm(): ReactElement {
           autoComplete="username"
           required
           maxLength={254}
+          disabled={pending}
+          className="h-12"
         />
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          minLength={15}
-          maxLength={128}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            required
+            minLength={15}
+            maxLength={128}
+            disabled={pending}
+            className="h-12 pr-12"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-1.5 top-1.5"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-pressed={showPassword}
+            disabled={pending}
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? (
+              <EyeOff aria-hidden="true" className="size-4" />
+            ) : (
+              <Eye aria-hidden="true" className="size-4" />
+            )}
+          </Button>
+        </div>
       </div>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p id="login-error" role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button type="submit" disabled={pending} className="h-12 w-full gap-2">
         {pending ? 'Signing in…' : 'Sign in'}
+        {!pending && <ArrowRight aria-hidden="true" className="size-4" />}
       </Button>
     </form>
   );
