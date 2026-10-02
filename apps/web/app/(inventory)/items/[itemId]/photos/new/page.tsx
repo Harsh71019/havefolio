@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { PhotoCapture } from '../../../../../components/photo-capture';
+import { PhotoCapture } from '@/components/photo-capture';
 export default async function PhotoCapturePage({
   params,
 }: {
