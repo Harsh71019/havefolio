@@ -126,7 +126,10 @@ export interface ItemCoverSummary {
   altText: string | null;
   decorative: boolean;
 }
-export interface ItemListEntry extends Omit<ItemResponse, 'description' | 'notes' | 'specifications' | 'originalEntry' | 'originalSource'> {
+export interface ItemListEntry extends Omit<
+  ItemResponse,
+  'description' | 'notes' | 'specifications' | 'originalEntry' | 'originalSource'
+> {
   cover: ItemCoverSummary | null;
 }
 /** Bounded opaque cursor page from `GET /api/v1/items`. */

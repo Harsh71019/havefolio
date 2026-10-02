@@ -285,7 +285,7 @@ export class InventoryQueryService {
         covers.rows.map((r) => [
           r.item_id,
           {
-            id: r.id,
+            photoId: r.id,
             width: r.width,
             height: r.height,
             altText: r.alt_text || null,
