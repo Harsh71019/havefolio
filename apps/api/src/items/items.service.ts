@@ -409,7 +409,7 @@ export class ItemsService {
       await c.query('SELECT id FROM items WHERE owner_id=$1 AND id=$2 FOR UPDATE', [owner, id]);
       const attachments = (
         await c.query<{ id: string; state: string }>(
-          'SELECT id,state FROM media_attachments WHERE owner_id=$1 AND item_id=$2 ORDER BY (parent_id IS NULL),id LIMIT 501',
+          "SELECT id,state FROM media_attachments WHERE owner_id=$1 AND item_id=$2 AND state<>'deleted' ORDER BY (parent_id IS NULL),id LIMIT 501",
           [owner, id],
         )
       ).rows;

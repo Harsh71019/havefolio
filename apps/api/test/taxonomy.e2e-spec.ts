@@ -98,7 +98,8 @@ describe('taxonomy HTTP and relational integrity on isolated infrastructure', ()
     repository = module.get(TaxonomyRepository);
     app = module.createNestApplication<NestExpressApplication>({ logger: false });
     configureApplication(app);
-    await app.init();
+    // Keep one listening server so keep-alive clients cannot reuse closed ephemeral listeners.
+    await app.listen(0, '127.0.0.1');
     await service.create(other, 'categories', 'Foreign root');
     foreignCategory = (await service.list(other)).categories[0]!.id;
     await service.create(other, 'subcategories', 'Foreign child', foreignCategory);

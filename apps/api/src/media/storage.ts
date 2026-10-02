@@ -16,6 +16,12 @@ export interface StoreInput {
 
 // This port is internal only. Authorised services own metadata and access decisions.
 export abstract class PrivateMediaStorage {
+  abstract read(
+    key: string,
+    resourceType: ResourceType,
+    format: Format,
+    byteSize: number,
+  ): Promise<Buffer>;
   abstract put(input: StoreInput): Promise<StoredAsset>;
   abstract delete(key: string, resourceType: ResourceType): Promise<void>;
   abstract download(key: string, resourceType: ResourceType, format: Format): string;
