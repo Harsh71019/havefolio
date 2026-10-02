@@ -249,6 +249,13 @@ export const items = pgTable(
       sql`${t.originalSource} in ('manual','url','barcode','photo','receipt','import')`,
     ),
     check('item_revision_check', sql`${t.revision} > 0`),
+    index('item_owner_name_idx').on(t.ownerId, sql`lower(${t.name}) COLLATE "C"`, t.id),
+    index('item_owner_updated_idx').on(t.ownerId, t.updatedAt, t.id),
+    index('item_owner_currency_price_idx').on(t.ownerId, t.currency, t.pricePaidMinor, t.id),
+    index('item_search_document_idx').using(
+      'gin',
+      sql`to_tsvector('simple', normalize(coalesce(${t.name},'') || ' ' || coalesce(${t.brand},'') || ' ' || coalesce(${t.model},''),NFKC))`,
+    ),
     index('item_owner_keyset_idx').on(t.ownerId, t.id),
     index('item_owner_created_idx').on(t.ownerId, t.createdAt, t.id),
     index('item_owner_status_created_idx').on(t.ownerId, t.ownershipStatus, t.createdAt, t.id),
@@ -270,6 +277,10 @@ export const tags = pgTable(
   },
   (t) => [
     unique('tag_owner_identity_unique').on(t.id, t.ownerId),
+    index('tag_search_document_idx').using(
+      'gin',
+      sql`to_tsvector('simple',normalize(${t.name},NFKC))`,
+    ),
     uniqueIndex('tag_owner_name_unique').on(t.ownerId, sql`lower(btrim(${t.name}))`),
     check('tag_name_check', sql`length(btrim(${t.name})) between 1 and 80`),
   ],

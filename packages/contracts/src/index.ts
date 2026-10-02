@@ -126,10 +126,13 @@ export interface ItemCoverSummary {
   altText: string | null;
   decorative: boolean;
 }
-export interface ItemListEntry extends ItemResponse {
+export interface ItemListEntry extends Omit<
+  ItemResponse,
+  'description' | 'notes' | 'specifications' | 'originalEntry' | 'originalSource'
+> {
   cover: ItemCoverSummary | null;
 }
-/** Bounded UUID-keyset page from `GET /api/v1/items`. */
+/** Bounded opaque cursor page from `GET /api/v1/items`. */
 export interface ItemsPage {
   items: ItemListEntry[];
   nextCursor: string | null;
@@ -143,6 +146,8 @@ export interface OwnerResponse {
 }
 
 export const itemErrorCodes = [
+  'INVALID_ITEM_QUERY',
+  'INVALID_ITEM_CURSOR',
   'INVALID_ITEM',
   'INVALID_ITEM_DATE',
   'INVALID_ITEM_TAXONOMY',
@@ -311,3 +316,56 @@ export const itemPhotoLimits = {
   acceptedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
 } as const;
 export type ItemPhotoVariant = 'display' | 'thumbnail';
+
+export const inventorySorts = ['id', 'name', 'newest', 'oldest', 'price', 'updated'] as const;
+export const unknownModes = ['include', 'exclude', 'only'] as const;
+export interface InventoryQuery {
+  q?: string;
+  sort?: (typeof inventorySorts)[number];
+  direction?: 'asc' | 'desc';
+  categoryId?: string;
+  subcategoryId?: string;
+  tagId?: string;
+  ownershipStatus?: ItemStatus;
+  useFrequency?: ItemFrequency;
+  priceKnown?: (typeof unknownModes)[number];
+  dateKnown?: (typeof unknownModes)[number];
+  datePrecision?: DatePrecision;
+  currency?: string;
+  priceMin?: string;
+  priceMax?: string;
+  purchasedFrom?: string;
+  purchasedTo?: string;
+  limit?: number;
+  after?: string;
+}
+export type ItemCard = ItemListEntry;
+export interface InventoryPage {
+  items: ItemCard[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+export function normalizeInventorySearch(value: string): string {
+  return value.normalize('NFKC').trim().replace(/\s+/gu, ' ').toLowerCase();
+}
+/** A bounded allowlist shared by URLs and API clients. No item records or credentials. */
+export const inventoryQueryKeys = [
+  'q',
+  'sort',
+  'direction',
+  'categoryId',
+  'subcategoryId',
+  'tagId',
+  'ownershipStatus',
+  'useFrequency',
+  'priceKnown',
+  'dateKnown',
+  'datePrecision',
+  'currency',
+  'priceMin',
+  'priceMax',
+  'purchasedFrom',
+  'purchasedTo',
+  'limit',
+  'after',
+] as const;

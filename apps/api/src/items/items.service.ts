@@ -12,13 +12,14 @@ import {
   CreateItemDto,
   type UpdateItemDto,
   type ItemActionDto,
-  type ItemsQueryDto,
+  type PaginationQueryDto,
   type ItemDto,
   type ItemsPageDto,
-  type ItemCoverDto,
   type EventsPageDto,
   type PurchaseDateDto,
 } from './items.dto.js';
+import { InventoryQueryService } from './inventory-query.service.js';
+import type { ItemsQueryDto } from './inventory-query.dto.js';
 interface StoredItem {
   id: string;
   name: string;
@@ -65,6 +66,7 @@ export class ItemsService {
   constructor(
     private readonly repository: ItemsRepository,
     private readonly media: MediaService,
+    private readonly inventory: InventoryQueryService,
   ) {}
   private validate(input: Partial<CreateItemDto>): void {
     if (
@@ -255,71 +257,9 @@ export class ItemsService {
     return this.repository.transaction(owner, (c) => this.details(c, owner, id));
   }
   async list(owner: string, query: ItemsQueryDto): Promise<ItemsPageDto> {
-    return this.repository.transaction(owner, async (c) => {
-      const limit = query.limit ?? 25;
-      const rows = (
-        await c.query<StoredItem>(
-          'SELECT * FROM items WHERE owner_id=$1 AND ($2::uuid IS NULL OR id>$2::uuid) ORDER BY id LIMIT $3',
-          [owner, query.after ?? null, limit + 1],
-        )
-      ).rows;
-      const page = rows.slice(0, limit);
-      const tags = (
-        await c.query<{ item_id: string; tag_id: string }>(
-          'SELECT item_id,tag_id FROM item_tags WHERE owner_id=$1 AND item_id=ANY($2::uuid[]) ORDER BY item_id,tag_id',
-          [owner, page.map((r) => r.id)],
-        )
-      ).rows;
-      const covers = await this.covers(
-        c,
-        owner,
-        page.map((r) => r.id),
-      );
-      return {
-        items: page.map((r) => ({
-          ...this.serialize(
-            r,
-            tags.filter((t) => t.item_id === r.id).map((t) => t.tag_id),
-          ),
-          cover: covers.get(r.id) ?? null,
-        })),
-        hasMore: rows.length > limit,
-        nextCursor: rows.length > limit ? page.at(-1)!.id : null,
-      };
-    });
+    return this.inventory.list(owner, query);
   }
-  // One bounded query per page: the PER-15 cover is the first ready photo original by (position,id).
-  private async covers(
-    c: PoolClient,
-    owner: string,
-    ids: string[],
-  ): Promise<Map<string, ItemCoverDto>> {
-    if (!ids.length) return new Map();
-    const rows = (
-      await c.query<{
-        item_id: string;
-        id: string;
-        width: number;
-        height: number;
-        alt_text: string | null;
-      }>(
-        "SELECT DISTINCT ON (item_id) item_id,id,width,height,alt_text FROM media_attachments WHERE owner_id=$1 AND item_id=ANY($2::uuid[]) AND kind='photo' AND variant='original' AND state='ready' ORDER BY item_id,position,id",
-        [owner, ids],
-      )
-    ).rows;
-    return new Map(
-      rows.map((r) => [
-        r.item_id,
-        {
-          photoId: r.id,
-          width: r.width,
-          height: r.height,
-          altText: r.alt_text ? r.alt_text : null,
-          decorative: r.alt_text === '',
-        },
-      ]),
-    );
-  }
+
   async update(owner: string, id: string, input: UpdateItemDto): Promise<ItemDto> {
     this.validate(input);
     if (Object.keys(input).every((k) => k === 'revision'))
@@ -414,7 +354,12 @@ export class ItemsService {
       return this.details(c, owner, id);
     });
   }
-  async history(owner: string, id: string, query: ItemsQueryDto): Promise<EventsPageDto> {
+  async history(owner: string, id: string, query: PaginationQueryDto): Promise<EventsPageDto> {
+    if (
+      query.after &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(query.after)
+    )
+      throw new BadRequestException('INVALID_ITEM_CURSOR');
     return this.repository.transaction(owner, async (c) => {
       await this.owned(c, owner, id);
       const limit = query.limit ?? 25;

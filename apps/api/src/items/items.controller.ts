@@ -26,13 +26,14 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentOwner, type OwnerContext } from '../auth/auth.context.js';
+import { ItemsQueryDto } from './inventory-query.dto.js';
 import { ItemsService } from './items.service.js';
 import {
   CreateItemDto,
   UpdateItemDto,
   RevisionDto,
   ItemActionDto,
-  ItemsQueryDto,
+  PaginationQueryDto,
   ItemDto,
   ItemsPageDto,
   EventsPageDto,
@@ -84,7 +85,12 @@ export class ItemsController {
   @Header('Cache-Control', 'no-store')
   @ApiOperation({
     summary:
-      'List owner inventory with bounded UUID keyset pagination (1–100, default 25). No full search/filter/sort.',
+      'Search and filter the complete private inventory; stable bounded cursor pagination (1–100, default 25). Price comparisons require currency. Invalid ranges/cursors/combinations return 400.',
+  })
+  @ApiBadRequestResponse({
+    type: ItemErrorDto,
+    description:
+      'INVALID_ITEM_QUERY: contradictory ranges, unsupported sort/currency or foreign/mismatched taxonomy. INVALID_ITEM_CURSOR: malformed, expired, tampered, wrong-owner or mismatched query. INVALID_REQUEST: query DTO format/bounds. Retain controls and restart pagination on cursor errors.',
   })
   @ApiOkResponse({ type: ItemsPageDto })
   list(@CurrentOwner() owner: OwnerContext, @Query() input: ItemsQueryDto): Promise<ItemsPageDto> {
@@ -141,7 +147,7 @@ export class ItemsController {
   history(
     @CurrentOwner() owner: OwnerContext,
     @Param('id', ParseUUIDPipe) id: string,
-    @Query() input: ItemsQueryDto,
+    @Query() input: PaginationQueryDto,
   ): Promise<EventsPageDto> {
     return this.items.history(owner.id, id, input);
   }

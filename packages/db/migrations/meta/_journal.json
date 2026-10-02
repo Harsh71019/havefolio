@@ -57,6 +57,13 @@
       "when": 1790917673320,
       "tag": "0007_photo_alt_text",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790924959420,
+      "tag": "0008_inventory_query_indexes",
+      "breakpoints": true
     }
   ]
 }

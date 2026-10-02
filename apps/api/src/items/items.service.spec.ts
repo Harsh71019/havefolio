@@ -4,6 +4,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import type { PoolClient } from 'pg';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import { InventoryQueryService } from './inventory-query.service.js';
 import { ItemsService } from './items.service.js';
 import { ItemsRepository } from './items.repository.js';
 import { MediaService } from '../media/media.service.js';
@@ -24,6 +25,14 @@ describe('item rules and safe failures', () => {
     const module = await Test.createTestingModule({
       providers: [
         ItemsService,
+        {
+          provide: InventoryQueryService,
+          useValue: {
+            list: jest
+              .fn<() => Promise<unknown>>()
+              .mockResolvedValue({ items: [], nextCursor: null, hasMore: false }),
+          },
+        },
         { provide: ItemsRepository, useValue: { transaction } },
         { provide: MediaService, useValue: { delete: mediaDelete } },
       ],
@@ -108,7 +117,7 @@ describe('item rules and safe failures', () => {
       nextCursor: null,
       hasMore: false,
     });
-    expect(query.mock.calls[0]![1]).toEqual(['owner', null, 26]);
+    expect(query).not.toHaveBeenCalled();
   });
   it.each([
     { ...base, ownershipStatus: undefined },

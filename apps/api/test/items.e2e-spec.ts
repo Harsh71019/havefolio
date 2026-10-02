@@ -494,7 +494,7 @@ describe('owned item HTTP, concurrency and media recovery', () => {
       'limit=1.5',
       'after=bad',
       'ownerId=' + other,
-      'sort=name',
+      'sort=unsupported',
     ])
       await get('?' + query).expect(400);
     const item = await create();
