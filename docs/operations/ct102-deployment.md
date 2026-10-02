@@ -12,7 +12,10 @@ Before rollout inspect disk/memory, existing service health, port 3020 and Tails
 cd /opt/havefolio/deployment
 export RELEASE=<immutable-release-tag>
 docker compose run --rm migrate
-# Bootstrap the configured owner only after inspecting for an existing credentialed owner.
+# Bootstrap only the configured owner; the script refuses a conflicting existing owner.
+cat /opt/havefolio/secrets/owner-bootstrap.json | docker compose run --rm -T --no-deps \
+  -v /opt/havefolio/deployment/bootstrap-owner.mjs:/app/bootstrap-owner.mjs:ro \
+  api node bootstrap-owner.mjs
 docker compose up -d --wait api worker web
 # Only when the apps node's HTTPS root has no existing route:
 tailscale serve --bg --https=443 http://127.0.0.1:3020
@@ -25,3 +28,9 @@ Owner bootstrap takes a precomputed Argon2id hash from `/opt/havefolio/secrets/o
 Record deployed Git revisions and image IDs in `/opt/havefolio/deployment/release.json`. Keep the previous image tag and Compose configuration for rollback. To roll back application containers, set `RELEASE` to the prior compatible tag and recreate only this stack's api/worker/web services. Never reverse applied SQL, restore old data over live data, remove shared services, or run `down -v`. On the first deployment there is no earlier application release: stop only Havefolio services and remove only its Serve route if the release fails. Additive migrations remain applied for a corrected forward rollout.
 
 This deployment does not implement the rest of the product backlog, provider backup/restore, full observability, password recovery or broader hardening. The owner sign-in prerequisite is tracked separately under PER-52.
+
+## First rollout evidence, 2026-10-02
+
+Deployed merged main `2e1720a` with the separately reviewed PER-52 sign-in page, using release tag `per40-20261002`. Four amd64 images built and loaded successfully; migrations applied once; protected owner hash bootstrap succeeded; API/web health and worker startup passed. Private Tailscale HTTPS returned 200, owner login passed with secure session attributes, and synthetic item creation passed. Existing Treasury Ops and shared services were retained.
+
+The supplied Cloudinary values reached the running API unchanged, but both provider credential ping and direct authenticated upload returned HTTP 401. Application upload correctly returned a safe per-file failure. Uploads are disabled pending corrected credentials, while manual entry remains available. Two synthetic fixtures and six never-accepted pending records were removed after confirming provider authentication rejection and no assigned asset IDs. Do not describe private delivery/deletion as verified until credentials are corrected and the complete provider smoke passes.
