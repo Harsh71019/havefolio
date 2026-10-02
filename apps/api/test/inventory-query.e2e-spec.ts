@@ -319,15 +319,15 @@ describe('complete owner inventory querying', () => {
       'INSERT INTO users(id) SELECT gen_random_uuid() FROM generate_series(1,30)',
     );
     await run.runtime.query(
-      "INSERT INTO items(owner_id,name,brand,currency,price_paid_minor,ownership_status,original_entry,original_source) SELECT u.id,'Synthetic '||s,CASE WHEN s=500 THEN 'rareword' ELSE 'brand' END,'INR',s*100,CASE WHEN s%2=0 THEN 'owned' ELSE 'sold' END,'{}','manual' FROM users u CROSS JOIN generate_series(1,1000) s WHERE u.id<>$1 AND u.id<>$2",
+      "INSERT INTO items(owner_id,name,brand,currency,price_paid_minor,ownership_status,original_entry,original_source,created_at,updated_at) SELECT u.id,'Synthetic '||s,CASE WHEN s=500 THEN 'rareword' ELSE 'brand' END,'INR',s*100,CASE WHEN s%2=0 THEN 'owned' ELSE 'sold' END,'{}','manual',now()-s*interval '1 hour',now()-s*interval '1 minute' FROM users u CROSS JOIN generate_series(1,1000) s WHERE u.id<>$1 AND u.id<>$2",
       [owner, other],
     );
     await run.runtime.query(
       "INSERT INTO tags(owner_id,name) SELECT id,'Synthetic tag '||s FROM users CROSS JOIN generate_series(1,100) s WHERE id<>$1 AND id<>$2",
       [owner, other],
     );
-    await run.migration.query('ANALYZE items');
-    await run.migration.query('ANALYZE tags');
+    await run.migration.query('VACUUM ANALYZE items');
+    await run.migration.query('VACUUM ANALYZE tags');
     await run.migration.query('ANALYZE item_tags');
     const planOwner = (
       await run.runtime.query<{ owner_id: string }>(
@@ -335,6 +335,12 @@ describe('complete owner inventory querying', () => {
         [owner, other],
       )
     ).rows[0]!.owner_id;
+    // A larger owner measures ordered pagination under skew as well as the uniform baseline.
+    await run.runtime.query(
+      "INSERT INTO items(owner_id,name,currency,price_paid_minor,original_entry,original_source,created_at,updated_at) SELECT $1,'Large owner '||s,'INR',s*100,'{}','manual',now()-s*interval '1 hour',now()-s*interval '1 minute' FROM generate_series(1,19000) s",
+      [planOwner],
+    );
+    await run.migration.query('VACUUM ANALYZE items');
     const indexes = (
       await run.runtime.query<{ indexname: string }>(
         'SELECT indexname FROM pg_indexes WHERE schemaname=$1',

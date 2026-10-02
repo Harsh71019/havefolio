@@ -32,7 +32,7 @@ The encrypted payload includes version, exact sort value (including six-digit ti
 
 Forward Drizzle migration `0008_inventory_query_indexes.sql` adds owner/name/UUID, owner/updated/UUID, owner/currency/price/UUID and GIN simple full text item/tag documents. Existing owner/created/UUID, owner/status/created/UUID, owner/category/subcategory and owner/tag/item indexes remain. Search uses a union of indexed item and tag matches, not a correlated scan of every item. No speculative index for every filter combination.
 
-`inventory-query.e2e-spec.ts` migrates an empty disposable schema, tests contracts, isolation, filters, bounds, cursor expiry/tampering and every sort. It seeds 30,000 synthetic items across 30 owners with price/status variation, a rare search token and tied timestamps, then runs `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)`. Checks assert index access and no sequential scan of `items` for common name/newest/updated/price/status/search queries; no exact costs or timing thresholds. Small tables may correctly use sequential scans. Existing ascending created/status indexes may need a small tie-break sort for descending dates. Search GIN is global, with owner constraints applied on every union branch. Very common words can still match much of one owner's inventory; write/storage overhead and planner statistics require monitoring as real distributions grow.
+`inventory-query.e2e-spec.ts` migrates an empty disposable schema, tests contracts, isolation, filters, bounds, cursor expiry/tampering and every sort. It seeds a 30,000-item baseline across 30 owners, then adds 19,000 items for one owner (49,000 total) with price/status variation, a rare search token and tied timestamps in traversal fixtures. After VACUUM/ANALYZE settles GIN pending lists and statistics, it runs `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)`. Checks assert index access and no sequential scan of `items` for common name/newest/updated/price/status/search queries; no exact costs or timing thresholds. Small tables may correctly use sequential scans. Existing ascending created/status indexes may need a small tie-break sort for descending dates. Search GIN is global, with owner constraints applied on every union branch. Very common words can still match much of one owner's inventory; write/storage overhead and planner statistics require monitoring as real distributions grow.
 
 Production migration deployment remains an operator step: generated CREATE INDEX takes locks on the existing table. Review inventory size, backup and lock window before applying; no production plan analysis was run.
 
@@ -41,3 +41,16 @@ Production migration deployment remains an operator step: generated CREATE INDEX
 This repository uses handwritten `@havefolio/contracts` types plus Nest Swagger decorators and integration contract checks; it has no client-generation script. `InventoryQuery`, `ItemCard` and `InventoryPage` mirror the endpoint and retain bigint strings and date precision. API OpenAPI describes every query enum, bound, cursor and response/error. `inventory-query-state.ts` provides bounded URL parsing/canonical serialization and cursor reset for changed filters, sorts and page size. URLs contain query intent and encrypted pagination, never credentials or full item records. Search terms themselves are visible in browser history; do not add notes or other private record content to URLs.
 
 PER-16 owns the My Store route/cards. This draft does not create a competing page. After PER-16 merges, rebase onto main and integrate controls, debounce, mobile filters, back/forward restoration, accessible result announcements and recoverable failures. Final page smoke checks/screenshots and readiness are pending that dependency. No card redesign, spending aggregation, detail editing, currency conversion, AI search or public inventory access.
+
+Measured PostgreSQL 18.4 plans on the final 49,000-item synthetic dataset:
+
+| Query | Indexes observed |
+| --- | --- |
+| Name | `item_owner_name_idx` |
+| Newest | `item_owner_created_idx` |
+| Recently updated | `item_owner_updated_idx` |
+| INR price ascending | `item_owner_currency_price_idx` |
+| Owned + newest | `item_owner_status_created_idx` |
+| Rare whole-word search | `item_search_document_idx`, `tag_search_document_idx`, `items_pkey` |
+
+Only nullable price requires an explicit NULLS LAST clause. Adding it to nonnullable descending timestamp/name order prevents PostgreSQL from matching existing ordered indexes, despite identical result semantics. The final query preserves deterministic price null placement and allows existing created/updated indexes to serve descending pages with the ascending UUID tie-breaker. Reverse price ordering may still sort the scoped owner/currency result; a second price index is intentionally deferred until real workload evidence warrants its write cost.

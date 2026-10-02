@@ -185,7 +185,7 @@ export function inventorySql(
     ? `to_char(${column} AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`
     : `(${column})::text`;
   return {
-    text: `SELECT i.id,i.name,i.ownership_status,i.currency,i.price_paid_minor,i.purchase_date_precision,i.purchase_year,i.purchase_month,i.purchase_day,i.acquisition_type,i.condition,i.use_frequency,i.category_id,i.subcategory_id,i.brand,i.model,i.revision,i.created_at,i.updated_at,${tuple} AS cursor_value FROM items i WHERE ${clauses.join(' AND ')} ORDER BY ${column} ${direction} NULLS LAST${sort === 'id' ? '' : ',i.id ASC'} LIMIT ${bind((q.limit ?? 25) + 1)}`,
+    text: `SELECT i.id,i.name,i.ownership_status,i.currency,i.price_paid_minor,i.purchase_date_precision,i.purchase_year,i.purchase_month,i.purchase_day,i.acquisition_type,i.condition,i.use_frequency,i.category_id,i.subcategory_id,i.brand,i.model,i.revision,i.created_at,i.updated_at,${tuple} AS cursor_value FROM items i WHERE ${clauses.join(' AND ')} ORDER BY ${column} ${direction}${sort === 'price' ? ' NULLS LAST' : ''}${sort === 'id' ? '' : ',i.id ASC'} LIMIT ${bind((q.limit ?? 25) + 1)}`,
     values,
   };
 }
