@@ -26,6 +26,8 @@ export type PrivatePhotoProps = PrivatePhotoSource & {
   failedLabel?: string;
   onRetry?: () => void;
   onFailure?: () => void;
+  /** Set false in dense grids so many failures do not each interrupt assistive technology. */
+  announceFailure?: boolean;
 };
 
 /**
@@ -34,6 +36,7 @@ export type PrivatePhotoProps = PrivatePhotoSource & {
  */
 export function PrivatePhoto({
   alt,
+  announceFailure = true,
   className,
   failedLabel = 'Photo could not load.',
   fit = 'contain',
@@ -63,7 +66,7 @@ export function PrivatePhoto({
         )}
       >
         <ImageOffIcon aria-hidden="true" className="size-6" />
-        <p role="alert">{failedLabel}</p>
+        <p {...(announceFailure ? { role: 'alert' } : {})}>{failedLabel}</p>
         {onRetry ? (
           <Button className="min-h-11" onClick={onRetry} size="sm" type="button" variant="outline">
             <RotateCcwIcon aria-hidden="true" />

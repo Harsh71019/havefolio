@@ -10,6 +10,8 @@ export type ItemCoverProps = {
   fit?: 'contain' | 'cover';
   loading?: 'eager' | 'lazy';
   emptyLabel?: string;
+  failedLabel?: string;
+  announceFailure?: boolean;
   onRetry?: () => void;
 };
 
@@ -18,9 +20,11 @@ export type ItemCoverProps = {
  * 4:3 box; pass sizing classes (for example `h-full`) to fill an existing media slot instead.
  */
 export function ItemCover({
+  announceFailure = true,
   className,
   cover,
   emptyLabel = 'No cover photo yet',
+  failedLabel = 'Cover photo could not load.',
   fit = 'cover',
   loading = 'lazy',
   onRetry,
@@ -30,7 +34,8 @@ export function ItemCover({
       {cover ? (
         <PrivatePhoto
           {...cover}
-          failedLabel="Cover photo could not load."
+          announceFailure={announceFailure}
+          failedLabel={failedLabel}
           fit={fit}
           loading={loading}
           {...(onRetry ? { onRetry } : {})}

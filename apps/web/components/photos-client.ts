@@ -206,7 +206,7 @@ export function photoName(photo: ItemPhoto, index: number): string {
  */
 export function photoSource(
   itemId: string,
-  photo: ItemPhoto,
+  photo: Pick<ItemPhoto, 'id' | 'width' | 'height'>,
   alt: string,
   sizes: string,
   options: { attempt?: number; large?: boolean } = {},

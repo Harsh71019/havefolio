@@ -100,7 +100,14 @@ type Dialogs =
   | { kind: 'replace'; id: string }
   | undefined;
 
-export function PhotoGallery({ itemId }: { itemId: string }): React.JSX.Element {
+export function PhotoGallery({
+  itemId,
+  fromStore = false,
+}: {
+  itemId: string;
+  /** Opened from My Store: the back link returns there instead of the item page. */
+  fromStore?: boolean;
+}): React.JSX.Element {
   const [snapshot, setSnapshot] = useState<ItemPhotoSnapshot | undefined>();
   const [loadError, setLoadError] = useState<string | undefined>();
   const [optimistic, setOptimistic] = useState<string[] | undefined>();
@@ -378,7 +385,11 @@ export function PhotoGallery({ itemId }: { itemId: string }): React.JSX.Element 
           </p>
         </div>
         <Button asChild variant="outline" className="min-h-11 self-start">
-          <Link href={`/items/${itemId}`}>Back to item</Link>
+          {fromStore ? (
+            <Link href="/store">Back to My Store</Link>
+          ) : (
+            <Link href={`/items/${itemId}`}>Back to item</Link>
+          )}
         </Button>
       </header>
 

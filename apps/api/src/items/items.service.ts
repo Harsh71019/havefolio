@@ -15,6 +15,7 @@ import {
   type ItemsQueryDto,
   type ItemDto,
   type ItemsPageDto,
+  type ItemCoverDto,
   type EventsPageDto,
   type PurchaseDateDto,
 } from './items.dto.js';
@@ -269,17 +270,55 @@ export class ItemsService {
           [owner, page.map((r) => r.id)],
         )
       ).rows;
+      const covers = await this.covers(
+        c,
+        owner,
+        page.map((r) => r.id),
+      );
       return {
-        items: page.map((r) =>
-          this.serialize(
+        items: page.map((r) => ({
+          ...this.serialize(
             r,
             tags.filter((t) => t.item_id === r.id).map((t) => t.tag_id),
           ),
-        ),
+          cover: covers.get(r.id) ?? null,
+        })),
         hasMore: rows.length > limit,
         nextCursor: rows.length > limit ? page.at(-1)!.id : null,
       };
     });
+  }
+  // One bounded query per page: the PER-15 cover is the first ready photo original by (position,id).
+  private async covers(
+    c: PoolClient,
+    owner: string,
+    ids: string[],
+  ): Promise<Map<string, ItemCoverDto>> {
+    if (!ids.length) return new Map();
+    const rows = (
+      await c.query<{
+        item_id: string;
+        id: string;
+        width: number;
+        height: number;
+        alt_text: string | null;
+      }>(
+        "SELECT DISTINCT ON (item_id) item_id,id,width,height,alt_text FROM media_attachments WHERE owner_id=$1 AND item_id=ANY($2::uuid[]) AND kind='photo' AND variant='original' AND state='ready' ORDER BY item_id,position,id",
+        [owner, ids],
+      )
+    ).rows;
+    return new Map(
+      rows.map((r) => [
+        r.item_id,
+        {
+          photoId: r.id,
+          width: r.width,
+          height: r.height,
+          altText: r.alt_text ? r.alt_text : null,
+          decorative: r.alt_text === '',
+        },
+      ]),
+    );
   }
   async update(owner: string, id: string, input: UpdateItemDto): Promise<ItemDto> {
     this.validate(input);

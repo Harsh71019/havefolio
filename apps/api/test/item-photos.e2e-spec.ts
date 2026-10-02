@@ -456,6 +456,64 @@ describe('private item photo HTTP and recovery', () => {
     ).rejects.toThrow();
     expect((await snapshot(item.id)).photos[0]!.cover).toBe(true);
   });
+  it('lists each item with its batched current cover and never a document or provider detail', async () => {
+    const withPhotos = await create(),
+      bare = await create();
+    await upload(withPhotos.id)
+      .attach('photos', bytes, 'one.jpg')
+      .attach('photos', bytes, 'two.jpg')
+      .expect(201);
+    let state = await snapshot(withPhotos.id);
+    const second = state.photos[1]!.id;
+    state = (
+      await http()
+        .patch(`/api/v1/items/${withPhotos.id}/photos/${second}`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .send({ revision: state.revision, altText: 'Side view', decorative: false })
+        .expect(200)
+    ).body as PhotoSnapshotDto;
+    await http()
+      .patch(`/api/v1/items/${withPhotos.id}/photos/order`)
+      .set('Cookie', `havefolio_session=${token}`)
+      .send({ revision: state.revision, photoIds: [second, state.photos[0]!.id] })
+      .expect(200);
+    const receipt = randomUUID();
+    await run.runtime.query(
+      "INSERT INTO media_attachments(id,owner_id,item_id,kind,variant,state,object_key,resource_type,format,provider_asset_id,provider_version,original_filename,mime_type,byte_size,checksum,position) VALUES($1,$2,$3,'receipt','original','ready',$4,'raw','pdf',$5,1,'synthetic.pdf','application/pdf',10,$6,0)",
+      [receipt, owner, bare.id, `havefolio/test/${receipt}.pdf`, randomUUID(), 'c'.repeat(64)],
+    );
+    const list = async (): Promise<Map<string, { cover: unknown }>> => {
+      const body = (
+        await http()
+          .get('/api/v1/items?limit=100')
+          .set('Cookie', `havefolio_session=${token}`)
+          .expect(200)
+      ).body as { items: { id: string; cover: unknown }[] };
+      expect(JSON.stringify(body)).not.toMatch(/havefolio\/|cloudinary|objectKey|assetId|https?:/);
+      return new Map(body.items.map((i) => [i.id, i]));
+    };
+    let items = await list();
+    expect(items.get(withPhotos.id)!.cover).toEqual({
+      photoId: second,
+      width: 80,
+      height: 60,
+      altText: 'Side view',
+      decorative: false,
+    });
+    expect(items.get(bare.id)!.cover).toBeNull();
+    state = await snapshot(withPhotos.id);
+    for (const photo of state.photos) {
+      state = (
+        await http()
+          .delete(`/api/v1/items/${withPhotos.id}/photos/${photo.id}`)
+          .set('Cookie', `havefolio_session=${token}`)
+          .send({ revision: state.revision })
+          .expect(200)
+      ).body as PhotoSnapshotDto;
+    }
+    items = await list();
+    expect(items.get(withPhotos.id)!.cover).toBeNull();
+  });
   it('publishes multipart, response and failure contracts', () => {
     const doc = SwaggerModule.createDocument(app, new DocumentBuilder().addCookieAuth().build());
     const endpoint = doc.paths['/api/v1/items/{itemId}/photos']!.post!;
