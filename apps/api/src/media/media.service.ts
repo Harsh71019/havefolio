@@ -154,6 +154,14 @@ export class MediaService {
     };
   }
 
+  // Hide the original before deleting variants so partial failures never expose a ready family.
+  async beginPhotoDeletion(ownerId: string, id: string): Promise<void> {
+    const row = await this.owned(ownerId, id);
+    if (row.kind !== 'photo' || row.variant !== 'original' || row.state === 'pending')
+      throw new ConflictException('MEDIA_NOT_READY');
+    await this.repository.markPhotoFamilyDeleting(ownerId, id);
+  }
+
   async delete(ownerId: string, id: string): Promise<void> {
     const row = await this.owned(ownerId, id);
     if (row.state === 'pending') throw new ConflictException('MEDIA_NOT_READY');
