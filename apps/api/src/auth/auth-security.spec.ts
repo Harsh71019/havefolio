@@ -162,6 +162,7 @@ describe('safe exception boundary', () => {
           status = code;
           return response;
         },
+        locals: {},
         setHeader: () => response,
         json: (value: unknown) => {
           body = value;
@@ -176,9 +177,7 @@ describe('safe exception boundary', () => {
       filter.catch(new Error('private database credentials and stack fixture'), host);
       expect(status).toBe(500);
       expect(JSON.stringify(body)).not.toContain('private');
-      expect(logs).toHaveBeenCalledWith(
-        JSON.stringify({ event: 'api_request_failed', status: 500 }),
-      );
+      expect(logs).not.toHaveBeenCalled();
     } finally {
       logs.mockRestore();
       await module.close();

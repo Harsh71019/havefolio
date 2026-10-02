@@ -20,10 +20,55 @@ const optionalEnvironmentString = z.preprocess(
   z.string().min(1).optional(),
 );
 
+const loggingFields = {
+  LOG_SERVICE: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .regex(/^[a-z][a-z0-9-]{0,39}$/)
+      .optional(),
+  ),
+  LOG_APPLICATION: z
+    .string()
+    .regex(/^[a-z][a-z0-9-]{0,39}$/)
+    .default('havefolio'),
+  LOG_RELEASE: z
+    .string()
+    .regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$/)
+    .refine((value) => !value.startsWith('REPLACE_WITH_'), {
+      message: 'Release requires a real bounded identifier',
+    })
+    .default('local'),
+  LOG_PRETTY: z.preprocess(
+    (v) => (v === undefined ? false : v),
+    z.union([z.boolean(), z.enum(['true', 'false'])]).transform((v) => v === true || v === 'true'),
+  ),
+  SEQ_ENABLED: z.preprocess(
+    (v) => (v === undefined ? false : v),
+    z.union([z.boolean(), z.enum(['true', 'false'])]).transform((v) => v === true || v === 'true'),
+  ),
+  // Invalid destination values deliberately disable Seq, never application startup.
+  SEQ_ENDPOINT: z.preprocess(
+    (v) => (typeof v === 'string' && v.length <= 256 ? v : undefined),
+    z.string().optional(),
+  ),
+  SEQ_API_KEY: z.preprocess(
+    (v) =>
+      typeof v === 'string' &&
+      v.length <= 256 &&
+      /^[A-Za-z0-9_-]+$/.test(v) &&
+      !v.startsWith('REPLACE_WITH_')
+        ? v
+        : undefined,
+    z.string().optional(),
+  ),
+};
+
 export const apiEnvironmentSchema = z
   .object({
     NODE_ENV: nodeEnvironment,
     LOG_LEVEL: logLevel,
+    ...loggingFields,
     API_HOST: z.string().min(1).default('0.0.0.0'),
     API_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
     API_TRUST_PROXY: z.preprocess(
@@ -192,6 +237,7 @@ export const workerEnvironmentSchema = z
   .object({
     NODE_ENV: nodeEnvironment,
     LOG_LEVEL: logLevel,
+    ...loggingFields,
     WORKER_QUEUE_ENABLED: booleanFromEnvironment.default(false),
     VALKEY_HOST: z.literal('shared-redis').default('shared-redis'),
     VALKEY_PORT: z.coerce.number().int().min(1).max(65_535).default(6379),

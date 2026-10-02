@@ -17,6 +17,7 @@ minimumReleaseAgeExclude:
   - eslint-config-next@16.3.7
   - next@16.3.7
   - lucide-react@1.49.0
+  - nestjs-pino@5.3.0
 
 allowBuilds:
   argon2: true

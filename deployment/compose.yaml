@@ -21,6 +21,10 @@ services:
   api:
     <<: *runtime
     image: havefolio-api:${RELEASE:?Set RELEASE}
+    environment:
+      LOG_SERVICE: api
+      LOG_RELEASE: ${RELEASE:?Set RELEASE}
+      LOG_PRETTY: 'false'
     env_file: /opt/havefolio/secrets/shared-services/.env.production.api
     networks: [app, shared-services]
     mem_limit: 768m
@@ -40,6 +44,10 @@ services:
   worker:
     <<: *runtime
     image: havefolio-worker:${RELEASE:?Set RELEASE}
+    environment:
+      LOG_SERVICE: worker
+      LOG_RELEASE: ${RELEASE:?Set RELEASE}
+      LOG_PRETTY: 'false'
     env_file: /opt/havefolio/secrets/shared-services/.env.production.worker
     networks: [shared-services]
     mem_limit: 256m

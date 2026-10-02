@@ -20,7 +20,7 @@ export class WorkerRuntimeService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     const mode = this.environment.WORKER_QUEUE_ENABLED ? 'connected' : 'standby';
-    this.logger.log(`Havefolio worker started in ${mode} mode`);
+    this.logger.log({ event: 'worker_started', component: 'runtime', operation: mode });
 
     if (!this.environment.WORKER_QUEUE_ENABLED) {
       this.keepAliveTimer = setInterval(() => undefined, 60_000);

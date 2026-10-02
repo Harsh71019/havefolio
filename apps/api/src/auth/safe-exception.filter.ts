@@ -2,7 +2,6 @@ import {
   Catch,
   HttpException,
   Injectable,
-  Logger,
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
@@ -68,7 +67,6 @@ const statusMessages: Record<number, string> = {
 @Catch()
 @Injectable()
 export class SafeExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(SafeExceptionFilter.name);
   catch(exception: unknown, host: ArgumentsHost): void {
     const oversized =
       exception instanceof Error && 'type' in exception && exception.type === 'entity.too.large';
@@ -78,7 +76,15 @@ export class SafeExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException && safeMessages.has(exception.message)
         ? exception.message
         : (statusMessages[status] ?? 'REQUEST_FAILED');
-    if (status >= 500) this.logger.error(JSON.stringify({ event: 'api_request_failed', status }));
+    const response = host.switchToHttp().getResponse<Response>();
+    response.locals.logError = exception;
+    response.locals.logCategory =
+      status >= 500
+        ? exception instanceof HttpException
+          ? 'operational_failure'
+          : 'unexpected_failure'
+        : 'controlled_failure';
+    response.locals.logCode = message;
     host
       .switchToHttp()
       .getResponse<Response>()

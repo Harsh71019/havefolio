@@ -21,7 +21,21 @@ try {
   await redis.connect();
   await redis.ping();
 } catch {
-  console.error('Havefolio dependencies unavailable; credential and query details withheld.');
+  console.error(
+    JSON.stringify({
+      application: 'havefolio',
+      service: 'api',
+      environment: 'production',
+      release: /^[A-Za-z0-9_.-]{1,80}$/.test(process.env.LOG_RELEASE ?? '')
+        ? process.env.LOG_RELEASE
+        : 'unknown',
+      time: Date.now(),
+      level: 50,
+      event: 'startup_dependency_failed',
+      component: 'bootstrap',
+      category: 'operational_failure',
+    }),
+  );
   process.exitCode = 1;
 } finally {
   await db.end().catch(() => {});

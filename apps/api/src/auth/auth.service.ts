@@ -17,7 +17,7 @@ export class AuthService {
     private readonly rate: AuthRateService,
   ) {}
   private event(event: string): void {
-    this.logger.log(JSON.stringify({ event, domain: 'auth' }));
+    this.logger.log({ event, component: 'auth' });
   }
   publicOwner(owner: OwnerContext): OwnerResponseDto {
     return { id: owner.id, email: owner.email, displayName: owner.displayName };
