@@ -32,11 +32,15 @@ export class PhotoRecoveryService implements OnModuleInit, OnModuleDestroy {
         if (lease.rows[0]?.locked) {
           const result = await this.media.reconcile();
           if (result.completed || result.failed)
-            this.logger.log(JSON.stringify({ event: 'photo_recovery', ...result }));
+            this.logger.log({ event: 'photo_recovery', component: 'media', ...result });
         }
       });
     } catch {
-      this.logger.warn(JSON.stringify({ event: 'photo_recovery', code: 'RECOVERY_UNAVAILABLE' }));
+      this.logger.warn({
+        event: 'photo_recovery',
+        component: 'media',
+        code: 'RECOVERY_UNAVAILABLE',
+      });
     } finally {
       this.running = false;
     }

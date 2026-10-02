@@ -1,3 +1,4 @@
+import { TelemetryModule } from '@havefolio/logging';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Controller, Get, Post } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -64,6 +65,7 @@ describe('private authentication on isolated PostgreSQL and Valkey', () => {
     };
     module = await Test.createTestingModule({
       imports: [
+        TelemetryModule.register('api'),
         ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, ignoreEnvVars: true }),
         AuthModule,
         OperationsModule,
@@ -326,6 +328,7 @@ describe('private authentication on isolated PostgreSQL and Valkey', () => {
     await post('register').expect(201);
     const productionModule = await Test.createTestingModule({
       imports: [
+        TelemetryModule.register('api'),
         ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, ignoreEnvVars: true }),
         AuthModule,
       ],

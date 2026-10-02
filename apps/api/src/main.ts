@@ -1,3 +1,4 @@
+import { Logger } from 'nestjs-pino';
 import 'reflect-metadata';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
@@ -7,9 +8,15 @@ import { AppModule } from './app.module.js';
 import { configureApplication } from './app.setup.js';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
-  app.useBodyParser('json', { limit: '16kb' });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+    bufferLogs: true,
+    abortOnError: false,
+    logger: false,
+  });
+  app.useLogger(app.get(Logger));
   configureApplication(app);
+  app.useBodyParser('json', { limit: '16kb' });
 
   const config = app.get(ConfigService);
   const corsOrigin = config.getOrThrow<string>('API_CORS_ORIGIN');
@@ -40,4 +47,19 @@ async function bootstrap(): Promise<void> {
   await app.listen(port, host);
 }
 
-void bootstrap();
+void bootstrap().catch(() => {
+  process.stderr.write(
+    JSON.stringify({
+      application: 'havefolio',
+      service: 'api',
+      environment: 'unknown',
+      release: 'unknown',
+      time: Date.now(),
+      event: 'startup_failed',
+      level: 50,
+      component: 'bootstrap',
+      category: 'configuration_or_dependency_failure',
+    }) + '\n',
+  );
+  process.exitCode = 1;
+});

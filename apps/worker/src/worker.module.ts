@@ -1,3 +1,4 @@
+import { TelemetryModule } from '@havefolio/logging';
 import type { WorkerEnvironment } from '@havefolio/config';
 import { BullModule } from '@nestjs/bullmq';
 import { type DynamicModule, Module } from '@nestjs/common';
@@ -41,6 +42,7 @@ export class WorkerModule {
           isGlobal: true,
           validate: validateWorkerEnvironment,
         }),
+        TelemetryModule.register('worker'),
         ...queueImports,
       ],
       providers: [

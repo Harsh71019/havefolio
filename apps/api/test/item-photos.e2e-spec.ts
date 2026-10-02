@@ -1,3 +1,4 @@
+import { TelemetryModule } from '@havefolio/logging';
 import { randomUUID } from 'node:crypto';
 import { beforeAll, afterAll, describe, expect, it, jest } from '@jest/globals';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -69,6 +70,7 @@ describe('private item photo HTTP and recovery', () => {
     url.searchParams.set('options', `-c search_path=${run.schema},pg_catalog`);
     const module = await Test.createTestingModule({
       imports: [
+        TelemetryModule.register('api'),
         ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, ignoreEnvVars: true }),
         AuthModule,
         ItemsModule,
