@@ -23,7 +23,18 @@ interface Row {
   checksum: string;
   item_id: string;
   owner_id: string;
+  alt_text: string | null;
 }
+interface Variant {
+  object_key: string;
+  resource_type: 'image';
+  format: 'webp';
+  byte_size: string;
+  checksum: string;
+}
+// A variant is reachable only while its owner/item-scoped original is ready.
+const readyVariant =
+  "FROM media_attachments WHERE owner_id=$1 AND item_id=$2 AND kind='photo' AND state='ready' AND ((id=$3 AND variant='original') OR parent_id=$3) AND variant=$4 AND EXISTS (SELECT 1 FROM media_attachments p WHERE p.id=$3 AND p.owner_id=$1 AND p.item_id=$2 AND p.variant='original' AND p.state='ready')";
 @Injectable()
 export class ItemPhotosService {
   constructor(
@@ -57,6 +68,8 @@ export class ItemPhotosService {
       height: r.height,
       byteSize: Number(r.byte_size),
       mimeType: 'image/webp',
+      altText: r.alt_text ? r.alt_text : null,
+      decorative: r.alt_text === '',
     };
   }
   private async rows(c: PoolClient, owner: string, item: string): Promise<Row[]> {
@@ -256,6 +269,31 @@ export class ItemPhotosService {
     });
     return this.snapshot(owner, item);
   }
+  async describe(
+    owner: string,
+    item: string,
+    id: string,
+    revision: number,
+    altText: string | null,
+    decorative: boolean,
+  ): Promise<PhotoSnapshotDto> {
+    const text = (altText ?? '').trim();
+    if ([...text].length > 250 || /[\p{Cc}\p{Cf}]/u.test(text) || (decorative && text.length > 0))
+      throw new BadRequestException('PHOTO_ALT_TEXT_INVALID');
+    await this.repo.transaction(owner, async (c) => {
+      await this.item(c, owner, item, revision);
+      const r = await c.query(
+        "UPDATE media_attachments SET alt_text=$1,updated_at=now() WHERE owner_id=$2 AND item_id=$3 AND id=$4 AND kind='photo' AND variant='original' AND state='ready'",
+        [decorative ? '' : text || null, owner, item, id],
+      );
+      if (r.rowCount !== 1) throw new NotFoundException('MEDIA_NOT_FOUND');
+      await c.query(
+        'UPDATE items SET revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2',
+        [item, owner],
+      );
+    });
+    return this.snapshot(owner, item);
+  }
   async access(
     owner: string,
     item: string,
@@ -265,13 +303,34 @@ export class ItemPhotosService {
     return this.repo.transaction(owner, async (c) => {
       await this.item(c, owner, item);
       const r = (
-        await c.query<{ id: string }>(
-          "SELECT id FROM media_attachments WHERE owner_id=$1 AND item_id=$2 AND kind='photo' AND state='ready' AND ((id=$3 AND variant='original') OR parent_id=$3) AND variant=$4 AND EXISTS (SELECT 1 FROM media_attachments p WHERE p.id=$3 AND p.owner_id=$1 AND p.item_id=$2 AND p.variant='original' AND p.state='ready')",
-          [owner, item, id, variant],
-        )
+        await c.query<{ id: string }>(`SELECT id ${readyVariant}`, [owner, item, id, variant])
       ).rows[0];
       if (!r) throw new NotFoundException('MEDIA_NOT_FOUND');
       return this.media.download(owner, r.id);
     });
+  }
+  // Authorize under the item lock, then fetch outside the transaction so slow delivery never holds it.
+  async content(owner: string, item: string, id: string, variant: string): Promise<Buffer> {
+    const row = await this.repo.transaction(owner, async (c) => {
+      await this.item(c, owner, item);
+      return (
+        await c.query<Variant>(
+          `SELECT object_key,resource_type,format,byte_size,checksum ${readyVariant}`,
+          [owner, item, id, variant],
+        )
+      ).rows[0];
+    });
+    if (!row) throw new NotFoundException('MEDIA_NOT_FOUND');
+    const bytes = await this.storage.read(
+      row.object_key,
+      row.resource_type,
+      row.format,
+      Number(row.byte_size),
+    );
+    if (createHash('sha256').update(bytes).digest('hex') !== row.checksum) {
+      bytes.fill(0);
+      throw new ServiceUnavailableException('MEDIA_STORAGE_UNAVAILABLE');
+    }
+    return bytes;
   }
 }

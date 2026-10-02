@@ -433,6 +433,8 @@ export const mediaAttachments = pgTable(
     checksum: text('checksum').notNull(),
     width: integer('width'),
     height: integer('height'),
+    // Owner-supplied photo description: null is undescribed, '' is explicitly decorative.
+    altText: text('alt_text'),
     createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
@@ -476,6 +478,10 @@ export const mediaAttachments = pgTable(
     check(
       'media_dimensions_check',
       sql`(${table.width} is null and ${table.height} is null) or (${table.width} is not null and ${table.height} is not null and ${table.width} > 0 and ${table.height} > 0 and ${table.width} <= 8192 and ${table.height} <= 8192 and ${table.width}::bigint * ${table.height} <= 24000000)`,
+    ),
+    check(
+      'media_alt_text_check',
+      sql`${table.altText} is null or (${table.kind} = 'photo' and ${table.variant} = 'original' and char_length(${table.altText}) <= 250 and ${table.altText} = btrim(${table.altText}))`,
     ),
     check(
       'media_type_check',

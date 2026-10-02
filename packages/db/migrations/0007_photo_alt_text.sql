@@ -1,0 +1,2 @@
+ALTER TABLE "media_attachments" ADD COLUMN "alt_text" text;--> statement-breakpoint
+ALTER TABLE "media_attachments" ADD CONSTRAINT "media_alt_text_check" CHECK ("media_attachments"."alt_text" is null or ("media_attachments"."kind" = 'photo' and "media_attachments"."variant" = 'original' and char_length("media_attachments"."alt_text") <= 250 and "media_attachments"."alt_text" = btrim("media_attachments"."alt_text")));

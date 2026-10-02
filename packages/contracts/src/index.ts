@@ -254,3 +254,42 @@ export function formatMinorUnitsToDisplay(
   const fracPart = padded.slice(-exponent);
   return `${intPart}.${fracPart}`;
 }
+
+/** Ready item photo metadata. Never contains provider identifiers, object keys or URLs. */
+export interface ItemPhoto {
+  id: string;
+  position: number;
+  cover: boolean;
+  width: number;
+  height: number;
+  byteSize: number;
+  mimeType: 'image/webp';
+  /** Owner-supplied description; null when not yet described. */
+  altText: string | null;
+  /** Owner explicitly chose an empty alternative because nearby text already conveys the photo. */
+  decorative: boolean;
+}
+export interface ItemPhotoSnapshot {
+  revision: number;
+  photos: ItemPhoto[];
+}
+export interface ItemPhotoUploadResult {
+  index: number;
+  photo?: ItemPhoto;
+  error?: string;
+}
+export interface ItemPhotoUploadResponse {
+  results: ItemPhotoUploadResult[];
+}
+export interface UpdateItemPhotoDescriptionRequest {
+  revision: number;
+  altText: string | null;
+  decorative: boolean;
+}
+export const itemPhotoLimits = {
+  maxPhotosPerItem: 8,
+  maxFileBytes: 10 * 1024 * 1024,
+  maxAltTextLength: 250,
+  acceptedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+} as const;
+export type ItemPhotoVariant = 'display' | 'thumbnail';

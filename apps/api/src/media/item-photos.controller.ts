@@ -12,6 +12,7 @@ import {
   Req,
   ServiceUnavailableException,
   BadRequestException,
+  StreamableFile,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -29,12 +30,18 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
   ApiProperty,
+  ApiProduces,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { CurrentOwner, type OwnerContext } from '../auth/auth.context.js';
 import { RevisionDto, ItemErrorDto } from '../items/items.dto.js';
 import { ItemPhotosService } from './item-photos.service.js';
-import { PhotoOrderDto, PhotoSnapshotDto, PhotoUploadDto } from './item-photos.dto.js';
+import {
+  PhotoDescriptionDto,
+  PhotoOrderDto,
+  PhotoSnapshotDto,
+  PhotoUploadDto,
+} from './item-photos.dto.js';
 import { readPhotos } from './photo-multipart.js';
 class PhotoAccessDto {
   @ApiProperty() url!: string;
@@ -65,6 +72,7 @@ class PhotoAccessDto {
 @Controller({ path: 'items/:itemId/photos', version: '1' })
 export class ItemPhotosController {
   private active = 0;
+  private delivering = 0;
   constructor(private readonly photos: ItemPhotosService) {}
   @Get()
   @Header('Cache-Control', 'no-store')
@@ -137,6 +145,28 @@ export class ItemPhotosController {
   ): Promise<PhotoSnapshotDto> {
     return this.photos.reorder(owner.id, item, input.revision, input.photoIds);
   }
+  @Patch(':photoId')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary:
+      'Set or clear owner-supplied alt text (at most 250 characters) or mark the photo decorative. Requires the item revision.',
+  })
+  @ApiOkResponse({ type: PhotoSnapshotDto })
+  describe(
+    @CurrentOwner() owner: OwnerContext,
+    @Param('itemId', ParseUUIDPipe) item: string,
+    @Param('photoId', ParseUUIDPipe) photo: string,
+    @Body() input: PhotoDescriptionDto,
+  ): Promise<PhotoSnapshotDto> {
+    return this.photos.describe(
+      owner.id,
+      item,
+      photo,
+      input.revision,
+      input.altText,
+      input.decorative,
+    );
+  }
   @Delete(':photoId')
   @Header('Cache-Control', 'no-store')
   @ApiOkResponse({ type: PhotoSnapshotDto })
@@ -161,5 +191,39 @@ export class ItemPhotosController {
     if (!['original', 'display', 'thumbnail'].includes(variant))
       throw new BadRequestException('PHOTO_VARIANT_INVALID');
     return this.photos.access(owner.id, item, photo, variant);
+  }
+  @Get(':photoId/content/:variant')
+  @Header('Cache-Control', 'private, no-store')
+  @Header('Referrer-Policy', 'no-referrer')
+  @Header('X-Content-Type-Options', 'nosniff')
+  @Header('Cross-Origin-Resource-Policy', 'same-origin')
+  @Header('Content-Security-Policy', "default-src 'none'; sandbox")
+  @ApiOperation({
+    summary:
+      'Authenticated same-origin image bytes for a ready variant. The server uses short-lived provider access per request; provider URLs never reach the browser.',
+  })
+  @ApiProduces('image/webp')
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  async content(
+    @CurrentOwner() owner: OwnerContext,
+    @Param('itemId', ParseUUIDPipe) item: string,
+    @Param('photoId', ParseUUIDPipe) photo: string,
+    @Param('variant') variant: string,
+  ): Promise<StreamableFile> {
+    if (!['display', 'thumbnail'].includes(variant))
+      throw new BadRequestException('PHOTO_VARIANT_INVALID');
+    // Bounded per process: a gallery requests at most eight thumbnails at once.
+    if (this.delivering >= 8) throw new ServiceUnavailableException('PHOTO_DELIVERY_BUSY');
+    this.delivering++;
+    try {
+      const bytes = await this.photos.content(owner.id, item, photo, variant);
+      return new StreamableFile(bytes, {
+        type: 'image/webp',
+        disposition: 'inline',
+        length: bytes.length,
+      });
+    } finally {
+      this.delivering--;
+    }
   }
 }
