@@ -180,7 +180,7 @@ export class ItemActionDto extends RevisionDto {
   @Length(0, 2000)
   note?: string;
 }
-export class ItemsQueryDto {
+export class PaginationQueryDto {
   @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 25 })
   @ValidateIf((_o, v) => v !== undefined)
   @Type(() => Number)
@@ -189,11 +189,12 @@ export class ItemsQueryDto {
   @Max(100)
   limit?: number;
   @ApiPropertyOptional({
-    format: 'uuid',
-    description: 'Last item UUID from the previous page; stable ascending UUID keyset order.',
+    description: 'Opaque versioned inventory cursor. History accepts the last event UUID.',
+    maxLength: 2048,
   })
   @ValidateIf((_o, v) => v !== undefined)
-  @IsUUID()
+  @IsString()
+  @Length(1, 2048)
   after?: string;
 }
 export class ItemDto {
@@ -242,17 +243,31 @@ export class ItemCoverDto {
   @ApiProperty({ type: String, nullable: true }) altText!: string | null;
   @ApiProperty() decorative!: boolean;
 }
-export class ItemListEntryDto extends ItemDto {
+export class ItemListEntryDto extends OmitType(ItemDto, [
+  'description',
+  'notes',
+  'specifications',
+  'originalEntry',
+  'originalSource',
+] as const) {
   @ApiProperty({
     type: ItemCoverDto,
     nullable: true,
-    description: 'First ready photo by gallery order; null when the item has no ready photo.',
+    description:
+      'Ready original cover metadata. Resolve thumbnail through authenticated item-photo API; never a provider URL.',
   })
   cover!: ItemCoverDto | null;
 }
 export class ItemsPageDto {
   @ApiProperty({ type: [ItemListEntryDto] }) items!: ItemListEntryDto[];
-  @ApiProperty({ type: String, nullable: true, format: 'uuid' }) nextCursor!: string | null;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    maxLength: 2048,
+    description:
+      'Version 1 encrypted sort tuple; expires after seven days. Encrypted and unique ID; bound to owner, filters, sort and limit. Live view; moved records can appear again or disappear between requests. Deleted anchors remain usable.',
+  })
+  nextCursor!: string | null;
   @ApiProperty() hasMore!: boolean;
 }
 export class ItemEventDto {
