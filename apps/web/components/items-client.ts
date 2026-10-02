@@ -2,11 +2,15 @@ import type {
   CreateItemRequest,
   DatePrecision,
   ItemAcquisition,
+  ItemActionRequest,
   ItemCondition,
+  ItemEventsPage,
   ItemFrequency,
   ItemResponse,
+  ItemsPage,
   ItemStatus,
   OwnerResponse,
+  UpdateItemRequest,
 } from '@havefolio/contracts';
 
 const messages: Record<string, string> = {
@@ -29,9 +33,20 @@ export class ItemRequestError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    /** Fixed public API code, or '' when the response had none. Never server prose. */
+    public readonly code = '',
   ) {
     super(message);
     this.name = 'ItemRequestError';
+  }
+  get unauthenticated(): boolean {
+    return this.status === 401;
+  }
+  get offline(): boolean {
+    return this.status === 0;
+  }
+  get stale(): boolean {
+    return this.code === 'STALE_ITEM_REVISION';
   }
 }
 
@@ -169,4 +184,90 @@ export function clearItemDraft(ownerId: string): void {
   } catch {
     // Ignore storage errors
   }
+}
+
+// Item details, corrections, lifecycle actions, history and deletion (PER-18).
+// Fixed public API codes only; server text, identifiers and provider details are never echoed.
+const detailMessages: Record<string, string> = {
+  ...messages,
+  ITEM_NOT_FOUND: 'This item is not in your inventory. It may have been deleted.',
+  STALE_ITEM_REVISION: 'This item changed since you opened it.',
+  INVALID_ITEM_TRANSITION: 'That change no longer applies to this item’s current status.',
+  INVALID_ITEM_ACTION: 'That action could not be recorded. Reload and try again.',
+  INVALID_ITEM_CURSOR: 'History could not continue from here. Reload the history.',
+  ITEM_MEDIA_PENDING:
+    'Some photos or documents are still being processed or cleaned up, so the item was kept.',
+  MEDIA_STORAGE_UNAVAILABLE:
+    'Private file storage is temporarily unavailable, so the item was kept.',
+  ITEMS_UNAVAILABLE: 'Your inventory is temporarily unavailable. Try again shortly.',
+};
+
+function detailFallback(status: number): string {
+  if (status === 0) return 'You appear to be offline or the connection dropped.';
+  if (status === 401) return 'Your session has ended. Sign in again to continue.';
+  if (status === 404) return detailMessages.ITEM_NOT_FOUND!;
+  if (status === 400) return 'Check the entered values, then try again.';
+  if (status === 413) return 'These details are too large. Shorten the notes or specifications.';
+  if (status === 503) return 'The service is temporarily unavailable. Try again shortly.';
+  return 'Something went wrong. Try again.';
+}
+
+async function itemRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`/api/v1/items${path}`, {
+      ...init,
+      credentials: 'same-origin',
+      cache: 'no-store',
+      ...(init.body ? { headers: { 'Content-Type': 'application/json' } } : {}),
+    });
+  } catch {
+    throw new ItemRequestError(0, detailFallback(0), 'NETWORK');
+  }
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { message?: unknown };
+    const code = typeof data.message === 'string' ? data.message : '';
+    // 401 always reads as session expiry, whatever code accompanies it.
+    const message =
+      response.status === 401
+        ? detailFallback(401)
+        : (detailMessages[code] ?? detailFallback(response.status));
+    throw new ItemRequestError(response.status, message, code);
+  }
+  if (response.status === 204) return undefined as T;
+  return (await response.json()) as T;
+}
+
+const itemPath = (id: string): string => `/${encodeURIComponent(id)}`;
+
+export function readItem(id: string): Promise<ItemResponse> {
+  return itemRequest(itemPath(id));
+}
+
+export function updateItem(id: string, input: UpdateItemRequest): Promise<ItemResponse> {
+  return itemRequest(itemPath(id), { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export function recordItemAction(id: string, input: ItemActionRequest): Promise<ItemResponse> {
+  return itemRequest(`${itemPath(id)}/actions`, { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function readItemHistory(id: string, after?: string | null): Promise<ItemEventsPage> {
+  const params = new URLSearchParams({ limit: '50' });
+  if (after) params.set('after', after);
+  return itemRequest(`${itemPath(id)}/history?${params.toString()}`);
+}
+
+/** Erases the item and its private data. Attachments are cleaned up before the record goes. */
+export function deleteItem(id: string, revision: number): Promise<void> {
+  return itemRequest(itemPath(id), { method: 'DELETE', body: JSON.stringify({ revision }) });
+}
+
+/** Category/tag neighbours through the existing server-side inventory filters. No similarity. */
+export function readRelatedItems(
+  filter: { categoryId: string } | { tagId: string },
+  limit = 7,
+): Promise<ItemsPage> {
+  const params = new URLSearchParams({ ...filter, limit: String(limit), sort: 'updated' });
+  return itemRequest(`?${params.toString()}`);
 }

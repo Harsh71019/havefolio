@@ -189,7 +189,8 @@ export class PaginationQueryDto {
   @Max(100)
   limit?: number;
   @ApiPropertyOptional({
-    description: 'Opaque versioned inventory cursor. History accepts the last event UUID.',
+    description:
+      'Opaque versioned inventory cursor. History accepts the last event UUID of the previous chronological page.',
     maxLength: 2048,
   })
   @ValidateIf((_o, v) => v !== undefined)

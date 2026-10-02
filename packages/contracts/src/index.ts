@@ -369,3 +369,70 @@ export const inventoryQueryKeys = [
   'limit',
   'after',
 ] as const;
+
+/** `PATCH /api/v1/items/:id`. Ownership changes only through actions; revision is last-seen. */
+export type UpdateItemRequest = Partial<Omit<CreateItemRequest, 'ownershipStatus'>> & {
+  revision: number;
+};
+
+export const itemActions = ['ownership_changed', 'used', 'repaired'] as const;
+export type ItemAction = (typeof itemActions)[number];
+/** `POST /api/v1/items/:id/actions`. Appends history; never edits purchase details. */
+export interface ItemActionRequest {
+  revision: number;
+  action: ItemAction;
+  /** Required only for `ownership_changed`. */
+  ownershipStatus?: ItemStatus;
+  /** ISO date-time the event happened; omitted records the current time. */
+  occurredAt?: string;
+  note?: string;
+}
+
+export const itemEventTypes = [
+  'created',
+  'details_updated',
+  'ownership_changed',
+  'condition_changed',
+  'usage_changed',
+  'used',
+  'repaired',
+  'refund_recorded',
+  'correction',
+] as const;
+export type ItemEventType = (typeof itemEventTypes)[number];
+/** Append-only lifecycle event. Metadata is owner-private and must be presented, not dumped. */
+export interface ItemEvent {
+  id: string;
+  eventType: ItemEventType;
+  occurredAt: string;
+  createdAt: string;
+  metadata: Record<string, unknown>;
+}
+/** `GET /api/v1/items/:id/history`: chronological by occurrence; cursor is the last event ID. */
+export interface ItemEventsPage {
+  events: ItemEvent[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+export const itemDocumentKinds = ['receipt', 'warranty'] as const;
+export type ItemDocumentKind = (typeof itemDocumentKinds)[number];
+/** Ready private receipt/warranty metadata. Never contains provider identifiers or URLs. */
+export interface ItemDocument {
+  id: string;
+  kind: ItemDocumentKind;
+  mimeType: 'application/pdf' | 'image/webp';
+  byteSize: number;
+  width: number | null;
+  height: number | null;
+}
+export interface ItemDocumentSnapshot {
+  revision: number;
+  documents: ItemDocument[];
+}
+export const itemDocumentLimits = {
+  maxDocumentsPerItem: 16,
+  maxImageBytes: 10 * 1024 * 1024,
+  maxPdfBytes: 20 * 1024 * 1024,
+  acceptedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
+} as const;
