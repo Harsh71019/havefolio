@@ -87,6 +87,11 @@ export class ItemsController {
     summary:
       'Search and filter the complete private inventory; stable bounded cursor pagination (1–100, default 25). Price comparisons require currency. Invalid ranges/cursors/combinations return 400.',
   })
+  @ApiBadRequestResponse({
+    type: ItemErrorDto,
+    description:
+      'INVALID_ITEM_QUERY: contradictory ranges, unsupported sort/currency or foreign/mismatched taxonomy. INVALID_ITEM_CURSOR: malformed, expired, tampered, wrong-owner or mismatched query. INVALID_REQUEST: query DTO format/bounds. Retain controls and restart pagination on cursor errors.',
+  })
   @ApiOkResponse({ type: ItemsPageDto })
   list(@CurrentOwner() owner: OwnerContext, @Query() input: ItemsQueryDto): Promise<ItemsPageDto> {
     return this.items.list(owner.id, input);

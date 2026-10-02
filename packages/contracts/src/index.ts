@@ -143,6 +143,8 @@ export interface OwnerResponse {
 }
 
 export const itemErrorCodes = [
+  'INVALID_ITEM_QUERY',
+  'INVALID_ITEM_CURSOR',
   'INVALID_ITEM',
   'INVALID_ITEM_DATE',
   'INVALID_ITEM_TAXONOMY',
