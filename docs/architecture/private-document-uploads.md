@@ -85,7 +85,9 @@ with invalidation, and scrubs filename/checksum/dimensions/provider metadata on 
 Provider or database failures preserve recoverable intent. Existing PER-12 tombstones retain only
 cleanup identity, not document content, for repeat invalidation of ambiguous late writes; tombstone pruning requires the
 existing PER-12 reviewed provider-finality/retention gate. There is no automatic pruning policy. Item deletion handles documents through
-the same exact-key cleanup and detaches only confirmed-deleted tombstones before erasure.
+the same exact-key cleanup and detaches only confirmed-deleted tombstones before erasure. Its
+active-cleanup bound excludes already-deleted tombstones, so repeated document upload/deletion
+cycles cannot block later item erasure.
 
 ## Verification and release boundaries
 

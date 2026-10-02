@@ -523,6 +523,34 @@ describe('private receipt and warranty HTTP lifecycle', () => {
     const response = await download(item.id, doc.id).expect(503);
     expect(JSON.stringify(response.body)).not.toContain('mismatched');
   });
+
+  it('erases an item even after many confirmed-deleted document tombstones', async () => {
+    const item = await create();
+    const doc = await send(item.id);
+    const state = await snapshot(item.id);
+    await run.runtime.query(
+      "INSERT INTO media_attachments(id,owner_id,item_id,kind,variant,state,object_key,resource_type,format,original_filename,mime_type,byte_size,checksum) SELECT id,$1,$2,'receipt','original','deleted','havefolio/test/'||id||'.pdf','raw','pdf','deleted','application/pdf',1,$3 FROM (SELECT gen_random_uuid() AS id FROM generate_series(1,501)) s",
+      [owner, item.id, '0'.repeat(64)],
+    );
+    const count = remove.mock.calls.length;
+    await http()
+      .delete(`/api/v1/items/${item.id}`)
+      .set('Cookie', cookie())
+      .send({ revision: state.revision })
+      .expect(204);
+    expect(remove.mock.calls.length).toBe(count + 1);
+    expect(
+      (await run.runtime.query('SELECT * FROM media_attachments WHERE item_id=$1', [item.id])).rows,
+    ).toHaveLength(0);
+    expect(
+      (
+        await run.runtime.query<{ state: string }>(
+          'SELECT state FROM media_attachments WHERE id=$1',
+          [doc.id],
+        )
+      ).rows[0]!.state,
+    ).toBe('deleted');
+  });
   it('publishes multipart and safe download OpenAPI contracts', () => {
     const schema = SwaggerModule.createDocument(app, new DocumentBuilder().addCookieAuth().build());
     const post = schema.paths['/api/v1/items/{itemId}/documents']!.post!;
