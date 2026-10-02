@@ -1,13 +1,16 @@
 import {
-  formatMinorUnitsToDisplay,
-  getCurrencyMinorUnitDigits,
-  type ItemAcquisition,
-  type ItemCondition,
-  type ItemEvent,
-  type ItemFrequency,
-  type ItemResponse,
-  type ItemStatus,
-  type PurchaseDate,
+  formatApproximateDate,
+  formatMoney as formatDomainMoney,
+  parseMinorUnits,
+} from '@havefolio/domain';
+import type {
+  ItemAcquisition,
+  ItemCondition,
+  ItemEvent,
+  ItemFrequency,
+  ItemResponse,
+  ItemStatus,
+  PurchaseDate,
 } from '@havefolio/contracts';
 import { statusLabel } from './item-presentation';
 
@@ -51,17 +54,9 @@ export const monthOptions = monthNames.map((label, index) => ({
   label,
 }));
 
+/** Shared currency-aware presentation of stored minor units; the value is never altered. */
 export function formatMoney(minor: string, currency: string): string {
-  const digits = getCurrencyMinorUnitDigits(currency);
-  const decimal = formatMinorUnitsToDisplay(minor, currency);
-  const whole = !decimal.includes('.') || /\.0+$/.test(decimal);
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: whole ? 0 : digits,
-    maximumFractionDigits: digits,
-    // Decimal strings keep integer minor units exact; no floating-point conversion.
-  }).format(decimal as `${number}`);
+  return formatDomainMoney(parseMinorUnits(minor, currency));
 }
 
 export type Shown = { value: string; note?: string; muted?: boolean };
@@ -93,15 +88,7 @@ export function pricePaid(
 export function purchaseDateText(date: PurchaseDate): Shown {
   const { precision, year, month, day } = date;
   if (precision === 'unknown' || !year) return { value: 'Not recorded', muted: true };
-  if (precision === 'exact' && month && day)
-    return {
-      value: new Intl.DateTimeFormat('en-IN', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      }).format(Date.UTC(year, month - 1, day)),
-    };
+  if (precision === 'exact' && month && day) return { value: formatApproximateDate(date) };
   if (precision === 'month' && month)
     return { value: `${monthNames[month - 1]} ${year}`, note: 'Month only' };
   return { value: String(year), note: 'Year only' };
@@ -207,7 +194,7 @@ export function lifecycleChoices(status: ItemStatus): LifecycleChoice[] {
             'returned',
             'Returned it',
             'Mark as returned',
-            'Use this when it went back to the seller. Record any refund separately when that is supported.',
+            'Use this when it went back to the seller. This does not record a refund; add one under Returns and refunds when you receive it.',
           ],
         ] as const
       ).map(([to, label, title, extra]) => ({
@@ -333,7 +320,11 @@ export function describeEvent(event: ItemEvent): HistoryEntry {
     case 'repaired':
       return { ...base, title: 'Repaired' };
     case 'refund_recorded':
-      return { ...base, title: 'Refund recorded' };
+      return { ...base, title: 'Refund recorded', ...refundDetail(m) };
+    case 'refund_corrected':
+      return { ...base, title: 'Refund corrected', ...refundDetail(m) };
+    case 'refund_deleted':
+      return { ...base, title: 'Refund record deleted', ...refundDetail(m) };
     case 'correction':
       return {
         ...base,
@@ -342,6 +333,20 @@ export function describeEvent(event: ItemEvent): HistoryEntry {
       };
     default:
       return { ...base, title: 'Update recorded' };
+  }
+}
+
+/** Amount from known refund metadata only; anything malformed is simply not shown. */
+function refundDetail(m: Record<string, unknown>): { detail?: string } {
+  const currency = str(m.currency);
+  const amount = str(m.amountMinor);
+  const previous = str(m.previousAmountMinor);
+  if (!currency || !amount) return {};
+  try {
+    const now = formatMoney(amount, currency);
+    return { detail: previous ? `${formatMoney(previous, currency)} → ${now}` : now };
+  } catch {
+    return {};
   }
 }
 

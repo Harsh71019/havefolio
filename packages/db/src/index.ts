@@ -20,4 +20,4 @@ export async function applyMigrations(
   });
 }
 
-export { currencyCodes } from './currencies.js';
+export { currencyCodes } from '@havefolio/domain';

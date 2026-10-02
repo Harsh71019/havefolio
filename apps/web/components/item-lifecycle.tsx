@@ -383,6 +383,7 @@ export function DeleteItemSection({
                     <li>its lifecycle history</li>
                     <li>its {attachments[0]}</li>
                     <li>its {attachments[1]}</li>
+                    <li>any refunds you recorded for it</li>
                   </ul>
                   <p>Private files are removed from storage first; this can take a moment.</p>
                 </div>

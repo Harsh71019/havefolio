@@ -72,7 +72,7 @@ Only ownership defaults to owned; other state defaults to unknown. No trigger ch
 
 ## History and provenance
 
-`lifecycle_events` records owner, item, event type, finite occurrence time, immutable structured object metadata and creation time. Types are created, details_updated, ownership_changed, condition_changed, usage_changed, used, repaired, refund_recorded and correction. This is a timeline beside the current item snapshot, not an event-sourced reconstruction or an implemented transition workflow. SQL UPDATE and direct DELETE are rejected while the item exists. Editing an item does not modify history.
+`lifecycle_events` records owner, item, event type, finite occurrence time, immutable structured object metadata and creation time. Types are created, details_updated, ownership_changed, condition_changed, usage_changed, used, repaired, refund_recorded, refund_corrected, refund_deleted (PER-22) and correction. This is a timeline beside the current item snapshot, not an event-sourced reconstruction or an implemented transition workflow. SQL UPDATE and direct DELETE are rejected while the item exists. Editing an item does not modify history.
 
 PER-10 must write snapshot and event in one transaction; corrections append a `correction` event with an explicit referenced event ID/reason in metadata and any corrected facts, preserving the earlier event. Metadata is an object extension point, not a validated spending/refund contract: typed refund amounts/currency and correction semantics need that future workflow's constraints before aggregation. Occurrence time can precede entry time. No event is automatically fabricated by this schema, and no event endpoints are exposed.
 

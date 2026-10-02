@@ -6,11 +6,14 @@ import {
   type ExceptionFilter,
 } from '@nestjs/common';
 import { taxonomyErrorCodes } from '@havefolio/contracts';
+import { financialErrorCodes } from '@havefolio/domain';
 import { STATUS_CODES } from 'node:http';
 import type { Response } from 'express';
 
-const safeMessages = new Set([
+const safeMessages = new Set<string>([
   ...taxonomyErrorCodes,
+  // Fixed financial-domain tokens (PER-22); never amounts, notes or dates.
+  ...financialErrorCodes,
   'DOCUMENT_FILENAME_INVALID',
   'DOCUMENT_INVALID',
   'DOCUMENT_MULTIPART_REQUIRED',

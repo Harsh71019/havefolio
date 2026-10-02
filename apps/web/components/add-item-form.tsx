@@ -18,9 +18,8 @@ import {
   itemFrequencies,
   itemStatuses,
   popularCurrencies,
-  parseDisplayAmountToMinorUnits,
-  formatMinorUnitsToDisplay,
 } from '@havefolio/contracts';
+import { daysInMonth, formatMoney, parseMinorUnits } from '@havefolio/domain';
 import { Button } from '@havefolio/ui/components/button';
 import {
   Card,
@@ -53,6 +52,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { CategorySelector, TagSelector } from './taxonomy-selectors';
+import { amountEntryToMinor } from './money-entry';
 import { taxonomyRequest, TaxonomyRequestError } from './taxonomy-client';
 import {
   createItem,
@@ -405,7 +405,7 @@ export function AddItemForm(): ReactElement {
         errors.price = 'Enter the amount paid, or choose Price unknown.';
       } else {
         try {
-          pricePaidMinor = parseDisplayAmountToMinorUnits(trimmedPrice, currency);
+          pricePaidMinor = amountEntryToMinor(trimmedPrice, currency);
         } catch (err) {
           errors.price = err instanceof Error ? err.message : 'Enter a valid amount.';
         }
@@ -445,9 +445,7 @@ export function AddItemForm(): ReactElement {
         if (!exactDate || Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) {
           errors.date = 'Enter a complete purchase date (year, month, and day).';
         } else {
-          const isLeap = y % 400 === 0 || (y % 4 === 0 && y % 100 !== 0);
-          const maxDays = m === 2 ? (isLeap ? 29 : 28) : [4, 6, 9, 11].includes(m) ? 30 : 31;
-          if (m < 1 || m > 12 || d < 1 || d > maxDays) {
+          if (y < 1 || y > 9999 || m < 1 || m > 12 || d < 1 || d > daysInMonth(y, m)) {
             errors.date = 'The specified day is not valid for that month and year.';
           }
         }
@@ -600,7 +598,7 @@ export function AddItemForm(): ReactElement {
   // Post-save success view
   if (createdItem) {
     const displayPrice = createdItem.pricePaidMinor
-      ? `${createdItem.currency} ${formatMinorUnitsToDisplay(createdItem.pricePaidMinor, createdItem.currency)}`
+      ? formatMoney(parseMinorUnits(createdItem.pricePaidMinor, createdItem.currency))
       : 'Price unknown';
 
     const displayDate =
