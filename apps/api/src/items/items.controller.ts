@@ -141,7 +141,8 @@ export class ItemsController {
   @Get(':id/history')
   @Header('Cache-Control', 'no-store')
   @ApiOperation({
-    summary: 'Read append-only lifecycle history using bounded UUID keyset pagination.',
+    summary:
+      'Read append-only lifecycle history chronologically by occurrence time (ties by event ID) with bounded keyset pagination. `after` is the last event UUID of the previous page; an unknown event returns 400 INVALID_ITEM_CURSOR.',
   })
   @ApiOkResponse({ type: EventsPageDto })
   history(

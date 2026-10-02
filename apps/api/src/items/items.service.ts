@@ -363,6 +363,18 @@ export class ItemsService {
     return this.repository.transaction(owner, async (c) => {
       await this.owned(c, owner, id);
       const limit = query.limit ?? 25;
+      // Chronological by occurrence, so backdated actions sort where they happened. The cursor
+      // stays the last event UUID and resolves to its (occurred_at,id) keyset position.
+      if (
+        query.after &&
+        !(
+          await c.query(
+            'SELECT 1 FROM lifecycle_events WHERE owner_id=$1 AND item_id=$2 AND id=$3',
+            [owner, id, query.after],
+          )
+        ).rowCount
+      )
+        throw new BadRequestException('INVALID_ITEM_CURSOR');
       const rows = (
         await c.query<{
           id: string;
@@ -371,7 +383,7 @@ export class ItemsService {
           createdAt: Date;
           metadata: Record<string, unknown>;
         }>(
-          'SELECT id,event_type AS "eventType",occurred_at AS "occurredAt",created_at AS "createdAt",metadata FROM lifecycle_events WHERE owner_id=$1 AND item_id=$2 AND ($3::uuid IS NULL OR id>$3::uuid) ORDER BY id LIMIT $4',
+          'SELECT id,event_type AS "eventType",occurred_at AS "occurredAt",created_at AS "createdAt",metadata FROM lifecycle_events WHERE owner_id=$1 AND item_id=$2 AND ($3::uuid IS NULL OR (occurred_at,id)>(SELECT occurred_at,id FROM lifecycle_events WHERE owner_id=$1 AND item_id=$2 AND id=$3::uuid)) ORDER BY occurred_at,id LIMIT $4',
           [owner, id, query.after ?? null, limit + 1],
         )
       ).rows;

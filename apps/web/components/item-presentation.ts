@@ -7,6 +7,8 @@ import {
   type PurchaseDate,
 } from '@havefolio/contracts';
 
+import { itemDetailHref } from './navigation-context';
+
 export type Fact = { label: string; value: string; muted?: boolean };
 
 const statusLabels: Record<ItemStatus, string> = {
@@ -104,7 +106,7 @@ export function useFact(frequency: ItemFrequency): Fact {
   return { label: 'Use', value: frequencyLabels[frequency], muted: frequency === 'unknown' };
 }
 
-/** PER-18 owns the item-details route; until then cards open the item's photo manager. */
-export function itemHref(id: string): string {
-  return `/items/${encodeURIComponent(id)}/photos?from=store`;
+/** Opens the item record, carrying the validated My Store location back with it. */
+export function itemHref(id: string, returnTo?: string): string {
+  return itemDetailHref(id, returnTo);
 }

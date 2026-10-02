@@ -17,7 +17,7 @@ import { ItemsModule } from '../src/items/items.module.js';
 import { ItemsService } from '../src/items/items.service.js';
 import { PrivateMediaStorage } from '../src/media/storage.js';
 import { MediaService } from '../src/media/media.service.js';
-import type { ItemDto, ItemsPageDto } from '../src/items/items.dto.js';
+import type { EventsPageDto, ItemDto, ItemsPageDto } from '../src/items/items.dto.js';
 jest.setTimeout(60000);
 describe('owned item HTTP, concurrency and media recovery', () => {
   const run = new IntegrationRun(integrationConfiguration());
@@ -508,6 +508,45 @@ describe('owned item HTTP, concurrency and media recovery', () => {
     );
     expect(second.body.hasMore).toBe(false);
     expect(second.body.events[0].id).not.toBe(first.body.events[0].id);
+  });
+  it('returns history chronologically by occurrence across keyset pages', async () => {
+    const item = await create();
+    let revision = item.revision;
+    for (const occurredAt of [
+      '2024-05-01T12:00:00Z',
+      undefined,
+      '2023-01-15T12:00:00Z',
+      '2025-03-10T12:00:00Z',
+    ]) {
+      const res = await post(`/${item.id}/actions`, {
+        revision,
+        action: 'used',
+        ...(occurredAt ? { occurredAt } : {}),
+      }).expect(200);
+      revision = (res.body as ItemDto).revision;
+    }
+    const seen: { id: string; occurredAt: string; eventType: string }[] = [];
+    let after: string | null = null;
+    do {
+      const page = (
+        await get(`/${item.id}/history?limit=2${after ? '&after=' + after : ''}`).expect(200)
+      ).body as EventsPageDto;
+      seen.push(...page.events);
+      after = page.nextCursor;
+      expect(page.hasMore).toBe(Boolean(after));
+    } while (after);
+    expect(seen).toHaveLength(5);
+    expect(new Set(seen.map((e) => e.id)).size).toBe(5);
+    const times = seen.map((e) => Date.parse(e.occurredAt));
+    expect(times).toEqual([...times].sort((a, b) => a - b));
+    expect(seen[0]!.occurredAt).toBe('2023-01-15T12:00:00.000Z');
+    // Backdated events sort before the creation record without rewriting it.
+    expect(seen.map((e) => e.eventType).slice(-2)).toEqual(['created', 'used']);
+    // A cursor must be one of this item's events; foreign or unknown IDs are rejected.
+    await get(`/${item.id}/history?after=${randomUUID()}`).expect(400);
+    const otherItem = await create();
+    const foreign = await get(`/${otherItem.id}/history`).expect(200);
+    await get(`/${item.id}/history?after=${foreign.body.events[0].id}`).expect(400);
   });
   const attach = async (
     item: string,

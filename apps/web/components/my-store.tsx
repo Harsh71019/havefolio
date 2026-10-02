@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import {
   ArchiveIcon,
@@ -41,6 +41,7 @@ import {
   statusLabel,
   useFact,
 } from './item-presentation';
+import { deletedFlashKey, storeReturnPath } from './navigation-context';
 import { photoSource } from './photos-client';
 import { groupInventory } from './store-grouping';
 
@@ -56,6 +57,18 @@ const cardSizes =
   '(min-width: 1280px) 18rem, (min-width: 1024px) 30vw, (min-width: 480px) 46vw, 92vw';
 // At most three columns beside the desktop sidebar so facts never wrap mid-word.
 const gridClass = 'grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 lg:grid-cols-3';
+
+const noSubscribe = (): (() => void) => () => undefined;
+/** The deleted item's name left by the item page; read once, then cleared. */
+function takeDeletedFlash(): string | undefined {
+  try {
+    const name = window.sessionStorage.getItem(deletedFlashKey) ?? undefined;
+    window.sessionStorage.removeItem(deletedFlashKey);
+    return name?.slice(0, 300);
+  } catch {
+    return undefined;
+  }
+}
 
 function subscribeOnline(callback: () => void): () => void {
   window.addEventListener('online', callback);
@@ -92,6 +105,23 @@ export function MyStore({
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [more, setMore] = useState<{ busy: boolean; error?: string }>({ busy: false });
   const [announcement, setAnnouncement] = useState('');
+  const [deleted, setDeleted] = useState<string | undefined>();
+  const flash = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    // Read after hydration; the ref survives a development double-run of this effect.
+    flash.current ??= takeDeletedFlash();
+    const name = flash.current;
+    if (!name) return;
+    const timer = window.setTimeout(() => setDeleted(name), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  // The current browse location (search, filters, sort, page) item pages return to.
+  const search = useSyncExternalStore(
+    noSubscribe,
+    () => window.location.search,
+    () => '',
+  );
+  const returnTo = storeReturnPath(search);
   const online = useSyncExternalStore(
     subscribeOnline,
     () => navigator.onLine,
@@ -152,6 +182,14 @@ export function MyStore({
       <p role="status" aria-live="polite" className="sr-only">
         {load.kind === 'loading' ? 'Loading your items.' : announcement}
       </p>
+      {deleted ? (
+        <div role="status" className="flex items-center gap-3 rounded-lg border p-3 text-sm">
+          <CircleCheckIcon aria-hidden="true" className="size-4 shrink-0" />
+          <span className="min-w-0 break-words">
+            “{deleted}” and its private photos and documents were deleted.
+          </span>
+        </div>
+      ) : null}
       {!online ? (
         <div role="status" className="flex items-center gap-3 rounded-lg border p-3 text-sm">
           <WifiOffIcon aria-hidden="true" className="size-4 shrink-0" />
@@ -166,6 +204,7 @@ export function MyStore({
           now={now}
           more={more}
           online={online}
+          returnTo={returnTo}
           onLoadMore={(cursor) => void loadMore(cursor)}
         />
       ) : null}
@@ -230,8 +269,10 @@ function StoreContent({
   now,
   onLoadMore,
   online,
+  returnTo,
 }: {
   load: Extract<Load, { kind: 'ready' }>;
+  returnTo: string;
   more: { busy: boolean; error?: string };
   now: Date | undefined;
   onLoadMore: (cursor: string) => void;
@@ -308,6 +349,7 @@ function StoreContent({
                       }
                       eager={eagerIds.has(item.id)}
                       now={now}
+                      returnTo={returnTo}
                     />
                   </li>
                 ))}
@@ -356,8 +398,10 @@ function StoreCard({
   eager,
   item,
   now,
+  returnTo,
 }: {
   item: ItemListEntry;
+  returnTo: string;
   context: string | undefined;
   eager: boolean;
   now: Date | undefined;
@@ -368,7 +412,7 @@ function StoreCard({
   const cover = item.cover;
   return (
     <Link
-      href={itemHref(item.id)}
+      href={itemHref(item.id, returnTo)}
       aria-labelledby={`${id}-name ${id}-status`}
       aria-describedby={`${id}-facts`}
       className="block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -402,7 +446,7 @@ function StoreCard({
         }
         footer={
           <span className="flex min-h-6 items-center justify-between text-sm text-muted-foreground">
-            {inactive ? 'No longer in your home' : 'View photos'}
+            {inactive ? 'No longer in your home' : 'View details'}
             <ArrowRightIcon aria-hidden="true" className="size-4" />
           </span>
         }
