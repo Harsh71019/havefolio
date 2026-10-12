@@ -295,3 +295,4 @@ See [private Cloudinary operations](../operations/cloudinary-media.md) and [ADR-
 
 - [PER-9 taxonomy management](taxonomy-management.md): owner-scoped categories/subcategories/tags, safe reassignment, explicit defaults, reusable selectors and settings UI.
 - [PER-10 owned-item API](owned-item-api.md): owner-scoped CRUD, revision-protected lifecycle actions, precise purchase facts and recoverable private-media erasure.
+- [PER-22 money, dates and refunds](money-dates-refunds.md): shared Money and ApproximateDate value objects, explicit refund records, gift/secondhand rules and the PER-20 spending contract.

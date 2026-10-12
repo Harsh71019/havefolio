@@ -1,4 +1,5 @@
 import type {
+  CorrectRefundRequest,
   CreateItemRequest,
   DatePrecision,
   ItemAcquisition,
@@ -6,10 +7,12 @@ import type {
   ItemCondition,
   ItemEventsPage,
   ItemFrequency,
+  ItemRefundsSnapshot,
   ItemResponse,
   ItemsPage,
   ItemStatus,
   OwnerResponse,
+  RecordRefundRequest,
   UpdateItemRequest,
 } from '@havefolio/contracts';
 
@@ -200,6 +203,21 @@ const detailMessages: Record<string, string> = {
   MEDIA_STORAGE_UNAVAILABLE:
     'Private file storage is temporarily unavailable, so the item was kept.',
   ITEMS_UNAVAILABLE: 'Your inventory is temporarily unavailable. Try again shortly.',
+  // Refunds (PER-22). Fixed codes only; amounts and notes are never echoed back.
+  REFUND_NOT_FOUND: 'That refund is no longer recorded. The list has been refreshed.',
+  REFUND_EXCEEDS_AMOUNT_PAID: 'Refunds can’t add up to more than the amount you paid.',
+  REFUND_REQUIRES_AMOUNT_PAID: 'Add the amount you paid before recording a refund.',
+  INVALID_ACQUISITION_COMBINATION:
+    'No amount paid is recorded for this gift, so there is nothing to refund.',
+  CURRENCY_MISMATCH: 'A refund uses the same currency as the purchase.',
+  REFUND_LIMIT_EXCEEDED: 'This item already has the maximum number of refunds recorded.',
+  INVALID_MONEY_AMOUNT: 'Enter an amount greater than zero.',
+  MONEY_PRECISION_EXCEEDED: 'That amount has too many decimal places for its currency.',
+  UNSAFE_MONEY_VALUE: 'That amount is larger than Havefolio can store.',
+  INVALID_CURRENCY: 'Choose a valid currency.',
+  INVALID_DATE_PRECISION: 'Check the refund date, or choose “Not recorded”.',
+  INVALID_CALENDAR_DATE: 'That date doesn’t exist. Check the day, month and year.',
+  INVALID_REFUND: 'Check the refund details, then try again.',
 };
 
 function detailFallback(status: number): string {
@@ -270,4 +288,35 @@ export function readRelatedItems(
 ): Promise<ItemsPage> {
   const params = new URLSearchParams({ ...filter, limit: String(limit), sort: 'updated' });
   return itemRequest(`?${params.toString()}`);
+}
+
+const refundsPath = (id: string, refund?: string): string =>
+  `${itemPath(id)}/refunds${refund ? `/${encodeURIComponent(refund)}` : ''}`;
+
+/** Confirmed refunds with the unchanged amount paid and derived net recorded spend. */
+export function readRefunds(id: string): Promise<ItemRefundsSnapshot> {
+  return itemRequest(refundsPath(id));
+}
+
+export function recordRefund(id: string, input: RecordRefundRequest): Promise<ItemRefundsSnapshot> {
+  return itemRequest(refundsPath(id), { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function correctRefund(
+  id: string,
+  refund: string,
+  input: CorrectRefundRequest,
+): Promise<ItemRefundsSnapshot> {
+  return itemRequest(refundsPath(id, refund), { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export function deleteRefund(
+  id: string,
+  refund: string,
+  revision: number,
+): Promise<ItemRefundsSnapshot> {
+  return itemRequest(refundsPath(id, refund), {
+    method: 'DELETE',
+    body: JSON.stringify({ revision }),
+  });
 }

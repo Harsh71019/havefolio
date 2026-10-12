@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   reactStrictMode: true,
-  transpilePackages: ['@havefolio/contracts', '@havefolio/ui'],
+  transpilePackages: ['@havefolio/contracts', '@havefolio/domain', '@havefolio/ui'],
 };
 
 export default nextConfig;

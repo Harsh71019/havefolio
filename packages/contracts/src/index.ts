@@ -180,103 +180,7 @@ export const popularCurrencies: CurrencyOption[] = [
   { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' },
 ];
 
-/** Exponent (number of minor unit decimal digits) for ISO 4217 currencies. */
-export function getCurrencyMinorUnitDigits(currency: string): number {
-  const code = currency.toUpperCase();
-  // 0 decimals
-  if (
-    [
-      'BIF',
-      'BYR',
-      'CLP',
-      'DJF',
-      'GNF',
-      'ISK',
-      'JPY',
-      'KMF',
-      'KRW',
-      'MGA',
-      'PYG',
-      'RWF',
-      'UGX',
-      'UYI',
-      'VND',
-      'VUV',
-      'XAF',
-      'XOF',
-      'XPF',
-    ].includes(code)
-  ) {
-    return 0;
-  }
-  // 3 decimals
-  if (['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'].includes(code)) {
-    return 3;
-  }
-  // 4 decimals
-  if (['CLF', 'UYW'].includes(code)) {
-    return 4;
-  }
-  // Standard 2 decimals (including INR, USD, EUR, GBP, CAD, AUD, etc.)
-  return 2;
-}
-
-/**
- * Converts a user-entered decimal string to integer minor units without floating-point math.
- */
-export function parseDisplayAmountToMinorUnits(displayAmount: string, currency: string): string {
-  const cleaned = displayAmount.trim().replace(/,/g, '');
-  if (!cleaned) {
-    throw new Error('Amount is required');
-  }
-
-  // Validate format: digits, optional single dot and digits
-  if (!/^\d+(\.\d+)?$/.test(cleaned)) {
-    throw new Error('Enter a valid positive number or 0');
-  }
-
-  const [intPart, fracPart = ''] = cleaned.split('.');
-  const exponent = getCurrencyMinorUnitDigits(currency);
-
-  if (exponent === 0 && fracPart.length > 0 && BigInt(fracPart) > 0n) {
-    throw new Error(`Amounts in ${currency} cannot have decimal places`);
-  }
-
-  if (fracPart.length > exponent) {
-    throw new Error(
-      `Amounts in ${currency} cannot have more than ${exponent} decimal place${exponent === 1 ? '' : 's'}`,
-    );
-  }
-
-  const paddedFrac = fracPart.padEnd(exponent, '0');
-  const combined = intPart + paddedFrac;
-
-  // Trim leading zeros but preserve single "0"
-  const normalized = combined.replace(/^0+/, '') || '0';
-
-  if (BigInt(normalized) > 9223372036854775807n) {
-    throw new Error('Amount exceeds maximum supported limit');
-  }
-
-  return normalized;
-}
-
-/**
- * Formats integer minor units to user-facing display string without floating point arithmetic.
- */
-export function formatMinorUnitsToDisplay(
-  minorUnits: string | null | undefined,
-  currency: string,
-): string {
-  if (minorUnits == null) return '';
-  const exponent = getCurrencyMinorUnitDigits(currency);
-  if (exponent === 0) return minorUnits;
-
-  const padded = minorUnits.padStart(exponent + 1, '0');
-  const intPart = padded.slice(0, -exponent);
-  const fracPart = padded.slice(-exponent);
-  return `${intPart}.${fracPart}`;
-}
+// Money parsing, minor-unit rules and formatting live in @havefolio/domain (PER-22).
 
 /** Ready item photo metadata. Never contains provider identifiers, object keys or URLs. */
 export interface ItemPhoto {
@@ -397,6 +301,8 @@ export const itemEventTypes = [
   'used',
   'repaired',
   'refund_recorded',
+  'refund_corrected',
+  'refund_deleted',
   'correction',
 ] as const;
 export type ItemEventType = (typeof itemEventTypes)[number];
@@ -436,3 +342,45 @@ export const itemDocumentLimits = {
   maxPdfBytes: 20 * 1024 * 1024,
   acceptedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
 } as const;
+
+/** A confirmed refund received for an item. Amounts are integer minor-unit decimal strings. */
+export interface ItemRefund {
+  id: string;
+  amountMinor: string;
+  /** Always the purchase currency; never converted. */
+  currency: string;
+  /** Exact, month-only, year-only or unknown; unknown never becomes today. */
+  refundDate: PurchaseDate;
+  /** Private neutral note; never sent to telemetry. */
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+/** Purchase amount stays the historical fact; net recorded spend is derived, never stored. */
+export interface ItemRefundTotals {
+  currency: string;
+  /** null is not recorded; "0" is an explicit zero. */
+  amountPaidMinor: string | null;
+  refundedMinor: string;
+  /** Amount paid minus refunds; null when the amount paid is not recorded. Never negative. */
+  netMinor: string | null;
+}
+/** `GET|POST|PATCH|DELETE /api/v1/items/:id/refunds[/:refundId]` response. */
+export interface ItemRefundsSnapshot {
+  /** Item revision to send with the next refund change. */
+  revision: number;
+  ownershipStatus: ItemStatus;
+  acquisitionType: ItemAcquisition;
+  totals: ItemRefundTotals;
+  refunds: ItemRefund[];
+}
+export interface RecordRefundRequest {
+  revision: number;
+  amountMinor: string;
+  currency: string;
+  refundDate?: PurchaseDate | undefined;
+  note?: string | null | undefined;
+}
+export type CorrectRefundRequest = Partial<Omit<RecordRefundRequest, 'revision'>> & {
+  revision: number;
+};

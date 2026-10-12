@@ -1,11 +1,5 @@
-import {
-  getCurrencyMinorUnitDigits,
-  formatMinorUnitsToDisplay,
-  type ItemFrequency,
-  type ItemListEntry,
-  type ItemStatus,
-  type PurchaseDate,
-} from '@havefolio/contracts';
+import { formatMoney, parseMinorUnits } from '@havefolio/domain';
+import type { ItemFrequency, ItemListEntry, ItemStatus, PurchaseDate } from '@havefolio/contracts';
 
 import { itemDetailHref } from './navigation-context';
 
@@ -32,16 +26,7 @@ export function priceFact(
       return { label: 'Paid', value: 'Gift, no amount', muted: true };
     return { label: 'Paid', value: 'Not recorded', muted: true };
   }
-  const digits = getCurrencyMinorUnitDigits(item.currency);
-  const decimal = formatMinorUnitsToDisplay(item.pricePaidMinor, item.currency);
-  const whole = !decimal.includes('.') || /\.0+$/.test(decimal);
-  const value = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: item.currency,
-    minimumFractionDigits: whole ? 0 : digits,
-    maximumFractionDigits: digits,
-    // Decimal strings keep integer minor units exact; no floating-point conversion.
-  }).format(decimal as `${number}`);
+  const value = formatMoney(parseMinorUnits(item.pricePaidMinor, item.currency));
   return { label: 'Paid', value };
 }
 

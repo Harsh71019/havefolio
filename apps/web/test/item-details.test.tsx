@@ -5,6 +5,8 @@ import type {
   ItemDocumentSnapshot,
   ItemEvent,
   ItemPhotoSnapshot,
+  ItemRefund,
+  ItemRefundsSnapshot,
   ItemResponse,
   TaxonomySnapshot,
 } from '@havefolio/contracts';
@@ -157,9 +159,87 @@ const documents: ItemDocumentSnapshot = {
 };
 
 type Fake = { [K in keyof ItemDetailsApi]: ReturnType<typeof vi.fn<ItemDetailsApi[K]>> };
-function fakeApi(start: ItemResponse = item(), overrides: Partial<Fake> = {}): Fake {
+function fakeApi(
+  start: ItemResponse = item(),
+  overrides: Partial<Fake> = {},
+  initialRefunds: ItemRefund[] = [],
+): Fake {
   let current = start;
+  let refunds = initialRefunds;
+  // Mirrors the API contract: exact bigint totals, item revision as the concurrency token.
+  const refundSnapshot = (): ItemRefundsSnapshot => {
+    const refunded = refunds.reduce((total, r) => total + BigInt(r.amountMinor), 0n);
+    return {
+      revision: current.revision,
+      ownershipStatus: current.ownershipStatus,
+      acquisitionType: current.acquisitionType,
+      totals: {
+        currency: current.currency,
+        amountPaidMinor: current.pricePaidMinor,
+        refundedMinor: refunded.toString(),
+        netMinor:
+          current.pricePaidMinor === null
+            ? null
+            : (BigInt(current.pricePaidMinor) - refunded).toString(),
+      },
+      refunds,
+    };
+  };
+  const refundWrite = (revision: number, next: ItemRefund[]): Promise<ItemRefundsSnapshot> => {
+    if (revision !== current.revision)
+      return Promise.reject(
+        new ItemRequestError(409, 'This item changed since you opened it.', 'STALE_ITEM_REVISION'),
+      );
+    const total = next.reduce((t, r) => t + BigInt(r.amountMinor), 0n);
+    if (total > BigInt(current.pricePaidMinor ?? '0'))
+      return Promise.reject(
+        new ItemRequestError(
+          409,
+          'Refunds can’t add up to more than the amount you paid.',
+          'REFUND_EXCEEDS_AMOUNT_PAID',
+        ),
+      );
+    refunds = next;
+    current = { ...current, revision: current.revision + 1 };
+    return Promise.resolve(refundSnapshot());
+  };
   return {
+    readRefunds: vi.fn<ItemDetailsApi['readRefunds']>(() => Promise.resolve(refundSnapshot())),
+    recordRefund: vi.fn<ItemDetailsApi['recordRefund']>((_id, input) =>
+      refundWrite(input.revision, [
+        ...refunds,
+        {
+          id: uuid(700 + refunds.length),
+          amountMinor: input.amountMinor,
+          currency: input.currency,
+          refundDate: input.refundDate ?? { precision: 'unknown' },
+          note: input.note ?? null,
+          createdAt: '2026-09-02T10:00:00.000Z',
+          updatedAt: '2026-09-02T10:00:00.000Z',
+        },
+      ]),
+    ),
+    correctRefund: vi.fn<ItemDetailsApi['correctRefund']>((_id, refundId, input) =>
+      refundWrite(
+        input.revision,
+        refunds.map((r) =>
+          r.id === refundId
+            ? {
+                ...r,
+                ...(input.amountMinor !== undefined ? { amountMinor: input.amountMinor } : {}),
+                ...(input.refundDate !== undefined ? { refundDate: input.refundDate } : {}),
+                ...(input.note !== undefined ? { note: input.note } : {}),
+              }
+            : r,
+        ),
+      ),
+    ),
+    deleteRefund: vi.fn<ItemDetailsApi['deleteRefund']>((_id, refundId, revision) =>
+      refundWrite(
+        revision,
+        refunds.filter((r) => r.id !== refundId),
+      ),
+    ),
     readItem: vi.fn<ItemDetailsApi['readItem']>(() => Promise.resolve(current)),
     updateItem: vi.fn<ItemDetailsApi['updateItem']>((_id, input) => {
       const { revision, ...changes } = input;
@@ -935,5 +1015,188 @@ describe('documents', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(api.deleteDocument).toHaveBeenCalledWith(uuid(1), uuid(401), 3));
     expect(await within(docs).findByText(/No receipts or warranties yet/)).toBeInTheDocument();
+  });
+});
+
+describe('returns and refunds', () => {
+  const refund = (n: number, amountMinor: string, extra: Partial<ItemRefund> = {}): ItemRefund => ({
+    id: uuid(800 + n),
+    amountMinor,
+    currency: 'INR',
+    refundDate: { precision: 'exact', year: 2024, month: 3, day: 20 },
+    note: null,
+    createdAt: '2026-09-01T10:00:00.000Z',
+    updatedAt: '2026-09-01T10:00:00.000Z',
+    ...extra,
+  });
+
+  it('keeps purchase amount, refunded amount and net recorded spend distinct', async () => {
+    const api = fakeApi(item(), {}, [refund(1, '25000', { note: 'Lid was missing' })]);
+    await renderDetails(api);
+    const refunds = section('Returns and refunds');
+    await within(refunds).findByText('Lid was missing');
+    expect(fact(refunds, 'Purchase amount')).toContain('₹1,250');
+    expect(fact(refunds, 'Purchase amount')).toContain('Refunds never change it');
+    expect(fact(refunds, 'Refunded to you')).toBe('₹250');
+    expect(fact(refunds, 'Net recorded spend')).toContain('₹1,000');
+    expect(fact(refunds, 'Net recorded spend')).toContain('Not a current or resale value');
+    expect(refunds).not.toHaveTextContent(/savings|resale value of|worth/i);
+    expect(within(refunds).getByText('20 March 2024')).toBeInTheDocument();
+    // The purchase card still shows the original amount.
+    expect(fact(section('Purchase'), 'Price paid')).toContain('₹1,250');
+  });
+
+  it('records a partial refund with a month-only date using the keyboard, without changing ownership', async () => {
+    const api = fakeApi(item({ ownershipStatus: 'returned' }));
+    const { user } = await renderDetails(api);
+    const refunds = section('Returns and refunds');
+    expect(
+      await within(refunds).findByText(/Marked as returned\. No refund is recorded yet/),
+    ).toBeInTheDocument();
+    await user.click(within(refunds).getByRole('button', { name: 'Record a refund' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Record a refund' });
+    expect(within(dialog).getByText(/Up to ₹1,250 can be recorded/)).toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText('Amount refunded (INR)'), '400.50');
+    await user.click(within(dialog).getByLabelText('Month and year'));
+    // Radix Select: open with the keyboard and choose a month.
+    within(dialog).getByRole('combobox', { name: 'Month' }).focus();
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByRole('option', { name: 'April' }));
+    await user.type(within(dialog).getByLabelText('Year'), '2024');
+    await user.type(within(dialog).getByLabelText('Note (optional)'), '  Partial refund  ');
+    await user.click(within(dialog).getByRole('button', { name: 'Record refund' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(api.recordRefund).toHaveBeenCalledWith(uuid(1), {
+      amountMinor: '40050',
+      currency: 'INR',
+      refundDate: { precision: 'month', year: 2024, month: 4, day: null },
+      note: 'Partial refund',
+      revision: 3,
+    });
+    expect(api.recordItemAction).not.toHaveBeenCalled();
+    expect(fact(section('Returns and refunds'), 'Net recorded spend')).toContain('₹849.50');
+    expect(screen.getByText('Status:', { exact: false }).parentElement).toHaveTextContent(
+      'Status: Returned',
+    );
+    expect(
+      await screen.findByText('Refund recorded.', { selector: '[role="status"]' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps an unknown refund date unknown and rejects malformed or excessive amounts locally', async () => {
+    const api = fakeApi();
+    const { user } = await renderDetails(api);
+    await user.click(
+      within(section('Returns and refunds')).getByRole('button', { name: 'Record a refund' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    const amount = within(dialog).getByLabelText('Amount refunded (INR)');
+    await user.type(amount, '12.345');
+    await user.click(within(dialog).getByRole('button', { name: 'Record refund' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'cannot have more than 2 decimal places',
+    );
+    expect(amount).toHaveAttribute('aria-invalid', 'true');
+    expect(amount.getAttribute('aria-describedby')).toContain('-amount-error');
+    expect(api.recordRefund).not.toHaveBeenCalled();
+    await user.clear(amount);
+    await user.type(amount, '1,250');
+    await user.click(within(dialog).getByRole('button', { name: 'Record refund' }));
+    await waitFor(() => expect(api.recordRefund).toHaveBeenCalled());
+    expect(api.recordRefund.mock.calls[0]![1]).toMatchObject({
+      amountMinor: '125000',
+      refundDate: { precision: 'unknown' },
+      note: null,
+    });
+    const refunds = section('Returns and refunds');
+    await within(refunds).findByText('The full amount paid has been refunded.');
+    expect(within(refunds).getByText('Date not recorded')).toBeInTheDocument();
+    expect(fact(refunds, 'Net recorded spend')).toContain('₹0');
+    expect(within(refunds).queryByRole('button', { name: 'Record a refund' })).toBeNull();
+  });
+
+  it('explains a server rejection and keeps the entry', async () => {
+    const api = fakeApi(item(), {}, [refund(1, '100000')]);
+    const { user } = await renderDetails(api);
+    const refunds = section('Returns and refunds');
+    await user.click(
+      await within(refunds).findByRole('button', { name: /Correct refund of ₹1,000/ }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Correct refund' });
+    const amount = within(dialog).getByLabelText('Amount refunded (INR)');
+    expect(amount).toHaveValue('1000.00');
+    await user.clear(amount);
+    await user.type(amount, '1300');
+    await user.click(within(dialog).getByRole('button', { name: 'Save correction' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'Refunds can’t add up to more than the amount you paid.',
+    );
+    expect(amount).toHaveValue('1300');
+    await user.clear(amount);
+    await user.type(amount, '900');
+    await user.click(within(dialog).getByRole('button', { name: 'Save correction' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(api.correctRefund).toHaveBeenLastCalledWith(uuid(1), uuid(801), {
+      amountMinor: '90000',
+      revision: 3,
+    });
+    expect(fact(section('Returns and refunds'), 'Refunded to you')).toBe('₹900');
+  });
+
+  it('confirms before deleting a refund and returns focus', async () => {
+    const api = fakeApi(item(), {}, [refund(1, '25000')]);
+    const { user } = await renderDetails(api);
+    const refunds = section('Returns and refunds');
+    await user.click(await within(refunds).findByRole('button', { name: /Delete refund of ₹250/ }));
+    const confirm = await screen.findByRole('alertdialog');
+    expect(confirm).toHaveTextContent('The purchase amount stays as recorded');
+    await user.click(within(confirm).getByRole('button', { name: 'Delete refund' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+    expect(api.deleteRefund).toHaveBeenCalledWith(uuid(1), uuid(801), 3);
+    expect(fact(section('Returns and refunds'), 'Refunded to you')).toContain('₹0');
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('heading', { name: 'Returns and refunds' }),
+      ),
+    );
+  });
+
+  it('explains why unknown prices and gifts with nothing paid cannot be refunded', async () => {
+    const unknown = fakeApi(item({ pricePaidMinor: null }));
+    const first = await renderDetails(unknown);
+    let refunds = section('Returns and refunds');
+    expect(await within(refunds).findByText(/Add the amount you paid/)).toBeInTheDocument();
+    expect(fact(refunds, 'Purchase amount')).toBe('Not recorded');
+    expect(fact(refunds, 'Net recorded spend')).toContain('Not available');
+    expect(within(refunds).queryByRole('button', { name: 'Record a refund' })).toBeNull();
+    first.unmount();
+
+    await renderDetails(fakeApi(item({ pricePaidMinor: null, acquisitionType: 'gift' })));
+    refunds = section('Returns and refunds');
+    expect(
+      await within(refunds).findByText(/No amount paid is recorded for this gift/),
+    ).toBeInTheDocument();
+    expect(fact(refunds, 'Purchase amount')).toBe('Gift — nothing paid recorded');
+    expect(fact(refunds, 'Net recorded spend')).toContain('adds nothing to spending');
+  });
+
+  it('reloads refunds and the item after a stale revision', async () => {
+    const api = fakeApi();
+    api.recordRefund.mockRejectedValueOnce(
+      new ItemRequestError(409, 'This item changed since you opened it.', 'STALE_ITEM_REVISION'),
+    );
+    const { user } = await renderDetails(api);
+    await user.click(
+      within(section('Returns and refunds')).getByRole('button', { name: 'Record a refund' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Amount refunded (INR)'), '10');
+    const reads = api.readRefunds.mock.calls.length;
+    await user.click(within(dialog).getByRole('button', { name: 'Record refund' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'The latest refunds are now shown',
+    );
+    expect(api.readRefunds.mock.calls.length).toBeGreaterThan(reads);
+    expect(within(dialog).getByLabelText('Amount refunded (INR)')).toHaveValue('10');
   });
 });

@@ -307,3 +307,48 @@ export const currencyCodes = [
   'ZWN',
   'ZWR',
 ] as const;
+
+export type CurrencyCode = (typeof currencyCodes)[number];
+
+const knownCodes: ReadonlySet<string> = new Set(currencyCodes);
+
+export function isCurrencyCode(value: unknown): value is CurrencyCode {
+  return typeof value === 'string' && knownCodes.has(value);
+}
+
+// Minor-unit exponents carried over unchanged from the original entry helper so stored integer
+// amounts keep their meaning. Codes not listed use two digits (including INR, USD and EUR).
+const zeroDigit = new Set([
+  'BIF',
+  'BYR',
+  'CLP',
+  'DJF',
+  'GNF',
+  'ISK',
+  'JPY',
+  'KMF',
+  'KRW',
+  'MGA',
+  'PYG',
+  'RWF',
+  'UGX',
+  'UYI',
+  'VND',
+  'VUV',
+  'XAF',
+  'XOF',
+  'XPF',
+]);
+const threeDigit = new Set(['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND']);
+const fourDigit = new Set(['CLF', 'UYW']);
+
+/** Number of decimal digits in one major unit of the currency (INR 2, JPY 0, KWD 3). */
+export function currencyMinorDigits(currency: string): number {
+  if (zeroDigit.has(currency)) return 0;
+  if (threeDigit.has(currency)) return 3;
+  if (fourDigit.has(currency)) return 4;
+  return 2;
+}
+
+/** Initial entry/display default only. Storage always carries an explicit currency. */
+export const defaultEntryCurrency: CurrencyCode = 'INR';
