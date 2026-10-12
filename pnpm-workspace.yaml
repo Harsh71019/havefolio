@@ -18,6 +18,20 @@ minimumReleaseAgeExclude:
   - next@16.3.7
   - lucide-react@1.49.0
   - nestjs-pino@5.3.0
+  - '@sentry/browser-utils@11.2.0'
+  - '@sentry/browser@11.2.0'
+  - '@sentry/bundler-plugins@11.2.0'
+  - '@sentry/core@11.2.0'
+  - '@sentry/feedback@11.2.0'
+  - '@sentry/nextjs@11.2.0'
+  - '@sentry/node@11.2.0'
+  - '@sentry/opentelemetry@11.2.0'
+  - '@sentry/react@11.2.0'
+  - '@sentry/replay-canvas@11.2.0'
+  - '@sentry/replay@11.2.0'
+  - '@sentry/server-runtime-injection@11.2.0'
+  - '@sentry/server-utils@11.2.0'
+  - '@sentry/vercel-edge@11.2.0'
 
 allowBuilds:
   argon2: true

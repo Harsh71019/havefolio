@@ -1,3 +1,5 @@
+import './monitoring.js';
+import { captureFailure, flushMonitoring } from '@havefolio/monitoring/server';
 import { Logger } from 'nestjs-pino';
 import 'reflect-metadata';
 import { validateWorkerEnvironment } from '@havefolio/config';
@@ -29,7 +31,9 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 }
 
-void bootstrap().catch(() => {
+void bootstrap().catch(async (error: unknown) => {
+  captureFailure(error, { code: 'STARTUP_FAILED', operation: 'bootstrap' });
+  await flushMonitoring();
   process.stderr.write(
     JSON.stringify({
       application: 'havefolio',

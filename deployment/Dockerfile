@@ -5,7 +5,14 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_API_BASE_URL=http://api:3001/api/v1
-RUN pnpm build
+ARG RELEASE=local
+ENV LOG_RELEASE=$RELEASE NEXT_PUBLIC_MONITORING_RELEASE=$RELEASE
+# Secret mount is available only to the release build, never to exported runtime layers.
+RUN --mount=type=secret,id=havefolio_monitoring \
+    monitoring_release="$LOG_RELEASE"; \
+    if [ -f /run/secrets/havefolio_monitoring ]; then set -a; . /run/secrets/havefolio_monitoring; set +a; fi; \
+    export LOG_RELEASE="$monitoring_release" NEXT_PUBLIC_MONITORING_RELEASE="$monitoring_release"; \
+    pnpm build
 RUN pnpm --filter @havefolio/api deploy --prod --legacy /out/api && pnpm --filter @havefolio/worker deploy --prod --legacy /out/worker && pnpm --filter @havefolio/db deploy --prod --legacy /out/migration
 RUN cp -r packages/db/scripts /out/migration/scripts
 

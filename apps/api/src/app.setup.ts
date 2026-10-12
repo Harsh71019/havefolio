@@ -1,3 +1,5 @@
+import { startOperation } from '@havefolio/monitoring/server';
+import { normalizeRoute } from '@havefolio/monitoring';
 import { EventLogger, effectiveId, logContext } from '@havefolio/logging';
 import type { Request, Response, NextFunction } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -15,6 +17,7 @@ export function configureApplication(app: INestApplication): void {
     res.setHeader('X-Request-ID', requestId);
     const started = performance.now();
     const context = Object.freeze({ requestId, correlationId });
+    const endSpan = logContext.run(context, () => startOperation(normalizeRoute(req.path)));
     let logged = false;
     const complete = (): void => {
       if (logged) return;
@@ -22,6 +25,7 @@ export function configureApplication(app: INestApplication): void {
       // Express registered route paths are trusted templates; never use originalUrl/path.
       const route = (req.route as { path?: unknown } | undefined)?.path;
       const template = typeof route === 'string' ? route : '/unmatched';
+      endSpan(normalizeRoute(template));
       const status = res.writableFinished ? res.statusCode : 499;
       const health = /^\/api\/v1\/health(?:\/|$)/.test(template);
       const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : health ? 'debug' : 'info';
@@ -32,6 +36,7 @@ export function configureApplication(app: INestApplication): void {
           method: req.method,
           ...(status >= 500 ? { error: res.locals.logError as unknown } : {}),
           code: res.locals.logCode as unknown,
+          monitoringEventId: res.locals.monitoringEventId as unknown,
           route: template,
           status,
           durationMs: Math.round((performance.now() - started) * 100) / 100,

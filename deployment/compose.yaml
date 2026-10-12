@@ -55,6 +55,11 @@ services:
   web:
     <<: *runtime
     image: havefolio-web:${RELEASE:?Set RELEASE}
+    env_file:
+      - path: /opt/havefolio/secrets/shared-services/.env.production.web
+        required: false
+    environment:
+      LOG_RELEASE: ${RELEASE:?Set RELEASE}
     networks: [app]
     ports: ['127.0.0.1:3020:3000']
     mem_limit: 512m

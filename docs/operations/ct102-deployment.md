@@ -38,3 +38,7 @@ The supplied Cloudinary values reached the running API unchanged, but both provi
 ## Structured logging (PER-48)
 
 API and worker Compose services set `LOG_SERVICE` and `LOG_RELEASE` from the immutable release selector and force console JSON. Store optional Seq endpoint/ingestion identity only in their existing protected server env files. Seq is excluded from startup/readiness dependencies; an outage keeps console logs and does not block requests/jobs. See [structured logging](structured-logging.md) for the field schema, privacy boundary, bounded delivery and candidate verification procedure. Keep existing Docker log rotation and resource limits.
+
+## GlitchTip monitoring (PER-49)
+
+See [GlitchTip monitoring](glitchtip-monitoring.md) for optional browser/server/API/worker capture, correlation and privacy controls. Build the immutable commit release with the protected BuildKit source-map configuration before rollout; upload credentials never belong in runtime env files. Compose supports a protected optional web monitoring env file and uses the same release identity across all services. Verification does not restart production or shared services.
