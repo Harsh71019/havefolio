@@ -1,3 +1,10 @@
+import { createServer } from 'node:http';
+import { randomBytes } from 'node:crypto';
+import {
+  initializeMonitoring,
+  flushMonitoring,
+  closeMonitoring,
+} from '@havefolio/monitoring/server';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import pino from 'pino';
@@ -95,4 +102,55 @@ test('console/Seq failure never changes a successful job into a BullMQ retry', a
   );
   processor.onError(new Error('private transport body'));
   sink.close();
+});
+
+test('real SDK captures only terminal job failures with safe correlation and attempt', async () => {
+  const envelopes = [];
+  const receiver = createServer((req, res) => {
+    let body = '';
+    req.on('data', (data) => (body += data));
+    req.on('end', () => {
+      envelopes.push(body);
+      res.end('{}');
+    });
+  });
+  await new Promise((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+  initializeMonitoring('worker', {
+    NODE_ENV: 'test',
+    LOG_RELEASE: 'per49-worker-test',
+    GLITCHTIP_ENABLED: 'true',
+    GLITCHTIP_TRACE_SAMPLE_RATE: '0',
+    GLITCHTIP_DSN: `http://${randomBytes(16).toString('hex')}@127.0.0.1:${receiver.address().port}/1`,
+  });
+  const { processor, sink } = fixture();
+  const secret = randomBytes(20).toString('hex');
+  try {
+    const job = {
+      name: secret,
+      id: 'test_job_12345678',
+      data: {
+        notes: secret,
+        metadata: { correlationId: 'correlation_12345', requestId: 'request_123456789' },
+      },
+      attemptsMade: 0,
+      opts: { attempts: 2 },
+    };
+    await assert.rejects(processor.process(job));
+    await flushMonitoring();
+    assert.equal(envelopes.length, 0);
+    job.attemptsMade = 1;
+    await assert.rejects(processor.process(job));
+    await flushMonitoring();
+    assert.equal(envelopes.length, 1);
+    const event = JSON.parse(envelopes[0].split('\n')[2]);
+    assert.equal(event.tags.attempt, '2');
+    assert.equal(event.tags.correlationId, 'correlation_12345');
+    assert.equal(event.tags.jobId, job.id);
+    assert.equal(event.tags.service, 'worker');
+    assert.ok(!envelopes[0].includes(secret));
+  } finally {
+    sink.close();
+    await closeMonitoring();
+    await new Promise((resolve) => receiver.close(resolve));
+  }
 });

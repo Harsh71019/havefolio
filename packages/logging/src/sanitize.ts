@@ -16,6 +16,7 @@ const fields = new Set([
   'attempt',
   'category',
   'code',
+  'monitoringEventId',
   'error',
   'completed',
   'failed',
@@ -112,7 +113,9 @@ export function safeEvent(input: unknown): Record<string, unknown> {
     if (key === 'route') {
       // Accept registered templates only. Middleware supplies these, never caller URLs.
       if (/^\/[A-Za-z0-9_/:.*{}-]{0,200}$/.test(value)) result[key] = value;
-    } else if (['requestId', 'correlationId', 'causationId', 'jobId'].includes(key)) {
+    } else if (
+      ['requestId', 'correlationId', 'causationId', 'jobId', 'monitoringEventId'].includes(key)
+    ) {
       if (/^[A-Za-z0-9_-]{1,64}$/.test(value)) result[key] = value;
     } else if (token.test(value)) result[key] = value;
   }

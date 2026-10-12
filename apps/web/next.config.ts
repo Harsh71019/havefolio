@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs/config';
+import { monitoringConfig } from '@havefolio/monitoring';
 import { loadEnvConfig } from '@next/env';
 import type { NextConfig } from 'next';
 import { resolve } from 'node:path';
@@ -25,4 +27,34 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@havefolio/contracts', '@havefolio/ui'],
 };
 
-export default nextConfig;
+const upload = process.env.GLITCHTIP_UPLOAD_SOURCE_MAPS === 'true';
+const monitoring = monitoringConfig(process.env);
+if (
+  upload &&
+  (!monitoring.enabled ||
+    !process.env.SENTRY_AUTH_TOKEN ||
+    !process.env.SENTRY_URL ||
+    !process.env.SENTRY_ORG ||
+    !process.env.SENTRY_PROJECT)
+) {
+  throw new Error('Source-map upload requires protected configuration and an immutable release');
+}
+export default withSentryConfig(nextConfig, {
+  telemetry: false,
+  silent: true,
+  ...(upload
+    ? {
+        authToken: process.env.SENTRY_AUTH_TOKEN!,
+        sentryUrl: process.env.SENTRY_URL!,
+        org: process.env.SENTRY_ORG!,
+        project: process.env.SENTRY_PROJECT!,
+      }
+    : {}),
+  release: { name: monitoring.release, create: upload, finalize: upload },
+  sourcemaps: { disable: upload ? false : 'disable-upload', deleteSourcemapsAfterUpload: true },
+  errorHandler: () => {
+    throw new Error('Source-map upload failed; release is blocked');
+  },
+  webpack: { autoInstrumentServerFunctions: false, autoInstrumentMiddleware: false },
+  reactComponentAnnotation: { enabled: false },
+});

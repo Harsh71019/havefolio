@@ -1,6 +1,8 @@
+import { captureFailure } from '@havefolio/monitoring/server';
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
@@ -196,6 +198,8 @@ export class ItemPhotosService {
         const state = await this.snapshot(owner, item);
         results.push({ index, photo: state.photos.find((p) => p.id === id)! });
       } catch (error) {
+        if (!(error instanceof HttpException && error.getStatus() < 500))
+          captureFailure(error, { code: 'MEDIA_STORAGE_UNAVAILABLE' });
         const safe =
           error instanceof BadRequestException ||
           error instanceof ConflictException ||

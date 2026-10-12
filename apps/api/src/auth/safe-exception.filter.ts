@@ -1,3 +1,4 @@
+import { captureFailure } from '@havefolio/monitoring/server';
 import {
   Catch,
   HttpException,
@@ -7,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { taxonomyErrorCodes } from '@havefolio/contracts';
 import { STATUS_CODES } from 'node:http';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 const safeMessages = new Set([
   ...taxonomyErrorCodes,
@@ -77,6 +78,11 @@ export class SafeExceptionFilter implements ExceptionFilter {
         ? exception.message
         : (statusMessages[status] ?? 'REQUEST_FAILED');
     const response = host.switchToHttp().getResponse<Response>();
+    if (status >= 500) {
+      const request = host.switchToHttp().getRequest<Request>();
+      const route = (request.route as { path?: unknown } | undefined)?.path;
+      response.locals.monitoringEventId = captureFailure(exception, { code: message, route });
+    }
     response.locals.logError = exception;
     response.locals.logCategory =
       status >= 500

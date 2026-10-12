@@ -169,7 +169,10 @@ describe('safe exception boundary', () => {
         },
       };
       const host = {
-        switchToHttp: () => ({ getResponse: () => response }),
+        switchToHttp: () => ({
+          getResponse: () => response,
+          getRequest: () => ({ route: { path: '/unmatched' } }),
+        }),
       } as unknown as ArgumentsHost;
       filter.catch(new HttpException('secret-password-fragment in malformed JSON', 400), host);
       expect(status).toBe(400);
