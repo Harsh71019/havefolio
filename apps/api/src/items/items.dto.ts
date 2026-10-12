@@ -283,6 +283,8 @@ export class ItemEventDto {
       'used',
       'repaired',
       'refund_recorded',
+      'refund_corrected',
+      'refund_deleted',
       'correction',
     ],
   })

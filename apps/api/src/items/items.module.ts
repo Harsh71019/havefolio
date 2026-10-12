@@ -7,16 +7,24 @@ import { ItemPhotosService } from '../media/item-photos.service.js';
 import { PhotoProcessor } from '../media/photo-processing.js';
 import { Module } from '@nestjs/common';
 import { MediaModule } from '../media/media.module.js';
+import { ItemRefundsController } from './item-refunds.controller.js';
+import { ItemRefundsService } from './item-refunds.service.js';
 import { ItemsController } from './items.controller.js';
 import { ItemsRepository } from './items.repository.js';
 import { InventoryQueryService } from './inventory-query.service.js';
 import { ItemsService } from './items.service.js';
 @Module({
   imports: [MediaModule],
-  controllers: [ItemsController, ItemPhotosController, ItemDocumentsController],
+  controllers: [
+    ItemsController,
+    ItemRefundsController,
+    ItemPhotosController,
+    ItemDocumentsController,
+  ],
   providers: [
     ItemsRepository,
     ItemsService,
+    ItemRefundsService,
     InventoryQueryService,
     ItemPhotosService,
     ItemDocumentsService,

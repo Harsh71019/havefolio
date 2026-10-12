@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'node:crypto';
 import type { PoolClient } from 'pg';
-import { currencyCodes } from '@havefolio/db';
+import { isCurrencyCode, parseCalendarDay, parseMinorUnitAmount } from '@havefolio/domain';
 import { normalizeInventorySearch } from '@havefolio/contracts';
 import { ItemsRepository } from './items.repository.js';
 import type { ItemsQueryDto } from './inventory-query.dto.js';
@@ -50,6 +50,13 @@ interface Row {
 const invalid = (): never => {
   throw new BadRequestException('INVALID_ITEM_QUERY');
 };
+const valid = (check: () => unknown): void => {
+  try {
+    check();
+  } catch {
+    invalid();
+  }
+};
 const badCursor = (): never => {
   throw new BadRequestException('INVALID_ITEM_CURSOR');
 };
@@ -69,12 +76,11 @@ export function normalizeQuery(input: ItemsQueryDto): ItemsQueryDto {
   )
     invalid();
   if (q.subcategoryId && !q.categoryId) invalid();
-  if (q.currency && !currencyCodes.includes(q.currency as (typeof currencyCodes)[number]))
-    invalid();
+  if (q.currency && !isCurrencyCode(q.currency)) invalid();
   if ((q.sort === 'price' || q.priceMin !== undefined || q.priceMax !== undefined) && !q.currency)
     invalid();
   for (const price of [q.priceMin, q.priceMax])
-    if (price !== undefined && BigInt(price) > 9223372036854775807n) invalid();
+    if (price !== undefined) valid(() => parseMinorUnitAmount(price));
   if (
     q.priceMin !== undefined &&
     q.priceMax !== undefined &&
@@ -82,15 +88,9 @@ export function normalizeQuery(input: ItemsQueryDto): ItemsQueryDto {
   )
     invalid();
   if (q.priceKnown === 'only' && (q.priceMin !== undefined || q.priceMax !== undefined)) invalid();
-  for (const date of [q.purchasedFrom, q.purchasedTo]) {
-    if (
-      date &&
-      (date.startsWith('0000') ||
-        !Number.isFinite(Date.parse(date)) ||
-        new Date(date).toISOString().slice(0, 10) !== date)
-    )
-      invalid();
-  }
+  // Purchase-date calendar days only (never created_at); parsed without Date so no timezone shift.
+  for (const date of [q.purchasedFrom, q.purchasedTo])
+    if (date) valid(() => parseCalendarDay(date));
   if (q.purchasedFrom && q.purchasedTo && q.purchasedFrom > q.purchasedTo) invalid();
   if (
     q.dateKnown === 'only' &&
@@ -147,7 +147,8 @@ export function inventorySql(
     );
   if (q.dateKnown === 'only') clauses.push("i.purchase_date_precision='unknown'");
   if (q.dateKnown === 'exclude') clauses.push("i.purchase_date_precision<>'unknown'");
-  // Month/year components define a possible interval, not an asserted purchase day.
+  // Month/year components define a possible interval, not an asserted purchase day: the same
+  // overlap semantics as `couldFallInRange` in @havefolio/domain.
   const start =
     'make_date(i.purchase_year,coalesce(i.purchase_month,1),coalesce(i.purchase_day,1))';
   const end = `(CASE i.purchase_date_precision WHEN 'year' THEN make_date(i.purchase_year,12,31) WHEN 'month' THEN (make_date(i.purchase_year,i.purchase_month,1)+interval '1 month - 1 day')::date ELSE ${start} END)`;

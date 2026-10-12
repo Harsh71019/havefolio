@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   reactStrictMode: true,
-  transpilePackages: ['@havefolio/contracts', '@havefolio/ui'],
+  transpilePackages: ['@havefolio/contracts', '@havefolio/domain', '@havefolio/ui'],
 };
 
 const upload = process.env.GLITCHTIP_UPLOAD_SOURCE_MAPS === 'true';

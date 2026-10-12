@@ -317,6 +317,9 @@ importers:
       '@havefolio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@havefolio/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@havefolio/monitoring':
         specifier: workspace:*
         version: link:../../packages/monitoring
@@ -455,6 +458,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@havefolio/domain':
+        specifier: workspace:*
+        version: link:../domain
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)
