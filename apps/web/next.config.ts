@@ -42,6 +42,8 @@ if (
 export default withSentryConfig(nextConfig, {
   telemetry: false,
   silent: true,
+  // Shared application modules (including financial formatting) live outside app/ chunks.
+  widenClientFileUpload: true,
   ...(upload
     ? {
         authToken: process.env.SENTRY_AUTH_TOKEN!,
