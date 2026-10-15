@@ -1,3 +1,5 @@
+import { SpendingController } from './spending.controller.js';
+import { SpendingService } from './spending.service.js';
 import { ItemDocumentsController } from '../media/item-documents.controller.js';
 import { ItemDocumentsService } from '../media/item-documents.service.js';
 import { DocumentProcessor } from '../media/document-processing.js';
@@ -17,12 +19,14 @@ import { ItemsService } from './items.service.js';
   imports: [MediaModule],
   controllers: [
     ItemsController,
+    SpendingController,
     ItemRefundsController,
     ItemPhotosController,
     ItemDocumentsController,
   ],
   providers: [
     ItemsRepository,
+    SpendingService,
     ItemsService,
     ItemRefundsService,
     InventoryQueryService,

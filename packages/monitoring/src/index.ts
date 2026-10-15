@@ -73,6 +73,7 @@ export function normalizeRoute(input: unknown): string {
     }
   }
   path = path.replace(/\/\([^/]+\)/g, '').replace(/\/(?:page|route)$/, '');
+  if (path === '/api/v1/spending') return path;
   if (/^\/api\/v1\/health(?:\/|$)/.test(path)) return '/api/v1/health';
   if (/^\/(?:login|store|wants|goals|settings\/taxonomy)?\/?$/.test(path))
     return path.replace(/\/$/, '') || '/';

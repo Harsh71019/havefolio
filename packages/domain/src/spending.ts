@@ -7,6 +7,7 @@ import {
 import { assertCurrency } from './money.js';
 import {
   acquisitionSpending,
+  ownershipStatuses,
   refundTotals,
   type AcquisitionType,
   type OwnershipStatus,
@@ -31,8 +32,13 @@ import {
  */
 export type SpendingScope = 'current_owned' | 'all_history';
 
+export const spendingScopeStatuses = {
+  current_owned: ['owned'],
+  all_history: ownershipStatuses,
+} as const satisfies Record<SpendingScope, readonly OwnershipStatus[]>;
+
 export function inSpendingScope(status: OwnershipStatus, scope: SpendingScope): boolean {
-  return scope === 'all_history' || status === 'owned';
+  return (spendingScopeStatuses[scope] as readonly OwnershipStatus[]).includes(status);
 }
 
 export interface SpendingItemInput {
