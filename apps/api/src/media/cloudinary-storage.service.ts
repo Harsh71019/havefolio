@@ -1,3 +1,4 @@
+import type { DependencyHealth } from '@havefolio/contracts';
 import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, type UploadApiOptions, type UploadApiResponse } from 'cloudinary';
@@ -182,6 +183,46 @@ export class CloudinaryStorage extends PrivateMediaStorage {
       });
     } catch {
       throw new ServiceUnavailableException('MEDIA_STORAGE_UNAVAILABLE');
+    }
+  }
+
+  async checkReadiness(): Promise<DependencyHealth> {
+    if (!this.enabled) {
+      return { status: 'disabled' };
+    }
+    if (!this.options.cloud_name || !this.options.api_key || !this.options.api_secret) {
+      return { status: 'unavailable', error: 'STORAGE_UNAVAILABLE' };
+    }
+    try {
+      let timer: NodeJS.Timeout | undefined;
+      const pingPromise = Promise.resolve(
+        cloudinary.api.ping(this.options) as Promise<Record<string, unknown>>,
+      );
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('TIMEOUT')), 2000);
+      });
+      const result: unknown = await Promise.race([pingPromise, timeoutPromise]).finally(() => {
+        if (timer) clearTimeout(timer);
+      });
+      const pingStatus =
+        typeof result === 'object' && result !== null && 'status' in result
+          ? (result as { status?: unknown }).status
+          : undefined;
+      if (pingStatus === 'ok' || pingStatus === 'active') {
+        return { status: 'ok' };
+      }
+      return { status: 'unavailable', error: 'STORAGE_UNAVAILABLE' };
+    } catch (error) {
+      const isTimeout =
+        (error instanceof Error && error.message === 'TIMEOUT') ||
+        (typeof error === 'object' &&
+          error !== null &&
+          'name' in error &&
+          (error as { name?: string }).name === 'TimeoutError');
+      return {
+        status: 'unavailable',
+        error: isTimeout ? 'TIMEOUT' : 'STORAGE_UNAVAILABLE',
+      };
     }
   }
 }

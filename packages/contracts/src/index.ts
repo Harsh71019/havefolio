@@ -8,6 +8,48 @@ export interface HealthResponse {
   version: '1';
 }
 
+export interface LivenessResponse {
+  service: 'havefolio-api';
+  status: 'ok';
+}
+
+export const dependencyStatuses = ['ok', 'degraded', 'unavailable', 'disabled'] as const;
+export type DependencyStatus = (typeof dependencyStatuses)[number];
+
+export const healthErrorCodes = [
+  'DATABASE_UNAVAILABLE',
+  'VALKEY_UNAVAILABLE',
+  'STORAGE_UNAVAILABLE',
+  'TIMEOUT',
+] as const;
+export type HealthErrorCode = (typeof healthErrorCodes)[number];
+
+export interface DependencyHealth {
+  status: DependencyStatus;
+  error?: HealthErrorCode;
+}
+
+export const readinessStatuses = ['ok', 'degraded', 'unavailable'] as const;
+export type ReadinessStatus = (typeof readinessStatuses)[number];
+
+export interface ReadinessDependencies {
+  postgres: DependencyHealth;
+  valkey: DependencyHealth;
+  storage: DependencyHealth;
+}
+
+export interface ReadinessResponse {
+  service: 'havefolio-api';
+  status: ReadinessStatus;
+  dependencies: ReadinessDependencies;
+  durationMs?: number;
+}
+
+export interface WebAvailabilityResponse {
+  service: 'havefolio-web';
+  status: 'ok';
+}
+
 /** Owner-private, bounded taxonomy snapshot for management and later item selectors. */
 export interface TaxonomyEntry {
   id: string;
