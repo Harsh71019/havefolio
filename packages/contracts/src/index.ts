@@ -226,6 +226,11 @@ export type ItemPhotoVariant = 'display' | 'thumbnail';
 export const inventorySorts = ['id', 'name', 'newest', 'oldest', 'price', 'updated'] as const;
 export const unknownModes = ['include', 'exclude', 'only'] as const;
 export interface InventoryQuery {
+  /** Exact spending membership; additive, used only by the insights drill-down. */
+  spendingScope?: SpendingScope;
+  spendingDateBucket?: SpendingBucket['dateBucket'];
+  spendingUnassigned?: 'category' | 'subcategory';
+  spendingYear?: string;
   q?: string;
   sort?: (typeof inventorySorts)[number];
   direction?: 'asc' | 'desc';
@@ -256,6 +261,10 @@ export function normalizeInventorySearch(value: string): string {
 }
 /** A bounded allowlist shared by URLs and API clients. No item records or credentials. */
 export const inventoryQueryKeys = [
+  'spendingScope',
+  'spendingDateBucket',
+  'spendingUnassigned',
+  'spendingYear',
   'q',
   'sort',
   'direction',

@@ -16,7 +16,7 @@ import request from 'supertest';
 import { IntegrationRun, integrationConfiguration } from '@havefolio/test-utils';
 import { validateApiEnvironment } from '@havefolio/config';
 import { summarizeSpending, type SpendingItemInput } from '@havefolio/domain';
-import type { SpendingReport, SpendingBucket } from '@havefolio/contracts';
+import type { ItemsPage, SpendingReport, SpendingBucket } from '@havefolio/contracts';
 import { AuthModule } from '../src/auth/auth.module.js';
 import { newToken, hashToken } from '../src/auth/session-cookie.service.js';
 import { configureApplication } from '../src/app.setup.js';
@@ -181,6 +181,97 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
     await app?.close();
     await run.close();
   });
+  it.each(['current-owned', 'all-history'] as const)(
+    'drills down every category/subcategory/year date bucket with exact %s membership and opaque pages',
+    async (scope) => {
+      for (const grouping of ['category', 'subcategory', 'year'] as const) {
+        for (const range of [{}, { purchasedFrom: '2024-02-29', purchasedTo: '2024-02-29' }]) {
+          const r = await report({ scope, grouping, ...range });
+          for (const bucket of r.buckets) {
+            const query: Record<string, string | number> = {
+              spendingScope: scope,
+              spendingDateBucket: bucket.dateBucket,
+              currency: bucket.currency,
+              limit: 2,
+              ...range,
+            };
+            if (grouping === 'category') {
+              if (bucket.key) query.categoryId = bucket.key;
+              else query.spendingUnassigned = 'category';
+            }
+            if (grouping === 'subcategory') {
+              if (bucket.key) {
+                query.categoryId = category;
+                query.subcategoryId = bucket.key;
+              } else query.spendingUnassigned = 'subcategory';
+            }
+            if (grouping === 'year' && bucket.key) query.spendingYear = bucket.key;
+            const collected: ItemsPage['items'] = [];
+            let cursor: string | null = null;
+            do {
+              const response = await request(app.getHttpServer())
+                .get('/api/v1/items')
+                .set('Cookie', `havefolio_session=${token}`)
+                .query({ ...query, ...(cursor ? { after: cursor } : {}) })
+                .expect(200);
+              expect(response.headers['cache-control']).toBe('no-store');
+              const page = response.body as ItemsPage;
+              expect(page.items.length).toBeLessThanOrEqual(2);
+              expect(page.items.every((i) => !i.isDemo && ids.includes(i.id))).toBe(true);
+              if (scope === 'current-owned')
+                expect(page.items.every((i) => i.ownershipStatus === 'owned')).toBe(true);
+              collected.push(...page.items);
+              cursor = page.hasMore ? page.nextCursor : null;
+            } while (cursor);
+            expect(new Set(collected.map((i) => i.id)).size).toBe(bucket.totalItemCount);
+            expect(collected.length).toBe(bucket.totalItemCount);
+            expect(
+              collected.filter((i) => i.pricePaidMinor === null && i.acquisitionType !== 'gift')
+                .length,
+            ).toBe(bucket.unknownPriceCount);
+            expect(
+              collected.filter((i) => i.pricePaidMinor === null && i.acquisitionType === 'gift')
+                .length,
+            ).toBe(bucket.notSpendingCount);
+          }
+        }
+      }
+    },
+    60000,
+  );
+  it('rejects incomplete, incompatible and foreign drill-down filters without private prose', async () => {
+    for (const q of [
+      { spendingDateBucket: 'dated' },
+      { spendingScope: 'invalid' },
+      { spendingScope: 'current-owned', ownershipStatus: 'sold' },
+      { spendingScope: 'all-history', categoryId: foreign },
+      { spendingScope: 'all-history', spendingUnassigned: 'category', categoryId: category },
+      { spendingScope: 'all-history', spendingYear: '0000' },
+    ]) {
+      const r = await request(app.getHttpServer())
+        .get('/api/v1/items')
+        .set('Cookie', `havefolio_session=${token}`)
+        .query(q)
+        .expect(400);
+      expect(r.body.message).toMatch(/^INVALID_/);
+    }
+    await request(app.getHttpServer())
+      .get('/api/v1/items')
+      .query({ spendingScope: 'all-history' })
+      .expect(401);
+    const first = (
+      await request(app.getHttpServer())
+        .get('/api/v1/items')
+        .set('Cookie', `havefolio_session=${token}`)
+        .query({ spendingScope: 'all-history', limit: 1 })
+        .expect(200)
+    ).body as ItemsPage;
+    await request(app.getHttpServer())
+      .get('/api/v1/items')
+      .set('Cookie', `havefolio_session=${token}`)
+      .query({ spendingScope: 'current-owned', limit: 1, after: first.nextCursor })
+      .expect(400);
+  });
   it.each(['all-history', 'current-owned'] as const)(
     'matches the PER-22 oracle exactly for %s, large sums, gifts, refunds and currencies',
     async (scope) => {
@@ -342,6 +433,15 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       properties: { grossMinor: { type: 'string' }, netMinor: { type: 'string' } },
     });
     expect(JSON.stringify(operation.parameters)).toContain('scope');
+    const itemParameters = doc.paths['/api/v1/items']!.get!.parameters as { name: string }[];
+    expect(itemParameters.map((p) => p.name)).toEqual(
+      expect.arrayContaining([
+        'spendingScope',
+        'spendingDateBucket',
+        'spendingUnassigned',
+        'spendingYear',
+      ]),
+    );
   });
   it('uses one aggregate plus at most one taxonomy query, independent of inventory size', async () => {
     const queries = jest.spyOn(Client.prototype, 'query');

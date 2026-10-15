@@ -12,6 +12,36 @@ import {
 } from '@havefolio/contracts';
 export class ItemsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({
+    enum: ['current-owned', 'all-history'],
+    description:
+      'Exact spending membership, excluding demos. Uses the authoritative report scope and date relationships.',
+  })
+  @ValidateIf((_o, v) => v !== undefined)
+  @IsIn(['current-owned', 'all-history'])
+  spendingScope?: 'current-owned' | 'all-history';
+  @ApiPropertyOptional({
+    enum: ['dated', 'spanningRange', 'unknownDate'],
+    description: 'Requires spendingScope. Keeps disclosure buckets separate.',
+  })
+  @ValidateIf((_o, v) => v !== undefined)
+  @IsIn(['dated', 'spanningRange', 'unknownDate'])
+  spendingDateBucket?: 'dated' | 'spanningRange' | 'unknownDate';
+  @ApiPropertyOptional({
+    enum: ['category', 'subcategory'],
+    description: 'Requires spendingScope. Selects a null assignment, not all assignments.',
+  })
+  @ValidateIf((_o, v) => v !== undefined)
+  @IsIn(['category', 'subcategory'])
+  spendingUnassigned?: 'category' | 'subcategory';
+  @ApiPropertyOptional({
+    pattern: '^[0-9]{4}$',
+    description: 'Requires spendingScope. Recorded purchase year, never an invented date.',
+  })
+  @ValidateIf((_o, v) => v !== undefined)
+  @Matches(/^[0-9]{4}$/)
+  spendingYear?: string;
+
+  @ApiPropertyOptional({
     maxLength: 200,
     description:
       'NFKC, collapsed whitespace, case-insensitive whole-word AND matching in name/brand/model, or one tag. No stemming or substring matching.',

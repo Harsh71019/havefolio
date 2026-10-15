@@ -1,5 +1,6 @@
+import { spendingMembershipSql } from './spending-membership.js';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { isCurrencyCode, parseCalendarDay, spendingScopeStatuses } from '@havefolio/domain';
+import { isCurrencyCode, parseCalendarDay } from '@havefolio/domain';
 import type { SpendingBucket, SpendingReport } from '@havefolio/contracts';
 import { ItemsRepository } from './items.repository.js';
 import type { SpendingQueryDto } from './spending.dto.js';
@@ -34,30 +35,7 @@ export function spendingSql(
     values.push(v);
     return `$${values.length}`;
   };
-  const scope = q.scope === 'current-owned' ? 'current_owned' : 'all_history';
-  const clauses = [
-    `i.owner_id=$1`,
-    `i.demo_dataset_id IS NULL`,
-    `i.ownership_status=ANY(${bind(spendingScopeStatuses[scope])}::text[])`,
-  ];
-  // PER-19: exclude durable demo identity before every dimension, precision check and refund join.
-  for (const [key, column] of [
-    ['currency', 'currency'],
-    ['categoryId', 'category_id'],
-    ['subcategoryId', 'subcategory_id'],
-  ] as const)
-    if (q[key]) clauses.push(`i.${column}=${bind(q[key])}`);
-  // Sargable coarse bounds narrow the owner/date index; exact containment remains below.
-  if (q.purchasedFrom)
-    clauses.push(
-      `(i.purchase_year>=${bind(Number(q.purchasedFrom.slice(0, 4)))}::int OR i.purchase_year IS NULL)`,
-    );
-  if (q.purchasedTo)
-    clauses.push(
-      `(i.purchase_year<=${bind(Number(q.purchasedTo.slice(0, 4)))}::int OR i.purchase_year IS NULL)`,
-    );
-  const from = bind(q.purchasedFrom ?? null),
-    to = bind(q.purchasedTo ?? null);
+  const membership = spendingMembershipSql(q, bind);
   const key = {
     overall: 'NULL::text',
     category: 'category_id::text',
@@ -67,28 +45,13 @@ export function spendingSql(
   }[q.grouping ?? 'overall'];
   return {
     values,
-    text: `WITH source AS MATERIALIZED (
-    SELECT i.id,i.owner_id,i.currency,i.price_paid_minor,i.acquisition_type,i.category_id,i.subcategory_id,
-      i.purchase_date_precision,i.purchase_year,i.purchase_month,
-      make_date(i.purchase_year,coalesce(i.purchase_month,1),coalesce(i.purchase_day,1)) AS first_day,
-      CASE i.purchase_date_precision WHEN 'year' THEN make_date(i.purchase_year,12,31)
-        WHEN 'month' THEN (make_date(i.purchase_year,i.purchase_month,1)+interval '1 month - 1 day')::date
-        ELSE make_date(i.purchase_year,i.purchase_month,i.purchase_day) END AS last_day
-    FROM items i WHERE ${clauses.join(' AND ')}
-  ), refunds AS (
+    text: `WITH ${membership}, refunds AS (
     SELECT r.item_id,sum(r.amount_minor) AS refunded FROM item_refunds r
       JOIN source s ON s.id=r.item_id AND s.owner_id=r.owner_id AND s.currency=r.currency
       WHERE r.owner_id=$1 GROUP BY r.item_id
-  ), related AS (
-    SELECT s.*,coalesce(r.refunded,0::numeric) AS refunded,
-      CASE WHEN purchase_date_precision='unknown' THEN 'unknownDate'
-        WHEN (${from}::date IS NULL OR first_day>=${from}::date) AND (${to}::date IS NULL OR last_day<=${to}::date) THEN 'dated'
-        WHEN (${from}::date IS NULL OR last_day>=${from}::date) AND (${to}::date IS NULL OR first_day<=${to}::date) THEN 'spanningRange'
-        ELSE 'outside' END AS relation
-      FROM source s LEFT JOIN refunds r ON r.item_id=s.id
   ) SELECT currency,${key} AS key,relation AS "dateBucket",
-    coalesce(sum(price_paid_minor),0)::text AS "grossMinor",sum(refunded)::text AS "refundedMinor",
-    (coalesce(sum(price_paid_minor),0)-sum(refunded))::text AS "netMinor",
+    coalesce(sum(price_paid_minor),0)::text AS "grossMinor",sum(coalesce(r.refunded,0::numeric))::text AS "refundedMinor",
+    (coalesce(sum(price_paid_minor),0)-sum(coalesce(r.refunded,0::numeric)))::text AS "netMinor",
     count(*) FILTER (WHERE price_paid_minor IS NOT NULL)::text AS "pricedItemCount",
     count(*) FILTER (WHERE price_paid_minor IS NULL AND acquisition_type<>'gift')::text AS "unknownPriceCount",
     count(*) FILTER (WHERE price_paid_minor IS NULL AND acquisition_type='gift')::text AS "notSpendingCount",
@@ -97,7 +60,7 @@ export function spendingSql(
     count(*) FILTER (WHERE purchase_date_precision='unknown')::text AS "unknownDateCount",
     count(*)::text AS "totalItemCount",
     bool_or(purchase_date_precision='year') AS "hasYearPrecision"
-    FROM related WHERE relation<>'outside' GROUP BY currency,${key},relation
+    FROM related s LEFT JOIN refunds r ON r.item_id=s.id WHERE relation<>'outside' GROUP BY currency,${key},relation
     ORDER BY currency,key NULLS FIRST,relation LIMIT 1001`,
   };
 }

@@ -1,3 +1,4 @@
+import { spendingMembershipSql } from './spending-membership.js';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'node:crypto';
@@ -76,6 +77,23 @@ export function normalizeQuery(input: ItemsQueryDto): ItemsQueryDto {
     (['newest', 'updated'].includes(q.sort) && q.direction !== 'desc')
   )
     invalid();
+  if ((q.spendingDateBucket || q.spendingUnassigned || q.spendingYear) && !q.spendingScope)
+    invalid();
+  if (q.spendingScope) {
+    if (!['current-owned', 'all-history'].includes(q.spendingScope)) invalid();
+    if (
+      q.spendingDateBucket &&
+      !['dated', 'spanningRange', 'unknownDate'].includes(q.spendingDateBucket)
+    )
+      invalid();
+    if (q.spendingUnassigned && !['category', 'subcategory'].includes(q.spendingUnassigned))
+      invalid();
+    if (q.spendingYear && (!/^[0-9]{4}$/.test(q.spendingYear) || q.spendingYear === '0000'))
+      invalid();
+    if (q.spendingUnassigned === 'category' && (q.categoryId || q.subcategoryId)) invalid();
+    if (q.spendingUnassigned === 'subcategory' && q.subcategoryId) invalid();
+    if (q.ownershipStatus || q.dateKnown !== 'include' || q.datePrecision) invalid();
+  }
   if (q.subcategoryId && !q.categoryId) invalid();
   if (q.currency && !isCurrencyCode(q.currency)) invalid();
   if ((q.sort === 'price' || q.priceMin !== undefined || q.priceMax !== undefined) && !q.currency)
@@ -113,6 +131,19 @@ export function inventorySql(
     return `$${values.length}`;
   };
   const clauses = ['i.owner_id=$1'];
+  if (q.spendingScope) {
+    const membership = spendingMembershipSql({ ...q, scope: q.spendingScope }, bind);
+    const conditions = ["relation<>'outside'"];
+    if (q.spendingDateBucket) conditions.push(`relation=${bind(q.spendingDateBucket)}`);
+    if (q.spendingUnassigned)
+      conditions.push(
+        q.spendingUnassigned === 'category' ? 'category_id IS NULL' : 'subcategory_id IS NULL',
+      );
+    if (q.spendingYear) conditions.push(`purchase_year=${bind(Number(q.spendingYear))}::int`);
+    clauses.push(
+      `i.id IN (WITH ${membership} SELECT id FROM related WHERE ${conditions.join(' AND ')})`,
+    );
+  }
   for (const [key, col] of [
     ['categoryId', 'category_id'],
     ['subcategoryId', 'subcategory_id'],
@@ -154,9 +185,9 @@ export function inventorySql(
     'make_date(i.purchase_year,coalesce(i.purchase_month,1),coalesce(i.purchase_day,1))';
   const end = `(CASE i.purchase_date_precision WHEN 'year' THEN make_date(i.purchase_year,12,31) WHEN 'month' THEN (make_date(i.purchase_year,i.purchase_month,1)+interval '1 month - 1 day')::date ELSE ${start} END)`;
   const dates: string[] = [];
-  if (q.purchasedFrom) dates.push(`${end}>=${bind(q.purchasedFrom)}::date`);
-  if (q.purchasedTo) dates.push(`${start}<=${bind(q.purchasedTo)}::date`);
-  if (dates.length)
+  if (q.purchasedFrom && !q.spendingScope) dates.push(`${end}>=${bind(q.purchasedFrom)}::date`);
+  if (q.purchasedTo && !q.spendingScope) dates.push(`${start}<=${bind(q.purchasedTo)}::date`);
+  if (dates.length && !q.spendingScope)
     clauses.push(
       `(${dates.join(' AND ')}${q.dateKnown === 'include' ? " OR i.purchase_date_precision='unknown'" : ''})`,
     );
