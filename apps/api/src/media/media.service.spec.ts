@@ -119,6 +119,9 @@ describe('MediaService', () => {
       ),
       delete: jest.fn<PrivateMediaStorage['delete']>(() => Promise.resolve()),
       download: jest.fn(() => 'https://example.test/expiring-download'),
+      checkReadiness: jest.fn<PrivateMediaStorage['checkReadiness']>(() =>
+        Promise.resolve({ status: 'ok' }),
+      ),
     };
     const module = await Test.createTestingModule({
       providers: [

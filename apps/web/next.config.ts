@@ -14,12 +14,16 @@ const nextConfig: NextConfig = {
       /\/$/,
       '',
     );
-    return Promise.resolve(
-      ['auth', 'taxonomy', 'items', 'spending'].map((domain) => ({
+    return Promise.resolve([
+      ...['auth', 'taxonomy', 'items', 'spending', 'health'].map((domain) => ({
         source: `/api/v1/${domain}/:path*`,
         destination: `${base}/${domain}/:path*`,
       })),
-    );
+      {
+        source: '/api/v1/health',
+        destination: `${base}/health`,
+      },
+    ]);
   },
   output: 'standalone',
   poweredByHeader: false,

@@ -1,0 +1,52 @@
+# Gatus endpoint definitions for Havefolio
+# To be merged into the homelab Gatus configuration (e.g. /opt/stacks/gatus/config/config.yaml)
+endpoints:
+  - name: Havefolio Web
+    group: Applications
+    url: 'https://apps.taild40172.ts.net/healthz'
+    interval: 1m
+    client:
+      timeout: 5s
+    conditions:
+      - '[STATUS] == 200'
+      - '[BODY].status == ok'
+      - '[RESPONSE_TIME] < 5000'
+    alerts:
+      - type: ntfy
+        failure-threshold: 3
+        success-threshold: 2
+        send-on-resolved: true
+
+  - name: Havefolio API Liveness
+    group: Applications
+    url: 'https://apps.taild40172.ts.net/api/v1/health/live'
+    interval: 1m
+    client:
+      timeout: 5s
+    conditions:
+      - '[STATUS] == 200'
+      - '[BODY].status == ok'
+      - '[RESPONSE_TIME] < 5000'
+    alerts:
+      - type: ntfy
+        failure-threshold: 3
+        success-threshold: 2
+        send-on-resolved: true
+
+  - name: Havefolio API Readiness
+    group: Applications
+    url: 'https://apps.taild40172.ts.net/api/v1/health/ready'
+    interval: 1m
+    client:
+      timeout: 10s
+    conditions:
+      - '[STATUS] == 200'
+      - '[BODY].status == ok'
+      - '[BODY].dependencies.postgres.status == ok'
+      - '[BODY].dependencies.valkey.status == ok'
+      - '[RESPONSE_TIME] < 5000'
+    alerts:
+      - type: ntfy
+        failure-threshold: 3
+        success-threshold: 2
+        send-on-resolved: true

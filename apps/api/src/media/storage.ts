@@ -1,3 +1,5 @@
+import type { DependencyHealth } from '@havefolio/contracts';
+
 export type ResourceType = 'image' | 'raw';
 export type Format = 'jpg' | 'png' | 'webp' | 'pdf';
 export interface StoredAsset {
@@ -25,4 +27,5 @@ export abstract class PrivateMediaStorage {
   abstract put(input: StoreInput): Promise<StoredAsset>;
   abstract delete(key: string, resourceType: ResourceType): Promise<void>;
   abstract download(key: string, resourceType: ResourceType, format: Format): string;
+  abstract checkReadiness(): Promise<DependencyHealth>;
 }

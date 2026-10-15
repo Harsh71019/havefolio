@@ -225,4 +225,56 @@ describe('Cloudinary private storage contract', () => {
       storage.read(`${input.key}.pdf`, 'raw', 'pdf', 20 * 1024 * 1024 + 1),
     ).rejects.toThrow('INVALID_MEDIA');
   });
+
+  describe('readiness probe contract', () => {
+    it('returns disabled when MEDIA_STORAGE_ENABLED is false', async () => {
+      const storage = await setup(false);
+      const pingSpy = jest.spyOn(cloudinary.api, 'ping');
+      const result = await storage.checkReadiness();
+      expect(result).toEqual({ status: 'disabled' });
+      expect(pingSpy).not.toHaveBeenCalled();
+    });
+
+    it('returns ok when provider ping succeeds', async () => {
+      const storage = await setup(true);
+      jest.spyOn(cloudinary.api, 'ping').mockResolvedValue({ status: 'ok' });
+      const result = await storage.checkReadiness();
+      expect(result).toEqual({ status: 'ok' });
+    });
+
+    it('returns unavailable with safe error code when provider ping fails', async () => {
+      const storage = await setup(true);
+      jest
+        .spyOn(cloudinary.api, 'ping')
+        .mockRejectedValue(new Error('Unauthorized connection https://api.cloudinary.com/secret'));
+      const result = await storage.checkReadiness();
+      expect(result).toEqual({
+        status: 'unavailable',
+        error: 'STORAGE_UNAVAILABLE',
+      });
+      expect(JSON.stringify(result)).not.toContain('secret');
+      expect(JSON.stringify(result)).not.toContain('https://');
+    });
+
+    it('returns unavailable with TIMEOUT when provider ping times out', async () => {
+      const storage = await setup(true);
+      jest.spyOn(cloudinary.api, 'ping').mockImplementation(() => {
+        return new Promise(() => {
+          // Never resolves
+        });
+      });
+      jest.useFakeTimers();
+      try {
+        const promise = storage.checkReadiness();
+        jest.advanceTimersByTime(2100);
+        const result = await promise;
+        expect(result).toEqual({
+          status: 'unavailable',
+          error: 'TIMEOUT',
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
 });
