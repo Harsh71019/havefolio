@@ -4,12 +4,15 @@ Run `pnpm test:proxy` after `pnpm install --frozen-lockfile` and installing the
 Playwright Chromium browser. The root `pnpm test:smoke` gate also runs this check,
 so the existing Repository gates CI job enforces it.
 
-The harness copies the workspace into a temporary directory without environment
-files, dependencies, build caches or test artifacts. It installs the locked
-packages offline from the populated pnpm store, builds Next with the production
-configuration and webpack compiler, and starts `next start` on an allocated
-loopback port. A disposable upstream binds to a separate allocated loopback port.
-Neither server uses PostgreSQL, Valkey or a deployed API.
+The harness copies the installed workspace into a temporary directory without
+environment files, build caches or test artifacts. It preserves relative pnpm
+links and hard-links immutable installed dependency files on the same filesystem.
+Application source/configuration files are copied separately, using copy-on-write
+when available; cross-filesystem dependency copies fall back to copying files. No additional install, network access or package-store cache is needed.
+It builds Next with the production configuration and webpack compiler, and starts
+`next start` on an allocated loopback port. A disposable upstream binds to a
+separate allocated loopback port. Neither server uses PostgreSQL, Valkey or a
+deployed API.
 
 Real HTTP requests verify the anonymous `401 AUTH_REQUIRED` JSON response,
 onboarding methods, paths, JSON body, cookie, query string, origin rejection and

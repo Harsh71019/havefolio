@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
-import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { cp, link, lstat, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { basename, join, resolve } from 'node:path';
+import { basename, join, resolve, sep } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 // No operator environment, real sessions, request logging, screenshots, traces or snapshots.
@@ -130,28 +131,39 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, () => void cleanup().finally(() => process.exit(1)));
 }
 try {
+  // Preserve the installed workspace layout, including relative pnpm links. A self-contained
+  // copy avoids network/store assumptions and standalone tracing outside the disposable tree.
   await cp(root, scratch, {
     recursive: true,
-    filter: (path) =>
-      ![
-        '.git',
-        'node_modules',
-        '.next',
-        '.pnpm-store',
-        'tmp',
-        'test-results',
-        'playwright-report',
-      ].includes(basename(path)) && !basename(path).startsWith('.env'),
+    verbatimSymlinks: true,
+    mode: constants.COPYFILE_FICLONE,
+    filter: async (path, destination) => {
+      if (
+        [
+          '.git',
+          '.next',
+          '.pnpm-store',
+          'tmp',
+          '.cache',
+          'test-results',
+          'playwright-report',
+        ].includes(basename(path)) ||
+        basename(path).startsWith('.env')
+      )
+        return false;
+      // Dependency contents are immutable during build/start. Link files, not directories,
+      // so relative pnpm links and standalone traces stay inside this workspace.
+      if (path.split(sep).includes('node_modules') && (await lstat(path)).isFile()) {
+        try {
+          await link(path, destination);
+          return false;
+        } catch (error) {
+          if (error.code !== 'EXDEV') throw error;
+        }
+      }
+      return true;
+    },
   });
-  const install = spawn('pnpm', ['install', '--offline', '--frozen-lockfile', '--ignore-scripts'], {
-    cwd: scratch,
-    detached: true,
-    stdio: 'ignore',
-    timeout: 120000,
-    env: { PATH: process.env.PATH, HOME: process.env.HOME, CI: 'true' },
-  });
-  child = install;
-  assert.equal((await once(install, 'exit'))[0], 0, 'Disposable offline dependency installation');
   const nextBin = join(app, 'node_modules/.bin/next');
   // Mutation mode proves the original omission fails; it only changes the disposable source copy.
   if (process.argv.includes('--without-onboarding')) {
