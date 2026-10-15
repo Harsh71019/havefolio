@@ -22,10 +22,11 @@
     "test:unit": "pnpm test:infra && pnpm --filter @havefolio/logging test && pnpm --filter @havefolio/domain test && pnpm --filter @havefolio/db test && pnpm --filter @havefolio/test-utils test && pnpm --filter @havefolio/api test:unit && pnpm --filter @havefolio/worker test:unit && pnpm --filter @havefolio/monitoring test",
     "test:integration": "pnpm build:packages && pnpm --filter @havefolio/api test:integration && pnpm --filter @havefolio/worker test:integration",
     "test:components": "pnpm build:packages && pnpm --filter @havefolio/web test:components",
-    "test:smoke": "pnpm --filter @havefolio/web test:smoke",
+    "test:smoke": "pnpm --filter @havefolio/web test:smoke && pnpm test:proxy",
     "db:generate": "pnpm --filter @havefolio/db db:generate",
     "db:check": "pnpm --filter @havefolio/db db:check",
-    "db:migrate": "pnpm --filter @havefolio/db db:migrate"
+    "db:migrate": "pnpm --filter @havefolio/db db:migrate",
+    "test:proxy": "pnpm build:packages && node scripts/testing/production-proxy.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
