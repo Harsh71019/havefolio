@@ -61,7 +61,7 @@ import {
 @ApiConflictResponse({
   type: ItemErrorDto,
   description:
-    'STALE_ITEM_REVISION, INVALID_ITEM_TRANSITION, ITEM_TAXONOMY_RETIRED or ITEM_MEDIA_PENDING. Reload before stale-write retry.',
+    'DEMO_ITEM_READ_ONLY: samples reject edits, lifecycle actions and individual deletion. STALE_ITEM_REVISION, INVALID_ITEM_TRANSITION, ITEM_TAXONOMY_RETIRED or ITEM_MEDIA_PENDING. Reload before stale-write retry.',
 })
 @ApiServiceUnavailableResponse({
   type: ItemErrorDto,

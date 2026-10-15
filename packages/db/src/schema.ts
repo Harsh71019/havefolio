@@ -154,6 +154,44 @@ export const subcategories = pgTable(
   ],
 );
 
+/** Owner-private onboarding progress. Inventory existence never determines this state. */
+export const ownerOnboarding = pgTable(
+  'owner_onboarding',
+  {
+    ownerId: uuid('owner_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    state: text('state').notNull().default('not_started'),
+    browsedStore: boolean('browsed_store').notNull().default(false),
+    reviewedItem: boolean('reviewed_item').notNull().default(false),
+    triedDemo: boolean('tried_demo').notNull().default(false),
+    removedDemo: boolean('removed_demo').notNull().default(false),
+  },
+  (t) => [
+    check(
+      'onboarding_state_check',
+      sql`${t.state} in ('not_started','active','skipped','completed')`,
+    ),
+  ],
+);
+
+/** At most one active, versioned dataset per owner; removed only after its items. */
+export const demoDatasets = pgTable(
+  'demo_datasets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    version: text('version').notNull(),
+  },
+  (t) => [
+    unique('demo_dataset_owner_unique').on(t.ownerId),
+    unique('demo_dataset_identity_owner_unique').on(t.id, t.ownerId),
+    check('demo_dataset_version_check', sql`${t.version} = 'indian-household-v1'`),
+  ],
+);
+
 export const items = pgTable(
   'items',
   {
@@ -162,6 +200,7 @@ export const items = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     name: text('name').notNull(),
+    demoDatasetId: uuid('demo_dataset_id'),
     categoryId: uuid('category_id'),
     subcategoryId: uuid('subcategory_id'),
     brand: text('brand'),
@@ -206,6 +245,12 @@ export const items = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
   (t) => [
+    foreignKey({
+      columns: [t.demoDatasetId, t.ownerId],
+      foreignColumns: [demoDatasets.id, demoDatasets.ownerId],
+      name: 'item_demo_dataset_owner_fk',
+    }).onDelete('restrict'),
+    index('item_owner_demo_dataset_idx').on(t.ownerId, t.demoDatasetId),
     unique('item_owner_identity_unique').on(t.id, t.ownerId),
     // Refunds reference (item, owner, currency): no cross-owner or cross-currency refund can exist.
     unique('item_owner_currency_identity_unique').on(t.id, t.ownerId, t.currency),

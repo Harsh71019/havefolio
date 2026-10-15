@@ -47,6 +47,7 @@ const taxonomy: TaxonomySnapshot = {
 
 function item(extra: Partial<ItemResponse> = {}): ItemResponse {
   return {
+    isDemo: false,
     id: uuid(1),
     name: 'Electric kettle',
     ownershipStatus: 'owned',

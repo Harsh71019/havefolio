@@ -1,3 +1,4 @@
+import { Onboarding } from '@/components/onboarding';
 import { ArrowRight, Archive, Heart, ShieldCheck, Target } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
@@ -42,6 +43,8 @@ export default function HomePage(): ReactElement {
         description="Havefolio keeps possessions, spending and future purchases in one private place—so the useful thing you need may already be yours."
         action={<Pill className="self-start">Private by default</Pill>}
       />
+
+      <Onboarding />
 
       <section aria-labelledby="collections-title" className="mt-10">
         <div className="mb-4 flex items-end justify-between gap-4">

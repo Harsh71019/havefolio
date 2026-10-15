@@ -199,6 +199,7 @@ export class PaginationQueryDto {
   after?: string;
 }
 export class ItemDto {
+  @ApiProperty({ description: 'Read-only sample, excluded from real spending.' }) isDemo!: boolean;
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ minLength: 1, maxLength: 300 }) name!: string;
   @ApiProperty({ enum: statuses }) ownershipStatus!: (typeof statuses)[number];

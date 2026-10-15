@@ -37,10 +37,10 @@ export function spendingSql(
   const scope = q.scope === 'current-owned' ? 'current_owned' : 'all_history';
   const clauses = [
     `i.owner_id=$1`,
+    `i.demo_dataset_id IS NULL`,
     `i.ownership_status=ANY(${bind(spendingScopeStatuses[scope])}::text[])`,
   ];
-  // PER-19 extension point: add an explicit persisted demo marker to this shared source,
-  // excluded by default. Never infer demo status from names, source or taxonomy.
+  // PER-19: exclude durable demo identity before every dimension, precision check and refund join.
   for (const [key, column] of [
     ['currency', 'currency'],
     ['categoryId', 'category_id'],

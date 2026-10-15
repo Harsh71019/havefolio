@@ -111,6 +111,7 @@ describe('edit payloads', () => {
   const base = {
     id,
     name: 'Kettle',
+    isDemo: false,
     ownershipStatus: 'owned' as const,
     currency: 'INR',
     pricePaidMinor: '1000',

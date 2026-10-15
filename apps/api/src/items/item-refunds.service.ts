@@ -28,6 +28,7 @@ import type { ItemDto } from './items.dto.js';
 import { ItemsRepository } from './items.repository.js';
 
 interface PurchaseRow {
+  demo_dataset_id: string | null;
   revision: number;
   currency: string;
   price_paid_minor: string | null;
@@ -75,11 +76,13 @@ export class ItemRefundsService {
   ): Promise<PurchaseRow> {
     const row = (
       await c.query<PurchaseRow>(
-        'SELECT revision,currency,price_paid_minor,acquisition_type,ownership_status FROM items WHERE owner_id=$1 AND id=$2 FOR UPDATE',
+        'SELECT demo_dataset_id,revision,currency,price_paid_minor,acquisition_type,ownership_status FROM items WHERE owner_id=$1 AND id=$2 FOR UPDATE',
         [owner, item],
       )
     ).rows[0];
     if (!row) throw new NotFoundException('ITEM_NOT_FOUND');
+    if (revision !== undefined && row.demo_dataset_id)
+      throw new ConflictException('DEMO_ITEM_READ_ONLY');
     if (revision !== undefined && row.revision !== revision)
       throw new ConflictException('STALE_ITEM_REVISION');
     return row;

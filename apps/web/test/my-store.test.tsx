@@ -17,6 +17,7 @@ const emptyCategory = uuid(903);
 
 function item(n: number, extra: Partial<ItemListEntry> = {}): ItemListEntry {
   return {
+    isDemo: false,
     id: uuid(n),
     name: `Item ${n}`,
     ownershipStatus: 'owned',

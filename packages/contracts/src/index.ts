@@ -94,6 +94,8 @@ export interface CreateItemRequest {
 }
 
 export interface ItemResponse {
+  /** Persisted sample identity; internal dataset IDs are never exposed. */
+  isDemo: boolean;
   id: string;
   name: string;
   ownershipStatus: ItemStatus;
@@ -420,4 +422,17 @@ export interface SpendingReport {
   purchasedFrom: string | null;
   purchasedTo: string | null;
   buckets: SpendingBucket[];
+}
+
+export type OnboardingState = 'not_started' | 'active' | 'skipped' | 'completed';
+export type OnboardingAction =
+  'start' | 'skip' | 'complete' | 'revisit' | 'browse_store' | 'review_item';
+export interface OnboardingStatus {
+  state: OnboardingState;
+  genuineItemCount: number;
+  demoItemCount: number;
+  browsedStore: boolean;
+  reviewedItem: boolean;
+  triedDemo: boolean;
+  removedDemo: boolean;
 }

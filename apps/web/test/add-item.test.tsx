@@ -61,6 +61,7 @@ const mockTaxonomy: TaxonomySnapshot = {
 };
 
 const createdItemResponse: ItemResponse = {
+  isDemo: false,
   id: 'c8382c40-f655-46aa-b2b7-a0eef0816912',
   name: 'Aeropress Coffee Maker',
   ownershipStatus: 'owned',

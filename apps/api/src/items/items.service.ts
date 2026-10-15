@@ -27,6 +27,7 @@ import {
 import { InventoryQueryService } from './inventory-query.service.js';
 import type { ItemsQueryDto } from './inventory-query.dto.js';
 interface StoredItem {
+  demo_dataset_id: string | null;
   id: string;
   name: string;
   ownership_status: ItemDto['ownershipStatus'];
@@ -136,6 +137,7 @@ export class ItemsService {
   private serialize(row: StoredItem, tagIds: string[]): ItemDto {
     return {
       id: row.id,
+      isDemo: Boolean(row.demo_dataset_id),
       name: row.name,
       ownershipStatus: row.ownership_status,
       currency: row.currency,
@@ -174,6 +176,8 @@ export class ItemsService {
       await c.query<StoredItem>('SELECT * FROM items WHERE owner_id=$1 AND id=$2', [owner, id])
     ).rows[0];
     if (!row) throw new NotFoundException('ITEM_NOT_FOUND');
+    if (revision !== undefined && row.demo_dataset_id)
+      throw new ConflictException('DEMO_ITEM_READ_ONLY');
     if (revision !== undefined && row.revision !== revision)
       throw new ConflictException('STALE_ITEM_REVISION');
     return row;

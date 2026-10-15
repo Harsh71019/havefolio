@@ -45,14 +45,17 @@ export class ItemDocumentsService {
     owner: string,
     item: string,
     revision?: number,
+    writing = false,
   ): Promise<number> {
     const row = (
-      await c.query<{ revision: number }>(
-        'SELECT revision FROM items WHERE owner_id=$1 AND id=$2 FOR UPDATE',
+      await c.query<{ revision: number; demo_dataset_id: string | null }>(
+        'SELECT revision,demo_dataset_id FROM items WHERE owner_id=$1 AND id=$2 FOR UPDATE',
         [owner, item],
       )
     ).rows[0];
     if (!row) throw new NotFoundException('ITEM_NOT_FOUND');
+    if ((writing || revision !== undefined) && row.demo_dataset_id)
+      throw new ConflictException('DEMO_ITEM_READ_ONLY');
     if (revision !== undefined && revision !== row.revision)
       throw new ConflictException('STALE_ITEM_REVISION');
     return row.revision;
@@ -70,7 +73,7 @@ export class ItemDocumentsService {
   async authorize(owner: string, item: string): Promise<void> {
     if (!this.config.get<boolean>('MEDIA_STORAGE_ENABLED', false))
       throw new ServiceUnavailableException('MEDIA_STORAGE_DISABLED');
-    await this.repo.transaction(owner, (c) => this.item(c, owner, item));
+    await this.repo.transaction(owner, (c) => this.item(c, owner, item, undefined, true));
   }
   async snapshot(owner: string, item: string): Promise<DocumentSnapshotDto> {
     return this.repo.transaction(owner, async (c) => {
@@ -100,7 +103,7 @@ export class ItemDocumentsService {
     const key = `havefolio/${this.config.get<string>('NODE_ENV', 'development')}/${id}${output.format === 'pdf' ? '.pdf' : ''}`;
     try {
       const prior = await this.repo.transaction(owner, async (c) => {
-        await this.item(c, owner, item);
+        await this.item(c, owner, item, undefined, true);
         const row = (await c.query<Row>('SELECT * FROM media_attachments WHERE id=$1', [id]))
           .rows[0];
         if (row) {
@@ -161,7 +164,7 @@ export class ItemDocumentsService {
           checksum: output.checksum,
         });
         return await this.repo.transaction(owner, async (c) => {
-          await this.item(c, owner, item);
+          await this.item(c, owner, item, undefined, true);
           const row = (
             await c.query<Row>(
               "UPDATE media_attachments SET state='ready',provider_asset_id=$1,provider_version=$2,updated_at=now() WHERE owner_id=$3 AND item_id=$4 AND id=$5 AND state='pending' RETURNING *",
@@ -237,7 +240,7 @@ export class ItemDocumentsService {
     };
     try {
       const result = await this.repo.transaction(owner, async (c) => {
-        await this.item(c, owner, item);
+        await this.item(c, owner, item, undefined, true);
         const row = (
           await c.query<Row>(
             "SELECT * FROM media_attachments WHERE owner_id=$1 AND item_id=$2 AND id=$3 AND kind IN ('receipt','warranty') AND variant='original' AND state='ready'",
