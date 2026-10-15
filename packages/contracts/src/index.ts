@@ -384,3 +384,40 @@ export interface RecordRefundRequest {
 export type CorrectRefundRequest = Partial<Omit<RecordRefundRequest, 'revision'>> & {
   revision: number;
 };
+
+/** PER-20: one purchase-basis analysis; no cross-currency grand total. */
+export type SpendingScope = 'current-owned' | 'all-history';
+export type SpendingGrouping = 'overall' | 'category' | 'subcategory' | 'year' | 'month';
+export interface SpendingQuery {
+  scope: SpendingScope;
+  grouping?: SpendingGrouping;
+  currency?: string;
+  categoryId?: string;
+  subcategoryId?: string;
+  purchasedFrom?: string;
+  purchasedTo?: string;
+}
+export interface SpendingBucket {
+  currency: string;
+  /** null for overall, unassigned taxonomy or unknown date; see grouping/dateBucket. */
+  key: string | null;
+  dateBucket: 'dated' | 'spanningRange' | 'unknownDate';
+  grossMinor: string;
+  refundedMinor: string;
+  netMinor: string;
+  pricedItemCount: number;
+  unknownPriceCount: number;
+  notSpendingCount: number;
+  explicitZeroCount: number;
+  knownDateCount: number;
+  unknownDateCount: number;
+  totalItemCount: number;
+}
+export interface SpendingReport {
+  scope: SpendingScope;
+  grouping: SpendingGrouping;
+  basis: 'purchase-date';
+  purchasedFrom: string | null;
+  purchasedTo: string | null;
+  buckets: SpendingBucket[];
+}
