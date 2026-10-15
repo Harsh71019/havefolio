@@ -13,6 +13,9 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function readInventoryQuery(params: URLSearchParams): InventoryQuery {
   const query: Record<string, string | number> = {};
   const enums: Record<string, readonly string[]> = {
+    spendingScope: ['current-owned', 'all-history'],
+    spendingDateBucket: ['dated', 'spanningRange', 'unknownDate'],
+    spendingUnassigned: ['category', 'subcategory'],
     sort: inventorySorts,
     direction: ['asc', 'desc'],
     priceKnown: unknownModes,
@@ -26,6 +29,10 @@ export function readInventoryQuery(params: URLSearchParams): InventoryQuery {
     if (value === null || value.length > 2048 || params.getAll(key).length !== 1) continue;
     if (enums[key]) {
       if (enums[key].includes(value)) query[key] = value;
+      continue;
+    }
+    if (key === 'spendingYear') {
+      if (/^[0-9]{4}$/.test(value) && value !== '0000') query[key] = value;
       continue;
     }
     if (key === 'q') {
@@ -56,6 +63,11 @@ export function readInventoryQuery(params: URLSearchParams): InventoryQuery {
       continue;
     }
     if (key === 'after' && /^v1\.[A-Za-z0-9_-]{40,2045}$/.test(value)) query[key] = value;
+  }
+  if (!query.spendingScope) {
+    delete query.spendingYear;
+    delete query.spendingDateBucket;
+    delete query.spendingUnassigned;
   }
   if (!query.categoryId) delete query.subcategoryId;
   return query;

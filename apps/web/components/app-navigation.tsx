@@ -1,14 +1,30 @@
 'use client';
 
-import { Archive, Heart, House, LockKeyhole, Settings, Target } from 'lucide-react';
+import {
+  Archive,
+  Heart,
+  House,
+  LockKeyhole,
+  Settings,
+  Target,
+  ChartNoAxesCombined,
+  Ellipsis,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactElement } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@havefolio/ui/components/dropdown-menu';
 import { Button } from '@havefolio/ui/components/button';
 
 const navigationItems = [
   { href: '/', icon: House, label: 'Home' },
   { href: '/store', icon: Archive, label: 'My Store' },
+  { href: '/insights', icon: ChartNoAxesCombined, label: 'Insights' },
   { href: '/wants', icon: Heart, label: 'Wants' },
   { href: '/goals', icon: Target, label: 'Goals' },
   { href: '/settings/taxonomy', icon: Settings, label: 'Settings' },
@@ -59,7 +75,7 @@ export function AppNavigation(): ReactElement {
         aria-label="Primary"
         className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
       >
-        {navigationItems.map((item) => {
+        {navigationItems.slice(0, 4).map((item) => {
           const active = pathname === item.href;
           const Icon = item.icon;
 
@@ -77,6 +93,43 @@ export function AppNavigation(): ReactElement {
             </Button>
           );
         })}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant={
+                navigationItems.slice(4).some((item) => pathname === item.href)
+                  ? 'secondary'
+                  : 'ghost'
+              }
+              className="h-14 flex-col gap-1 px-1 text-xs"
+              aria-label={
+                navigationItems.slice(4).some((item) => pathname === item.href)
+                  ? 'More destinations, current page'
+                  : 'More destinations'
+              }
+            >
+              <Ellipsis aria-hidden="true" className="size-5" />
+              More
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            side="top"
+            className="min-w-48 motion-reduce:animate-none motion-reduce:transition-none"
+          >
+            {navigationItems.slice(4).map((item) => {
+              const Icon = item.icon;
+              return (
+                <DropdownMenuItem key={item.href} asChild className="min-h-11">
+                  <Link href={item.href} aria-current={pathname === item.href ? 'page' : undefined}>
+                    <Icon aria-hidden="true" className="size-4" />
+                    {item.label}
+                  </Link>
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </nav>
     </>
   );

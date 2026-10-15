@@ -10,15 +10,13 @@ describe('primary navigation', () => {
     render(<AppNavigation />);
     const navigations = screen.getAllByRole('navigation', { name: 'Primary' });
     expect(navigations).toHaveLength(2);
-    for (const navigation of navigations) {
+    for (const [index, navigation] of navigations.entries()) {
       const links = within(navigation).getAllByRole('link');
-      expect(links.map((link) => link.getAttribute('href'))).toEqual([
-        '/',
-        '/store',
-        '/wants',
-        '/goals',
-        '/settings/taxonomy',
-      ]);
+      expect(links.map((link) => link.getAttribute('href'))).toEqual(
+        index === 0
+          ? ['/', '/store', '/insights', '/wants', '/goals', '/settings/taxonomy']
+          : ['/', '/store', '/insights', '/wants'],
+      );
       expect(within(navigation).getByRole('link', { name: 'My Store' })).toHaveAttribute(
         'aria-current',
         'page',
@@ -27,6 +25,19 @@ describe('primary navigation', () => {
         'aria-current',
       );
     }
+  });
+  it('opens remaining mobile destinations with keyboard access', async () => {
+    render(<AppNavigation />);
+    const trigger = screen.getByRole('button', { name: 'More destinations' });
+    trigger.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByRole('menuitem', { name: 'Goals' })).toHaveAttribute('href', '/goals');
+    expect(screen.getByRole('menuitem', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/settings/taxonomy',
+    );
+    await userEvent.keyboard('{Escape}');
+    expect(trigger).toHaveFocus();
   });
   it('lets keyboard users reach the primary links', async () => {
     const user = userEvent.setup();
