@@ -8,7 +8,7 @@ Forward migration `0010_demo_onboarding.sql` adds `demo_datasets`, `owner_onboar
 
 No classification by names, taxonomy `is_demo`, dates, prices, IDs or import provenance. PER-9's taxonomy default marker remains a separate concept: genuine possessions using default categories remain genuine. Demos reuse active same-owner categories/subcategories; missing classifications are created on this explicit opt-in, retired entries stay retired, and the existing 500-entry limits apply transactionally. Taxonomy values are reusable and are intentionally retained on removal, including values subsequently referenced by genuine items. No demo tags are created; any relationships later added internally cascade safely with their marked item.
 
-Apply the additive migration with the protected migration role before deploying API/web. Existing data does not need a backfill. No owner inventory is inserted by a migration, startup or login. No configuration, infrastructure, health/Gatus, production services or observability bootstrap changes.
+Apply the additive migration with the protected migration role before deploying API/web. Existing data does not need a backfill. Index/FK creation takes normal PostgreSQL DDL locks; plan the migration window for the inventory size. Replace all older API instances before releasing the web demo opt-in, so no old spending query can observe newly seeded samples. Refresh existing browser tabs onto the new client before exploring samples. No owner inventory is inserted by a migration, startup or login. No configuration, infrastructure, health/Gatus, production services or observability bootstrap changes.
 
 ## Dataset and read-only policy
 

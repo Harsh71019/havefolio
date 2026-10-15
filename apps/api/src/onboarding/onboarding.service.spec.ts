@@ -66,6 +66,16 @@ describe('onboarding application boundaries', () => {
     expect(remove).not.toHaveBeenCalled();
     expect(query).toHaveBeenCalledTimes(2);
   });
+  it('a concurrent reconciliation no-op must not erase inventory before cleanup completes', async () => {
+    query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 'asset', state: 'ready' }] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{}] });
+    remove.mockResolvedValueOnce(undefined);
+    await expect(service.remove('owner')).rejects.toThrow('ITEM_MEDIA_PENDING');
+    expect(query).toHaveBeenCalledTimes(3);
+    expect(query.mock.calls.map(([sql]) => sql).join(' ')).not.toContain('DELETE FROM items');
+  });
   it('provider cleanup failure leaves database deletion unattempted and recoverable', async () => {
     query
       .mockResolvedValueOnce({ rows: [] })

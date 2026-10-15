@@ -165,6 +165,13 @@ export class OnboardingService {
       if (assets.length > 500 || assets.some((a) => a.state === 'pending'))
         throw new ConflictException('ITEM_MEDIA_PENDING');
       for (const asset of assets) await this.media.delete(owner, asset.id);
+      const incomplete = await c.query(
+        `SELECT 1 FROM media_attachments m JOIN items i ON i.id=m.item_id AND i.owner_id=m.owner_id
+        WHERE i.owner_id=$1 AND i.demo_dataset_id IS NOT NULL AND m.state<>'deleted' LIMIT 1`,
+        [owner],
+      );
+      if (incomplete.rowCount) throw new ConflictException('ITEM_MEDIA_PENDING');
+
       await c.query(
         `UPDATE media_attachments m SET item_id=NULL FROM items i WHERE i.owner_id=$1 AND i.demo_dataset_id IS NOT NULL AND m.owner_id=$1 AND m.item_id=i.id AND m.state='deleted'`,
         [owner],
