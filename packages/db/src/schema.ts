@@ -705,10 +705,6 @@ export const mediaAttachments = pgTable(
       'media_target_exclusivity_check',
       sql`${table.itemId} is null or ${table.desireId} is null`,
     ),
-    check(
-      'media_desire_kind_check',
-      sql`${table.desireId} is null or ${table.kind} = 'photo'`,
-    ),
+    check('media_desire_kind_check', sql`${table.desireId} is null or ${table.kind} = 'photo'`),
   ],
 );
-

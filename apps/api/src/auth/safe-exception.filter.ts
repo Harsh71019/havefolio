@@ -6,7 +6,7 @@ import {
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
-import { taxonomyErrorCodes } from '@havefolio/contracts';
+import { taxonomyErrorCodes, desireErrorCodes } from '@havefolio/contracts';
 import { financialErrorCodes } from '@havefolio/domain';
 import { STATUS_CODES } from 'node:http';
 import type { Request, Response } from 'express';
@@ -15,6 +15,27 @@ const safeMessages = new Set<string>([
   ...taxonomyErrorCodes,
   // Fixed financial-domain tokens (PER-22); never amounts, notes or dates.
   ...financialErrorCodes,
+  // Fixed desire-domain tokens (PER-23).
+  ...desireErrorCodes,
+  'PHOTO_UPLOAD_ID_REQUIRED',
+  'PHOTO_PROCESSING_BUSY',
+  'PHOTO_DELIVERY_BUSY',
+  'PHOTO_VARIANT_INVALID',
+  'PHOTO_QUOTA_EXCEEDED',
+  'PHOTO_UPLOAD_ID_REUSED',
+  'PHOTO_UPLOAD_PENDING',
+  'PHOTO_UPLOAD_RECOVERED',
+  'PHOTO_FILE_REQUIRED',
+  'PHOTO_FILE_SIZE',
+  'PHOTO_FILE_COUNT',
+  'PHOTO_REQUEST_SIZE',
+  'PHOTO_REQUEST_ABORTED',
+  'PHOTO_REQUEST_TIMEOUT',
+  'PHOTO_UNEXPECTED_FIELD',
+  'PHOTO_INVALID_MULTIPART',
+  'PHOTO_HEIC_UNSUPPORTED',
+  'PHOTO_FORMAT_MISMATCH',
+  'PHOTO_INVALID',
   'DOCUMENT_FILENAME_INVALID',
   'DOCUMENT_INVALID',
   'DOCUMENT_MULTIPART_REQUIRED',

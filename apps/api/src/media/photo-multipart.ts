@@ -57,7 +57,8 @@ export async function readPhotos(req: Request): Promise<PhotoInput[]> {
       };
       files.push(file);
       buffers.push(chunks);
-      if (field !== 'photos') fail(new BadRequestException('PHOTO_UNEXPECTED_FIELD'));
+      if (field !== 'photos' && field !== 'photo')
+        fail(new BadRequestException('PHOTO_UNEXPECTED_FIELD'));
       stream.on('limit', () => fail(new PayloadTooLargeException('PHOTO_FILE_SIZE')));
       stream.on('data', (chunk: Buffer) => {
         if (!error) chunks.push(chunk);

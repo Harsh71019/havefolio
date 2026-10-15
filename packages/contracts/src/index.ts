@@ -574,4 +574,3 @@ export const desireErrorCodes = [
   'DESIRES_UNAVAILABLE',
 ] as const;
 export type DesireErrorCode = (typeof desireErrorCodes)[number];
-

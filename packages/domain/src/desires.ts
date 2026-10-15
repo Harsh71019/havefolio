@@ -98,7 +98,6 @@ export function validateLikelyPrice(
   }
 }
 
-
 export interface WaitingTransitionInput {
   reviewAt: string;
   startedAt?: string;

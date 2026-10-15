@@ -33,26 +33,56 @@ test('likely price validation preserves unknown vs explicit zero', () => {
 
   // Maximum minor units
   const max = '9223372036854775807';
-  assert.deepEqual(validateLikelyPrice(max, 'EUR'), { minor: 9223372036854775807n, currency: 'EUR' });
+  assert.deepEqual(validateLikelyPrice(max, 'EUR'), {
+    minor: 9223372036854775807n,
+    currency: 'EUR',
+  });
 });
 
 test('likely price validation rejects pair mismatches and invalid values', () => {
   // Amount without currency
-  assert.throws(() => validateLikelyPrice('1000', null), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE');
-  assert.throws(() => validateLikelyPrice('1000', undefined), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE');
+  assert.throws(
+    () => validateLikelyPrice('1000', null),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE',
+  );
+  assert.throws(
+    () => validateLikelyPrice('1000', undefined),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE',
+  );
 
   // Currency without amount
-  assert.throws(() => validateLikelyPrice(null, 'INR'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE');
-  assert.throws(() => validateLikelyPrice(undefined, 'USD'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE');
+  assert.throws(
+    () => validateLikelyPrice(null, 'INR'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE',
+  );
+  assert.throws(
+    () => validateLikelyPrice(undefined, 'USD'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE',
+  );
 
   // Unsupported or invalid currency
-  assert.throws(() => validateLikelyPrice('1000', 'XYZ'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE');
-  assert.throws(() => validateLikelyPrice('1000', 'inr'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE');
+  assert.throws(
+    () => validateLikelyPrice('1000', 'XYZ'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE',
+  );
+  assert.throws(
+    () => validateLikelyPrice('1000', 'inr'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE',
+  );
 
   // Negative amount or invalid decimal
-  assert.throws(() => validateLikelyPrice('-100', 'INR'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE');
-  assert.throws(() => validateLikelyPrice('12.50', 'INR'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE');
-  assert.throws(() => validateLikelyPrice('abc', 'INR'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE');
+  assert.throws(
+    () => validateLikelyPrice('-100', 'INR'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE',
+  );
+  assert.throws(
+    () => validateLikelyPrice('12.50', 'INR'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE',
+  );
+  assert.throws(
+    () => validateLikelyPrice('abc', 'INR'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_PRICE',
+  );
 });
 
 test('product URL validation accepts valid HTTP/HTTPS and rejects unsafe schemes', () => {
@@ -60,14 +90,32 @@ test('product URL validation accepts valid HTTP/HTTPS and rejects unsafe schemes
   assert.equal(validateProductUrl(undefined), null);
   assert.equal(validateProductUrl('   '), null);
   assert.equal(validateProductUrl('https://example.com/item/123'), 'https://example.com/item/123');
-  assert.equal(validateProductUrl('http://shop.test/p?q=keyboard'), 'http://shop.test/p?q=keyboard');
+  assert.equal(
+    validateProductUrl('http://shop.test/p?q=keyboard'),
+    'http://shop.test/p?q=keyboard',
+  );
 
   // Unsafe schemes
-  assert.throws(() => validateProductUrl('javascript:alert(1)'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL');
-  assert.throws(() => validateProductUrl('data:text/html,<script>'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL');
-  assert.throws(() => validateProductUrl('file:///etc/passwd'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL');
-  assert.throws(() => validateProductUrl('ftp://ftp.example.com'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL');
-  assert.throws(() => validateProductUrl('not-a-url'), (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL');
+  assert.throws(
+    () => validateProductUrl('javascript:alert(1)'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL',
+  );
+  assert.throws(
+    () => validateProductUrl('data:text/html,<script>'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL',
+  );
+  assert.throws(
+    () => validateProductUrl('file:///etc/passwd'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL',
+  );
+  assert.throws(
+    () => validateProductUrl('ftp://ftp.example.com'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL',
+  );
+  assert.throws(
+    () => validateProductUrl('not-a-url'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_URL',
+  );
 });
 
 test('derived effective state computes considering, waiting, and ready_for_review deterministically', () => {
@@ -129,7 +177,12 @@ test('waiting-period transitions cover start, revise, cancel and invalid configu
 
   // reviewAt <= startedAt rejected
   assert.throws(
-    () => transitionDesireWaiting(initial, { reviewAt: '2026-10-20T10:00:00.000Z', startedAt: '2026-10-21T10:00:00.000Z' }, t0),
+    () =>
+      transitionDesireWaiting(
+        initial,
+        { reviewAt: '2026-10-20T10:00:00.000Z', startedAt: '2026-10-21T10:00:00.000Z' },
+        t0,
+      ),
     (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_WAIT',
   );
 });

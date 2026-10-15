@@ -9,6 +9,8 @@ import { AuthModule } from './auth/auth.module.js';
 import { MediaModule } from './media/media.module.js';
 import { OperationsModule } from './operations/operations.module.js';
 
+import { DesiresModule } from './desires/desires.module.js';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -24,6 +26,7 @@ import { OperationsModule } from './operations/operations.module.js';
     AuthModule,
     TaxonomyModule,
     ItemsModule,
+    DesiresModule,
     OperationsModule,
     MediaModule,
   ],
