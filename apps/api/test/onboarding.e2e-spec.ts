@@ -209,6 +209,14 @@ describe('PER-19 owner-private demos and onboarding', () => {
     expect((await get('items/' + item.id).expect(200)).body.revision).toBe(1);
   });
   it('excludes every sample lifecycle/refund/date/unknown count before grouping and precision checks', async () => {
+    // PER-9 taxonomy demo defaults do not classify genuine inventory as sample data.
+    const category = demos.find((d) => d.categoryId !== null)!.categoryId;
+    await run.runtime.query('UPDATE categories SET is_demo=true WHERE id=$1', [category]);
+    await run.runtime.query('UPDATE items SET category_id=$2 WHERE owner_id=$1 AND id=$3', [
+      owner,
+      category,
+      genuine.id,
+    ]);
     const before = await spending.report(owner, { scope: 'all-history' });
     expect(before.buckets).toHaveLength(1);
     expect(before.buckets[0]).toMatchObject({
@@ -245,6 +253,34 @@ describe('PER-19 owner-private demos and onboarding', () => {
   });
   it('removes only the owner dataset and cascading relationships, preserves genuine items and taxonomy, and explicitly reseeds', async () => {
     await service.seed(other);
+    const foreignDemo = (
+      await run.runtime.query<{ id: string }>(
+        'SELECT id FROM items WHERE owner_id=$1 AND demo_dataset_id IS NOT NULL LIMIT 1',
+        [other],
+      )
+    ).rows[0]!.id;
+    await get('items/' + foreignDemo).expect(404);
+    await http()
+      .patch('/api/v1/items/' + foreignDemo)
+      .set('Cookie', `havefolio_session=${token}`)
+      .send({ revision: 1, name: 'foreign change' })
+      .expect(404);
+    await post('items/' + foreignDemo + '/refunds', {
+      revision: 1,
+      currency: 'INR',
+      amountMinor: '100',
+    }).expect(404);
+
+    const tag = (
+      await run.runtime.query<{ id: string }>(
+        "INSERT INTO tags(owner_id,name) VALUES($1,'Synthetic reusable') RETURNING id",
+        [owner],
+      )
+    ).rows[0]!.id;
+    await run.runtime.query(
+      'INSERT INTO item_tags(owner_id,item_id,tag_id) VALUES($1,$2,$4),($1,$3,$4)',
+      [owner, genuine.id, demos[0]!.id, tag],
+    );
     const taxonomyBefore = (
       await run.runtime.query('SELECT id FROM categories WHERE owner_id=$1 ORDER BY id', [owner])
     ).rows;
@@ -270,6 +306,18 @@ describe('PER-19 owner-private demos and onboarding', () => {
         ])
       ).rows[0].n,
     ).toBe(0);
+    expect(
+      (
+        await run.runtime.query('SELECT item_id FROM item_tags WHERE owner_id=$1 AND tag_id=$2', [
+          owner,
+          tag,
+        ])
+      ).rows,
+    ).toEqual([{ item_id: genuine.id }]);
+    expect(
+      (await run.runtime.query('SELECT id FROM tags WHERE owner_id=$1 AND id=$2', [owner, tag]))
+        .rowCount,
+    ).toBe(1);
     expect((await get('onboarding').expect(200)).body.demoItemCount).toBe(0);
     await post('onboarding/demo')
       .expect(200)

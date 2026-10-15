@@ -106,6 +106,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.screenshot({
       path: resolve('../../docs/screenshots', `per-19-welcome-${info.project.name}-${theme}.png`),
       fullPage: true,
+      animations: 'disabled',
     });
     const explore = page.getByRole('button', { name: 'Explore optional demo inventory' });
     await explore.focus();
@@ -119,6 +120,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.screenshot({
       path: resolve('../../docs/screenshots', `per-19-demo-${info.project.name}-${theme}.png`),
       fullPage: true,
+      animations: 'disabled',
     });
     await demo.click();
     await expect(page.getByRole('heading', { name: 'Steel kettle' })).toBeVisible();
@@ -128,6 +130,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.screenshot({
       path: resolve('../../docs/screenshots', `per-19-details-${info.project.name}-${theme}.png`),
       fullPage: true,
+      animations: 'disabled',
     });
     await page.getByRole('link', { name: 'Back to My Store' }).click();
     await page.getByRole('button', { name: 'Remove all demo data' }).click();
@@ -138,6 +141,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(
       page.getByText('Demo inventory removed. Your genuine items are unchanged.'),
     ).toBeVisible();
+    await expect(page.getByRole('dialog')).toBeHidden();
     await expect(demo).toHaveCount(0);
     await expect(
       page.getByRole('link', { name: 'Add your first item', exact: true }),
@@ -146,6 +150,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.screenshot({
       path: resolve('../../docs/screenshots', `per-19-removed-${info.project.name}-${theme}.png`),
       fullPage: true,
+      animations: 'disabled',
     });
   });
 }

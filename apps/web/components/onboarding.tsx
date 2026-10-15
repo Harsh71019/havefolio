@@ -169,7 +169,8 @@ export function Onboarding({
       {status?.demoItemCount ? (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border p-4 text-sm">
           <p className="min-w-0 flex-1">
-            {status.demoItemCount} demo examples. Sample amounts do not count toward your spending.
+            {status.demoItemCount} demo {status.demoItemCount === 1 ? 'example' : 'examples'}.
+            Sample amounts do not count toward your spending.
           </p>
           <Button
             variant="outline"

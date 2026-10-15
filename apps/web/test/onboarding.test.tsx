@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { OnboardingStatus } from '@havefolio/contracts';
-import { onboardingRequest } from '../components/onboarding-client';
+import type { onboardingRequest } from '../components/onboarding-client';
 import { Onboarding } from '../components/onboarding';
 import { DemoItemDetails } from '../components/demo-item-details';
 import type { ItemResponse } from '@havefolio/contracts';
