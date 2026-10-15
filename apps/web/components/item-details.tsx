@@ -1,4 +1,6 @@
 'use client';
+import { DemoItemDetails } from './demo-item-details';
+import { onboardingRequest } from './onboarding-client';
 import {
   useCallback,
   useEffect,
@@ -299,6 +301,8 @@ export function ItemDetails({
       .then((item) => {
         if (!active) return;
         setLoad({ kind: 'ready', item });
+        if (item.isDemo) return;
+        if (api === apiItemDetails) void onboardingRequest('review_item').catch(() => undefined);
         void loadHistory();
         void loadPhotos();
         void loadDocuments();
@@ -389,6 +393,7 @@ export function ItemDetails({
     void loadHistory();
     announce(message);
   };
+  if (current.isDemo) return <DemoItemDetails item={current} returnTo={returnTo} />;
   const categoryName = (id: string | null): string | undefined =>
     id ? taxonomy?.categories.find((c) => c.id === id)?.name : undefined;
   const subcategoryName = (id: string | null): string | undefined =>

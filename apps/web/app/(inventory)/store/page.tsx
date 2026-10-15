@@ -1,3 +1,4 @@
+import { Onboarding } from '@/components/onboarding';
 import { Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import type { ReactElement } from 'react';
@@ -25,6 +26,7 @@ export default function StorePage(): ReactElement {
           </Link>
         </Button>
       </div>
+      <Onboarding store />
       <MyStore />
     </main>
   );

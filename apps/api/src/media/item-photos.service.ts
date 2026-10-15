@@ -51,12 +51,15 @@ export class ItemPhotosService {
     owner: string,
     item: string,
     revision?: number,
+    writing = false,
   ): Promise<number> {
-    const r = await c.query<{ revision: number }>(
-      'SELECT revision FROM items WHERE id=$1 AND owner_id=$2 FOR UPDATE',
+    const r = await c.query<{ revision: number; demo_dataset_id: string | null }>(
+      'SELECT revision,demo_dataset_id FROM items WHERE id=$1 AND owner_id=$2 FOR UPDATE',
       [item, owner],
     );
     if (!r.rows[0]) throw new NotFoundException('ITEM_NOT_FOUND');
+    if ((writing || revision !== undefined) && r.rows[0].demo_dataset_id)
+      throw new ConflictException('DEMO_ITEM_READ_ONLY');
     if (revision !== undefined && revision !== r.rows[0].revision)
       throw new ConflictException('STALE_ITEM_REVISION');
     return r.rows[0].revision;
@@ -92,7 +95,7 @@ export class ItemPhotosService {
   async authorize(owner: string, item: string): Promise<void> {
     if (!this.config.get<boolean>('MEDIA_STORAGE_ENABLED', false))
       throw new ServiceUnavailableException('MEDIA_STORAGE_DISABLED');
-    await this.repo.transaction(owner, (c) => this.item(c, owner, item));
+    await this.repo.transaction(owner, (c) => this.item(c, owner, item, undefined, true));
   }
   async upload(
     owner: string,
@@ -109,7 +112,7 @@ export class ItemPhotosService {
         const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
         const ids = [id, randomUUID(), randomUUID()];
         const existing = await this.repo.transaction(owner, async (c) => {
-          await this.item(c, owner, item);
+          await this.item(c, owner, item, undefined, true);
           const prior = (await c.query<Row>('SELECT * FROM media_attachments WHERE id=$1', [id]))
             .rows[0];
           if (prior) {
@@ -175,7 +178,7 @@ export class ItemPhotosService {
               }),
             );
           await this.repo.transaction(owner, async (c) => {
-            await this.item(c, owner, item);
+            await this.item(c, owner, item, undefined, true);
             const position = (
               await c.query<{ position: number }>(
                 "SELECT coalesce(max(position)+1,0) AS position FROM media_attachments WHERE owner_id=$1 AND item_id=$2 AND kind='photo' AND variant='original' AND state='ready'",
@@ -305,7 +308,7 @@ export class ItemPhotosService {
     variant: string,
   ): Promise<{ url: string; expiresIn: number }> {
     return this.repo.transaction(owner, async (c) => {
-      await this.item(c, owner, item);
+      await this.item(c, owner, item, undefined, true);
       const r = (
         await c.query<{ id: string }>(`SELECT id ${readyVariant}`, [owner, item, id, variant])
       ).rows[0];
@@ -316,7 +319,7 @@ export class ItemPhotosService {
   // Authorize under the item lock, then fetch outside the transaction so slow delivery never holds it.
   async content(owner: string, item: string, id: string, variant: string): Promise<Buffer> {
     const row = await this.repo.transaction(owner, async (c) => {
-      await this.item(c, owner, item);
+      await this.item(c, owner, item, undefined, true);
       return (
         await c.query<Variant>(
           `SELECT object_key,resource_type,format,byte_size,checksum ${readyVariant}`,

@@ -126,6 +126,30 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
           [owner, id, refund.currency, refund.amountMinor],
         );
     }
+    // PER-19: mirror every genuine fixture (currencies, dates, gifts, statuses and refunds)
+    // as explicitly marked samples. All existing SQL/oracle/reconciliation expectations must
+    // remain unchanged; neither the implementation nor test relies on a sample name heuristic.
+    const dataset = (
+      await run.runtime.query<{ id: string }>(
+        "INSERT INTO demo_datasets(owner_id,version) VALUES($1,'indian-household-v1') RETURNING id",
+        [owner],
+      )
+    ).rows[0]!.id;
+    const genuineFixtures = [...fixtures];
+    for (let n = 0; n < ids.length; n++) {
+      const sample = (
+        await run.runtime.query<{ id: string }>(
+          `INSERT INTO items(owner_id,demo_dataset_id,name,currency,price_paid_minor,acquisition_type,ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,subcategory_id,original_entry,original_source)
+        SELECT owner_id,$2,name,currency,price_paid_minor,acquisition_type,ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,subcategory_id,original_entry,original_source FROM items WHERE id=$1 RETURNING id`,
+          [ids[n], dataset],
+        )
+      ).rows[0]!.id;
+      await run.runtime.query(
+        `INSERT INTO item_refunds(owner_id,item_id,currency,amount_minor) SELECT owner_id,$2,currency,amount_minor FROM item_refunds WHERE item_id=$1`,
+        [ids[n], sample],
+      );
+      fixtures.push({ ...genuineFixtures[n]!, isDemo: true });
+    }
     await run.runtime.query(
       "INSERT INTO items(owner_id,name,currency,price_paid_minor,original_entry,original_source) VALUES($1,'Foreign amount','INR',777,'{}','manual')",
       [other],

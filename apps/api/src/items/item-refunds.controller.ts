@@ -48,7 +48,7 @@ import { ItemErrorDto, RevisionDto } from './items.dto.js';
 @ApiConflictResponse({
   type: ItemErrorDto,
   description:
-    'STALE_ITEM_REVISION (reload first), CURRENCY_MISMATCH, REFUND_EXCEEDS_AMOUNT_PAID, REFUND_REQUIRES_AMOUNT_PAID, INVALID_ACQUISITION_COMBINATION (gift with nothing paid recorded) or REFUND_LIMIT_EXCEEDED.',
+    'DEMO_ITEM_READ_ONLY for sample mutations. STALE_ITEM_REVISION (reload first), CURRENCY_MISMATCH, REFUND_EXCEEDS_AMOUNT_PAID, REFUND_REQUIRES_AMOUNT_PAID, INVALID_ACQUISITION_COMBINATION (gift with nothing paid recorded) or REFUND_LIMIT_EXCEEDED.',
 })
 @ApiServiceUnavailableResponse({ type: ItemErrorDto, description: 'Storage unavailable.' })
 @Controller({ path: 'items/:id/refunds', version: '1' })

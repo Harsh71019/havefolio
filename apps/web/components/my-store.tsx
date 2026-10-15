@@ -102,6 +102,12 @@ export function MyStore({
   /** Fixed clock for deterministic age labels in tests. */
   now?: Date;
 }): React.JSX.Element {
+  const [refresh, setRefresh] = useState(0);
+  useEffect(() => {
+    const changed = (): void => setRefresh((n) => n + 1);
+    window.addEventListener('havefolio-inventory-changed', changed);
+    return () => window.removeEventListener('havefolio-inventory-changed', changed);
+  }, []);
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [more, setMore] = useState<{ busy: boolean; error?: string }>({ busy: false });
   const [announcement, setAnnouncement] = useState('');
@@ -147,7 +153,7 @@ export function MyStore({
     return () => {
       active = false;
     };
-  }, [fetchFirst]);
+  }, [fetchFirst, refresh]);
 
   const retry = (): void => {
     setLoad({ kind: 'loading' });
@@ -421,11 +427,19 @@ function StoreCard({
         idPrefix={id}
         name={item.name}
         {...(context ? { context } : {})}
-        status={statusLabel(item.ownershipStatus)}
+        status={
+          item.isDemo
+            ? `Demo · ${statusLabel(item.ownershipStatus)}`
+            : statusLabel(item.ownershipStatus)
+        }
         statusIcon={<Icon aria-hidden="true" />}
         {...(inactive ? { statusNote: ', no longer owned' } : {})}
         inactive={inactive}
-        facts={[priceFact(item), acquiredFact(item.purchaseDate, now), useFact(item.useFrequency)]}
+        facts={[
+          item.isDemo ? { ...priceFact(item), label: 'Example amount' } : priceFact(item),
+          acquiredFact(item.purchaseDate, now),
+          useFact(item.useFrequency),
+        ]}
         media={
           cover ? (
             <ItemCover

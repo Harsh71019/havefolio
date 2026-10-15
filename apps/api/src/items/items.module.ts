@@ -1,3 +1,5 @@
+import { OnboardingController } from '../onboarding/onboarding.controller.js';
+import { OnboardingService } from '../onboarding/onboarding.service.js';
 import { SpendingController } from './spending.controller.js';
 import { SpendingService } from './spending.service.js';
 import { ItemDocumentsController } from '../media/item-documents.controller.js';
@@ -18,6 +20,7 @@ import { ItemsService } from './items.service.js';
 @Module({
   imports: [MediaModule],
   controllers: [
+    OnboardingController,
     ItemsController,
     SpendingController,
     ItemRefundsController,
@@ -25,6 +28,7 @@ import { ItemsService } from './items.service.js';
     ItemDocumentsController,
   ],
   providers: [
+    OnboardingService,
     ItemsRepository,
     SpendingService,
     ItemsService,

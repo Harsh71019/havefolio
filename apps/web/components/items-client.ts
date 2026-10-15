@@ -17,6 +17,7 @@ import type {
 } from '@havefolio/contracts';
 
 const messages: Record<string, string> = {
+  DEMO_ITEM_READ_ONLY: 'Demo items are read-only examples. Add your own item through manual entry.',
   INVALID_ITEM: 'Check the item name, price and details, then try again.',
   INVALID_ITEM_DATE: 'Check the purchase date. Enter a valid date or choose Date unknown.',
   INVALID_ITEM_TAXONOMY:

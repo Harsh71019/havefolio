@@ -1,5 +1,22 @@
 import { expect, test, type Page } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  // These tests isolate browse behaviour; PER-19's dedicated journeys cover welcome help.
+  await page.route('**/api/v1/onboarding**', (route) =>
+    route.fulfill({
+      json: {
+        state: 'skipped',
+        genuineItemCount: 7,
+        demoItemCount: 0,
+        browsedStore: true,
+        reviewedItem: false,
+        triedDemo: false,
+        removedDemo: false,
+      },
+    }),
+  );
+});
+
 const id = (n: number): string => `00000000-0000-4000-a000-${String(n).padStart(12, '0')}`;
 const kitchen = id(901);
 const living = id(902);
@@ -188,6 +205,8 @@ test('populated, mixed-lifecycle store is responsive, private and keyboard navig
   );
   // Keyboard: tab from the Add item action into the first card and onward.
   await page.getByRole('link', { name: 'Add item', exact: true }).focus();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Revisit welcome help' })).toBeFocused();
   await page.keyboard.press('Tab');
   // Display order: Kitchen items without a subcategory, then Appliances.
   await expect(page.getByRole('link', { name: /^Cast-iron tawa Owned/ })).toBeFocused();

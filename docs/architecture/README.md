@@ -298,3 +298,5 @@ See [private Cloudinary operations](../operations/cloudinary-media.md) and [ADR-
 - [PER-22 money, dates and refunds](money-dates-refunds.md): shared Money and ApproximateDate value objects, explicit refund records, gift/secondhand rules and the PER-20 spending contract.
 
 - [Authoritative recorded spending](spending-aggregation.md): PER-20 scopes, dimensions, date disclosures and downstream integration.
+
+- [Optional demo inventory and onboarding](demo-onboarding.md): PER-19 durable identity, spending exclusion, read-only examples, private milestones and safe removal.

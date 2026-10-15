@@ -42,6 +42,8 @@ export function inSpendingScope(status: OwnershipStatus, scope: SpendingScope): 
 }
 
 export interface SpendingItemInput {
+  /** Durable sample identity mapped from storage; absent means a genuine record. */
+  isDemo?: boolean;
   currency: string;
   pricePaidMinor: string | null;
   acquisitionType: AcquisitionType;
@@ -149,6 +151,7 @@ export function summarizeSpending(
   const spanning = new Map<string, Accumulator>();
   const unknown = new Map<string, Accumulator>();
   for (const item of items) {
+    if (item.isDemo) continue;
     if (!inSpendingScope(item.ownershipStatus, options.scope)) continue;
     const relation = relationToRange(approximateDate(item.purchaseDate), options.range ?? {});
     if (relation === 'outside') continue;

@@ -216,3 +216,37 @@ test('purchase-date ranges: within, spanning and outside', () => {
   );
   assert.deepEqual(q1.unknownDate, []);
 });
+
+test('durable sample identity excludes sample prices, refunds and unknown counts in both scopes', () => {
+  const genuine = {
+    ...bought,
+    ownershipStatus: 'owned',
+    purchaseDate: { precision: 'month', year: 2024, month: 2 },
+    refunds: [refund('1000')],
+  };
+  const demos = ['owned', 'sold', 'donated', 'disposed', 'lost', 'returned'].flatMap(
+    (ownershipStatus) => [
+      {
+        ...genuine,
+        isDemo: true,
+        ownershipStatus,
+        purchaseDate: { precision: 'year', year: 2024 },
+      },
+      {
+        ...genuine,
+        isDemo: true,
+        ownershipStatus,
+        pricePaidMinor: null,
+        purchaseDate: { precision: 'unknown' },
+        refunds: [],
+      },
+    ],
+  );
+  for (const scope of ['current_owned', 'all_history']) {
+    assert.deepEqual(
+      summarizeSpending([genuine, ...demos], { scope }),
+      summarizeSpending([genuine], { scope }),
+    );
+    assert.deepEqual(summarizeSpending(demos, { scope }), summarizeSpending([], { scope }));
+  }
+});

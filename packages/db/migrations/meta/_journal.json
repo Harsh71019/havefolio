@@ -71,6 +71,13 @@
       "when": 1790934641555,
       "tag": "0009_money_date_refund_correctness",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792067690525,
+      "tag": "0010_demo_onboarding",
+      "breakpoints": true
     }
   ]
 }
