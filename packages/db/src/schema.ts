@@ -537,7 +537,79 @@ export const itemWarranties = pgTable(
   ],
 );
 
-// Provider records survive until exact-key cleanup; deletion of their owner/item is restricted.
+/**
+ * Products the owner is considering (PER-23). A desire captures name, optional classification,
+ * likely price/currency, product link, private photo, reason and waiting period. Deliberate
+ * review outcomes and decision history are owned by PER-28.
+ */
+export const desires = pgTable(
+  'desires',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    classification: text('classification', {
+      enum: ['need', 'want', 'greed'],
+    }),
+    likelyPriceMinor: bigint('likely_price_minor', { mode: 'bigint' }),
+    currency: text('currency'),
+    productUrl: text('product_url'),
+    reason: text('reason'),
+    status: text('status', {
+      enum: ['considering', 'waiting'],
+    })
+      .notNull()
+      .default('considering'),
+    waitingStartedAt: timestamp('waiting_started_at', { withTimezone: true, precision: 3 }),
+    reviewAt: timestamp('review_at', { withTimezone: true, precision: 3 }),
+    revision: integer('revision').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('desire_owner_identity_unique').on(t.id, t.ownerId),
+    check(
+      'desire_name_check',
+      sql`length(btrim(${t.name})) between 1 and 300 and ${t.name} = btrim(${t.name})`,
+    ),
+    check(
+      'desire_classification_check',
+      sql`${t.classification} is null or ${t.classification} in ('need','want','greed')`,
+    ),
+    check(
+      'desire_likely_price_check',
+      sql`(${t.likelyPriceMinor} is null and ${t.currency} is null) or (${t.likelyPriceMinor} is not null and ${t.currency} is not null and ${t.likelyPriceMinor} >= 0 and ${t.currency} ~ '^[A-Z]{3}$')`,
+    ),
+    check(
+      'desire_product_url_check',
+      sql`${t.productUrl} is null or (length(${t.productUrl}) between 1 and 2048 and ${t.productUrl} ~ '^https?://')`,
+    ),
+    check(
+      'desire_reason_check',
+      sql`${t.reason} is null or (length(btrim(${t.reason})) between 1 and 2000 and ${t.reason} = btrim(${t.reason}))`,
+    ),
+    check(
+      'desire_waiting_check',
+      sql`(${t.status} = 'considering' and ${t.waitingStartedAt} is null and ${t.reviewAt} is null) or (${t.status} = 'waiting' and ${t.waitingStartedAt} is not null and ${t.reviewAt} is not null and isfinite(${t.waitingStartedAt}) and isfinite(${t.reviewAt}) and ${t.reviewAt} > ${t.waitingStartedAt})`,
+    ),
+    check('desire_revision_check', sql`${t.revision} >= 1`),
+    check(
+      'desire_times_check',
+      sql`isfinite(${t.createdAt}) and isfinite(${t.updatedAt}) and ${t.createdAt} <= ${t.updatedAt}`,
+    ),
+    index('desire_owner_created_idx').on(t.ownerId, t.createdAt, t.id),
+    index('desire_owner_updated_idx').on(t.ownerId, t.updatedAt, t.id),
+    index('desire_owner_status_idx').on(t.ownerId, t.status, t.id),
+    index('desire_owner_review_idx')
+      .on(t.ownerId, t.reviewAt, t.id)
+      .where(sql`${t.status} = 'waiting'`),
+    index('desire_owner_classification_idx').on(t.ownerId, t.classification, t.id),
+  ],
+);
+
+// Provider records survive until exact-key cleanup; deletion of their owner/item/desire is restricted.
 export const mediaAttachments = pgTable(
   'media_attachments',
   {
@@ -545,6 +617,7 @@ export const mediaAttachments = pgTable(
     ownerId: uuid('owner_id').notNull(),
     parentId: uuid('parent_id'),
     itemId: uuid('item_id'),
+    desireId: uuid('desire_id'),
     position: integer('position').notNull().default(0),
     kind: text('kind', { enum: ['photo', 'receipt', 'warranty'] }).notNull(),
     variant: text('variant', { enum: ['original', 'display', 'thumbnail'] }).notNull(),
@@ -579,7 +652,18 @@ export const mediaAttachments = pgTable(
       foreignColumns: [items.id, items.ownerId],
       name: 'media_item_owner_fk',
     }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.desireId, table.ownerId],
+      foreignColumns: [desires.id, desires.ownerId],
+      name: 'media_desire_owner_fk',
+    }).onDelete('restrict'),
     index('media_item_owner_idx').on(table.itemId, table.ownerId),
+    index('media_desire_owner_idx').on(table.desireId, table.ownerId),
+    uniqueIndex('media_desire_single_photo_unique')
+      .on(table.ownerId, table.desireId)
+      .where(
+        sql`${table.desireId} is not null and ${table.variant} = 'original' and ${table.kind} = 'photo' and ${table.state} <> 'deleted'`,
+      ),
     check('media_position_check', sql`${table.position} >= 0`),
     unique('media_owner_identity_unique').on(table.id, table.ownerId),
     foreignKey({
@@ -617,5 +701,10 @@ export const mediaAttachments = pgTable(
       'media_type_check',
       sql`(${table.resourceType} = 'raw' and ${table.format} = 'pdf' and ${table.mimeType} = 'application/pdf' and ${table.kind} <> 'photo') or (${table.resourceType} = 'image' and ${table.byteSize} <= 10485760 and ((${table.format} = 'jpg' and ${table.mimeType} = 'image/jpeg') or (${table.format} = 'png' and ${table.mimeType} = 'image/png') or (${table.format} = 'webp' and ${table.mimeType} = 'image/webp')))`,
     ),
+    check(
+      'media_target_exclusivity_check',
+      sql`${table.itemId} is null or ${table.desireId} is null`,
+    ),
+    check('media_desire_kind_check', sql`${table.desireId} is null or ${table.kind} = 'photo'`),
   ],
 );

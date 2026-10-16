@@ -487,3 +487,90 @@ export interface OnboardingStatus {
   triedDemo: boolean;
   removedDemo: boolean;
 }
+
+/** PER-23: Desires and waiting-period contracts. */
+export const desireClassifications = ['need', 'want', 'greed'] as const;
+export type DesireClassification = (typeof desireClassifications)[number];
+
+export const desireStatuses = ['considering', 'waiting'] as const;
+export type DesireStatus = (typeof desireStatuses)[number];
+
+export const desireEffectiveStates = ['considering', 'waiting', 'ready_for_review'] as const;
+export type DesireEffectiveState = (typeof desireEffectiveStates)[number];
+
+export interface WaitingPeriodInput {
+  reviewAt: string;
+  startedAt?: string;
+}
+
+export interface DesirePhoto {
+  id: string;
+  width: number;
+  height: number;
+  byteSize: number;
+  mimeType: 'image/webp';
+  altText: string | null;
+  decorative: boolean;
+  createdAt: string;
+}
+
+export interface Desire {
+  id: string;
+  name: string;
+  classification: DesireClassification | null;
+  likelyPriceMinor: string | null;
+  currency: string | null;
+  productUrl: string | null;
+  reason: string | null;
+  status: DesireStatus;
+  effectiveState: DesireEffectiveState;
+  waitingStartedAt: string | null;
+  reviewAt: string | null;
+  photo: DesirePhoto | null;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DesiresPage {
+  items: Desire[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+export interface CreateDesireRequest {
+  name: string;
+  classification?: DesireClassification | null;
+  likelyPriceMinor?: string | null;
+  currency?: string | null;
+  productUrl?: string | null;
+  reason?: string | null;
+  waitingPeriod?: WaitingPeriodInput | null;
+}
+
+export interface PatchDesireRequest {
+  revision: number;
+  name?: string;
+  classification?: DesireClassification | null;
+  likelyPriceMinor?: string | null;
+  currency?: string | null;
+  productUrl?: string | null;
+  reason?: string | null;
+  waitingPeriod?: WaitingPeriodInput | null;
+}
+
+export const desireErrorCodes = [
+  'INVALID_DESIRE',
+  'INVALID_DESIRE_PRICE',
+  'INVALID_DESIRE_URL',
+  'INVALID_DESIRE_WAIT',
+  'INVALID_DESIRE_TRANSITION',
+  'DESIRE_NOT_FOUND',
+  'STALE_DESIRE_REVISION',
+  'INVALID_DESIRE_CURSOR',
+  'DESIRE_PHOTO_NOT_FOUND',
+  'DESIRE_PHOTO_LIMIT',
+  'DESIRE_MEDIA_PENDING',
+  'DESIRES_UNAVAILABLE',
+] as const;
+export type DesireErrorCode = (typeof desireErrorCodes)[number];
