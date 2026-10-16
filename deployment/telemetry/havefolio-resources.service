@@ -1,0 +1,21 @@
+[Unit]
+Description=Havefolio bounded resource alerts
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/havefolio/secrets/monitoring/resources.env
+ExecStart=/usr/bin/python3 /opt/havefolio/operations/check-resources.py --policy /opt/havefolio/operations/policy.json --glitchtip-probe /opt/havefolio/operations/glitchtip-errors.py --notify
+TimeoutStartSec=45
+MemoryMax=96M
+CPUQuota=10%
+Nice=10
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/havefolio-telemetry
+StateDirectory=havefolio-telemetry
+StandardOutput=journal
+StandardError=journal
