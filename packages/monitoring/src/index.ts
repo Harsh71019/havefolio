@@ -1,6 +1,7 @@
 import type { NodeOptions } from '@sentry/node';
 import { createTransport, type BaseTransportOptions, type Transport } from '@sentry/core';
 import type { Event, EventHint, Breadcrumb, ErrorEvent, TransactionEvent } from '@sentry/core';
+import { TelemetryBudget } from '@havefolio/logging/budget';
 
 export interface MonitoringConfig {
   enabled: boolean;
@@ -251,7 +252,7 @@ export function scrubEvent(event: Event, _hint?: EventHint): Event | null {
         };
     } else if (!result.exception) return null;
     // No user, request, extra, breadcrumbs, logentry, free-form messages or source context.
-    return JSON.stringify(result).length <= 16384 ? result : null;
+    return new TextEncoder().encode(JSON.stringify(result)).byteLength <= 16384 ? result : null;
   } catch {
     return null;
   }
@@ -272,6 +273,7 @@ export function monitoringOptions(
   return {
     ...(config.dsn ? { dsn: config.dsn } : {}),
     enabled: config.enabled,
+    sampleRate: 1, // Errors are retained within the transport budget; traces sample independently.
     release: config.release,
     environment: config.environment,
     traceLifecycle: 'static' as const,
@@ -313,14 +315,19 @@ export function monitoringOptions(
 
 /** Bounded queue, single one-second attempt, no request/job waits or retries. */
 export function boundedTransport(options: BaseTransportOptions): Transport {
+  const errors = new TelemetryBudget(20, 20);
+  const traces = new TelemetryBudget(60, 60);
+  const bytes = new TelemetryBudget(256 * 1024, 256 * 1024);
   return createTransport({ ...options, bufferSize: 32 }, async (request) => {
     if (typeof request.body !== 'string' || request.body.length > 24576) return { statusCode: 413 };
     let body: string;
+    let error = false;
     try {
       const lines = request.body.trimEnd().split('\n');
       if (lines.length !== 3) return { statusCode: 413 };
       const item = JSON.parse(lines[1]!) as { type?: string };
       if (!['event', 'transaction'].includes(item.type ?? '')) return { statusCode: 413 };
+      error = item.type === 'event';
       const event = scrubEvent(JSON.parse(lines[2]!) as Event);
       if (!event) return { statusCode: 413 };
       // SDK envelope trace metadata may contain a raw transaction name. Drop it too.
@@ -332,6 +339,12 @@ export function boundedTransport(options: BaseTransportOptions): Transport {
         JSON.stringify(event);
     } catch {
       return { statusCode: 413 };
+    }
+    const size = new TextEncoder().encode(body).byteLength;
+    if (size > 24576) return { statusCode: 413 };
+    if (!(error ? errors : traces).take() || !bytes.take(size)) {
+      options.recordDroppedEvent('ratelimit_backoff', error ? 'error' : 'transaction');
+      return { statusCode: 200 }; // Local drop; do not rate-limit the other event category.
     }
     try {
       const response = await fetch(options.url, {

@@ -1,0 +1,31 @@
+{
+  "application": "havefolio",
+  "environment": "production",
+  "retentionDays": {
+    "seqStream": 30,
+    "glitchtipErrors": 90,
+    "glitchtipTransactions": 90,
+    "glitchtipFiles": 90,
+    "glitchtipReleases": 365
+  },
+  "sampling": {
+    "traces": 0.01,
+    "errors": 1,
+    "glitchtipProjectKeyEventsPerMinute": 60
+  },
+  "alerts": {
+    "seqWorkerFailures": { "count": 3, "windowMinutes": 5, "suppressionMinutes": 15 },
+    "glitchtipIssue": { "count": 3, "windowMinutes": 5 },
+    "gatus": { "failureThreshold": 3, "successThreshold": 2 },
+    "resources": {
+      "diskPercent": 85,
+      "diskFailureThreshold": 3,
+      "cpuPercentOfLimit": 80,
+      "memoryPercentOfLimit": 80,
+      "resourceFailureThreshold": 5,
+      "restartCount": 3,
+      "restartWindowMinutes": 5,
+      "successThreshold": 2
+    }
+  }
+}

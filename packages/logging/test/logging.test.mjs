@@ -218,6 +218,21 @@ test('hung ingestion aborts within timeout and shutdown discards pending telemet
   assert.equal(c.destination.pendingEvents, 0);
 });
 
+test('routine log floods preserve console output and leave Seq capacity for terminal errors', () => {
+  const c = capture(
+    { enabled: true, endpoint: 'http://localhost', apiKey: randomBytes(16).toString('hex') },
+    async () => new Response('', { status: 201 }),
+  );
+  for (let i = 0; i < 1000; i++) c.logger.info({ event: 'http_completed' });
+  const regular = c.destination.pendingEvents;
+  assert.ok(regular > 0 && regular <= 100);
+  for (let i = 0; i < 100; i++) c.logger.error({ event: 'job_failed' });
+  assert.equal(c.lines.length, 1100);
+  assert.ok(c.destination.pendingEvents > regular);
+  assert.ok(c.destination.pendingEvents <= regular + 20);
+  c.destination.close();
+});
+
 test('logging configuration validates bounded tokens, strict booleans and rejects placeholders safely', async () => {
   const { validateWorkerEnvironment } = await import('@havefolio/config');
   const environment = validateWorkerEnvironment({

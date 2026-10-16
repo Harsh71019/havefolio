@@ -1,5 +1,6 @@
 import type { DestinationStream } from 'pino';
 import { safeEvent } from './sanitize.js';
+import { TelemetryBudget } from './budget.js';
 
 export interface SeqOptions {
   endpoint?: string | undefined;
@@ -31,6 +32,11 @@ export function seqEndpoint(options: SeqOptions): string | undefined {
  * Console is written first. No await or transport exception enters application work.
  */
 export class LogDestination implements DestinationStream {
+  // Reserve capacity for terminal errors even when routine traffic floods Seq.
+  private readonly regularEvents = new TelemetryBudget(100, 100);
+  private readonly errorEvents = new TelemetryBudget(20, 20);
+  private readonly regularBytes = new TelemetryBudget(24 * 1024, 24 * 1024);
+  private readonly errorBytes = new TelemetryBudget(8 * 1024, 8 * 1024);
   private queue: string[] = [];
   private queuedBytes = 0;
   private inFlight = false;
@@ -128,6 +134,12 @@ export class LogDestination implements DestinationStream {
           ...properties,
         }) + '\n';
       if (Buffer.byteLength(clef) > 4096) return;
+      const severe = Number(level) >= 50;
+      if (
+        !(severe ? this.errorEvents : this.regularEvents).take() ||
+        !(severe ? this.errorBytes : this.regularBytes).take(Buffer.byteLength(clef))
+      )
+        return;
       this.queue.push(clef);
       this.queuedBytes += Buffer.byteLength(clef);
       this.schedule(100);
