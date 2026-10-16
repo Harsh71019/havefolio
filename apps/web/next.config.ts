@@ -15,10 +15,12 @@ const nextConfig: NextConfig = {
       '',
     );
     return Promise.resolve([
-      ...['auth', 'taxonomy', 'items', 'spending', 'health', 'onboarding'].map((domain) => ({
-        source: `/api/v1/${domain}/:path*`,
-        destination: `${base}/${domain}/:path*`,
-      })),
+      ...['auth', 'taxonomy', 'items', 'spending', 'health', 'onboarding', 'desires'].map(
+        (domain) => ({
+          source: `/api/v1/${domain}/:path*`,
+          destination: `${base}/${domain}/:path*`,
+        }),
+      ),
       {
         source: '/api/v1/health',
         destination: `${base}/health`,
