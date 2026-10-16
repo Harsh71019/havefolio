@@ -20,6 +20,10 @@ const fields = new Set([
   'error',
   'completed',
   'failed',
+  'waiting',
+  'delayed',
+  'active',
+  'pending',
 ]);
 
 export function boundedString(value: string): string {

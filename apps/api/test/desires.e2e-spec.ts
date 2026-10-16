@@ -225,6 +225,21 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       photo: null,
       revision: 1,
     });
+    const intent = await run.runtime.query<{
+      schedule_version: number;
+      scheduled_for: Date;
+      state: string;
+    }>(
+      'SELECT schedule_version,scheduled_for,state FROM desire_reminders WHERE desire_id=$1 AND owner_id=$2',
+      [desire.id, owner],
+    );
+    expect(intent.rows).toEqual([
+      {
+        schedule_version: 1,
+        scheduled_for: new Date(reviewAt),
+        state: 'pending',
+      },
+    ]);
   });
 
   it('validates likely price semantics: explicit zero, bigint, pair constraints, and rejects invalid inputs', async () => {
@@ -478,6 +493,7 @@ describe('desire records, waiting periods, keyset pagination and private photo l
 
     const startTime = new Date('2026-06-01T10:00:00.000Z');
     const reviewTime = new Date('2026-06-08T10:00:00.000Z');
+    const extendedReviewTime = new Date('2026-06-10T10:00:00.000Z');
 
     service.setClock(() => startTime);
 
@@ -495,6 +511,20 @@ describe('desire records, waiting periods, keyset pagination and private photo l
     expect(waitingDesire.effectiveState).toBe('waiting');
     expect(waitingDesire.waitingStartedAt).toBe(startTime.toISOString());
     expect(waitingDesire.reviewAt).toBe(reviewTime.toISOString());
+    expect(
+      (
+        await run.runtime.query(
+          'SELECT schedule_version,scheduled_for,state FROM desire_reminders WHERE desire_id=$1',
+          [desire.id],
+        )
+      ).rows,
+    ).toEqual([
+      {
+        schedule_version: 1,
+        scheduled_for: reviewTime,
+        state: 'pending',
+      },
+    ]);
 
     // Advance simulated clock to 3 days later: still waiting
     service.setClock(() => new Date('2026-06-04T10:00:00.000Z'));
@@ -502,8 +532,34 @@ describe('desire records, waiting periods, keyset pagination and private photo l
     expect(midCheck.status).toBe('waiting');
     expect(midCheck.effectiveState).toBe('waiting');
 
+    const rescheduled = (
+      await patch(desire.id, {
+        revision: 2,
+        waitingPeriod: {
+          startedAt: startTime.toISOString(),
+          reviewAt: extendedReviewTime.toISOString(),
+        },
+      }).expect(200)
+    ).body as DesireDto;
+    expect(rescheduled.reviewAt).toBe(extendedReviewTime.toISOString());
+    expect(rescheduled.revision).toBe(3);
+    expect(
+      (
+        await run.runtime.query(
+          'SELECT schedule_version,scheduled_for,state FROM desire_reminders WHERE desire_id=$1',
+          [desire.id],
+        )
+      ).rows,
+    ).toEqual([
+      {
+        schedule_version: 2,
+        scheduled_for: extendedReviewTime,
+        state: 'pending',
+      },
+    ]);
+
     // Advance simulated clock past reviewAt: dynamically ready_for_review WITHOUT DB mutation!
-    service.setClock(() => new Date('2026-06-08T10:00:01.000Z'));
+    service.setClock(() => new Date('2026-06-10T10:00:01.000Z'));
     const dueCheck = (await get('/' + desire.id).expect(200)).body as DesireDto;
     expect(dueCheck.status).toBe('waiting');
     expect(dueCheck.effectiveState).toBe('ready_for_review');
@@ -516,7 +572,7 @@ describe('desire records, waiting periods, keyset pagination and private photo l
     // Cancel waiting: status returns to considering
     const cancelled = (
       await patch(desire.id, {
-        revision: 2,
+        revision: 3,
         waitingPeriod: null,
       }).expect(200)
     ).body as DesireDto;
@@ -525,7 +581,14 @@ describe('desire records, waiting periods, keyset pagination and private photo l
     expect(cancelled.effectiveState).toBe('considering');
     expect(cancelled.waitingStartedAt).toBeNull();
     expect(cancelled.reviewAt).toBeNull();
-    expect(cancelled.revision).toBe(3);
+    expect(cancelled.revision).toBe(4);
+    expect(
+      (
+        await run.runtime.query('SELECT desire_id FROM desire_reminders WHERE desire_id=$1', [
+          desire.id,
+        ])
+      ).rows,
+    ).toHaveLength(0);
 
     service.resetClock();
   });
@@ -621,7 +684,19 @@ describe('desire records, waiting periods, keyset pagination and private photo l
   });
 
   it('deletes desire with revision check and cleans up associated media', async () => {
-    const desire = await createMinimal('Desire to Delete');
+    const created = await createMinimal('Desire to Delete');
+    const startedAt = new Date('2026-07-01T10:00:00.000Z');
+    const reviewAt = new Date('2026-07-08T10:00:00.000Z');
+    service.setClock(() => startedAt);
+    const desire = (
+      await patch(created.id, {
+        revision: created.revision,
+        waitingPeriod: {
+          startedAt: startedAt.toISOString(),
+          reviewAt: reviewAt.toISOString(),
+        },
+      }).expect(200)
+    ).body as DesireDto;
 
     // Attach a photo
     await http()
@@ -652,6 +727,14 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       )
     ).rows;
     expect(mediaRows).toHaveLength(0); // Detached upon soft-delete tombstone
+    expect(
+      (
+        await run.runtime.query('SELECT desire_id FROM desire_reminders WHERE desire_id=$1', [
+          desire.id,
+        ])
+      ).rows,
+    ).toHaveLength(0);
+    service.resetClock();
   });
 
   it('publishes complete OpenAPI contract without exposing sensitive or avoided-spend fields', () => {

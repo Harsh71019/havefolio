@@ -8,6 +8,7 @@ import { TaxonomyModule } from './taxonomy/taxonomy.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { MediaModule } from './media/media.module.js';
 import { OperationsModule } from './operations/operations.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 
 import { DesiresModule } from './desires/desires.module.js';
 
@@ -27,6 +28,7 @@ import { DesiresModule } from './desires/desires.module.js';
     TaxonomyModule,
     ItemsModule,
     DesiresModule,
+    NotificationsModule,
     OperationsModule,
     MediaModule,
   ],

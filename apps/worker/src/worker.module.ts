@@ -8,6 +8,11 @@ import { validateWorkerEnvironment } from '@havefolio/config';
 import { SystemProcessor } from './system/system.processor.js';
 import { SYSTEM_QUEUE, WORKER_ENVIRONMENT } from './worker.constants.js';
 import { WorkerRuntimeService } from './worker-runtime.service.js';
+import { desireReminderQueue } from '@havefolio/domain';
+import { RemindersProcessor } from './reminders/reminders.processor.js';
+import { RemindersRepository } from './reminders/reminders.repository.js';
+import { NtfyNotifierService } from './reminders/ntfy-notifier.service.js';
+import { ReminderReconciliationService } from './reminders/reminder-reconciliation.service.js';
 
 @Module({})
 export class WorkerModule {
@@ -23,10 +28,16 @@ export class WorkerModule {
               ...(environment.VALKEY_USERNAME ? { username: environment.VALKEY_USERNAME } : {}),
             },
           }),
-          BullModule.registerQueue({
-            name: SYSTEM_QUEUE,
-            prefix: environment.VALKEY_PREFIX,
-          }),
+          BullModule.registerQueue(
+            {
+              name: SYSTEM_QUEUE,
+              prefix: environment.VALKEY_PREFIX,
+            },
+            {
+              name: desireReminderQueue,
+              prefix: environment.VALKEY_PREFIX,
+            },
+          ),
         ]
       : [];
 
@@ -48,7 +59,15 @@ export class WorkerModule {
       providers: [
         { provide: WORKER_ENVIRONMENT, useValue: environment },
         WorkerRuntimeService,
-        ...(environment.WORKER_QUEUE_ENABLED ? [SystemProcessor] : []),
+        ...(environment.WORKER_QUEUE_ENABLED
+          ? [
+              SystemProcessor,
+              RemindersRepository,
+              NtfyNotifierService,
+              RemindersProcessor,
+              ReminderReconciliationService,
+            ]
+          : []),
       ],
     };
   }
