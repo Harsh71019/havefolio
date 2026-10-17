@@ -1,3 +1,4 @@
+import { GoalsModule } from './goals/goals.module.js';
 import { TelemetryModule } from '@havefolio/logging';
 import { MerchantsModule } from './merchants/merchants.module.js';
 import { ItemsModule } from './items/items.module.js';
@@ -28,6 +29,7 @@ import { DesiresModule } from './desires/desires.module.js';
     AuthModule,
     TaxonomyModule,
     ItemsModule,
+    GoalsModule,
     MerchantsModule,
     DesiresModule,
     NotificationsModule,

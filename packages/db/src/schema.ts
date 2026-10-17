@@ -1015,3 +1015,94 @@ export const desireConversions = pgTable(
     index('conversion_owner_created_idx').on(t.ownerId, t.createdAt, t.id),
   ],
 );
+
+export const goals = pgTable(
+  'goals',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    targetMinor: bigint('target_minor', { mode: 'bigint' }).notNull(),
+    currency: text('currency').notNull(),
+    targetDate: date('target_date'),
+    notes: text('notes'),
+    status: text('status').notNull().default('active'),
+    revision: integer('revision').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('goal_owner_unique').on(t.id, t.ownerId),
+    unique('goal_currency_unique').on(t.id, t.ownerId, t.currency),
+    index('goal_owner_order_idx').on(t.ownerId, t.id),
+    check(
+      'goal_name_check',
+      sql`length(btrim(${t.name})) between 1 and 200 and ${t.name}=btrim(${t.name})`,
+    ),
+    check('goal_target_check', sql`${t.targetMinor} >= 0`),
+    check(
+      'goal_currency_check',
+      sql`${t.currency} in (${sql.join(
+        currencyCodes.map((c) => sql.raw("'" + c + "'")),
+        sql`, `,
+      )})`,
+    ),
+    check(
+      'goal_date_check',
+      sql`${t.targetDate} is null or (${t.targetDate} between '0001-01-01'::date and '9999-12-31'::date)`,
+    ),
+    check('goal_notes_check', sql`${t.notes} is null or length(${t.notes}) between 1 and 2000`),
+    check('goal_status_check', sql`${t.status} in ('active','completed','archived')`),
+    check('goal_revision_check', sql`${t.revision}>0`),
+  ],
+);
+export const goalContributions = pgTable(
+  'goal_contributions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    goalId: uuid('goal_id').notNull(),
+    ownerId: uuid('owner_id').notNull(),
+    currency: text('currency').notNull(),
+    amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
+    commandId: uuid('command_id').notNull(),
+    requestHash: text('request_hash').notNull(),
+    supersedesId: uuid('supersedes_id'),
+    kind: text('kind').notNull(),
+    note: text('note'),
+    sequence: integer('sequence').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('contribution_identity_unique').on(t.id, t.goalId, t.ownerId),
+    unique('contribution_command_unique').on(t.goalId, t.ownerId, t.commandId),
+    unique('contribution_sequence_unique').on(t.goalId, t.sequence),
+    unique('contribution_successor_unique').on(t.supersedesId),
+    foreignKey({
+      name: 'contribution_goal_currency_fk',
+      columns: [t.goalId, t.ownerId, t.currency],
+      foreignColumns: [goals.id, goals.ownerId, goals.currency],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'contribution_supersedes_fk',
+      columns: [t.supersedesId, t.goalId, t.ownerId],
+      foreignColumns: [t.id, t.goalId, t.ownerId],
+    }),
+    index('contribution_owner_order_idx').on(t.ownerId, t.goalId, t.sequence),
+    check(
+      'contribution_amount_check',
+      sql`(${t.kind} in ('contribution','correction') and ${t.amountMinor}>0) or (${t.kind}='reversal' and ${t.amountMinor}=0)`,
+    ),
+    check(
+      'contribution_kind_check',
+      sql`(${t.kind}='contribution' and ${t.supersedesId} is null) or (${t.kind} in ('correction','reversal') and ${t.supersedesId} is not null)`,
+    ),
+    check(
+      'contribution_note_check',
+      sql`${t.note} is null or length(${t.note}) between 1 and 2000`,
+    ),
+    check('contribution_hash_check', sql`${t.requestHash} ~ '^[a-f0-9]{64}$'`),
+    check('contribution_sequence_check', sql`${t.sequence}>1`),
+  ],
+);
