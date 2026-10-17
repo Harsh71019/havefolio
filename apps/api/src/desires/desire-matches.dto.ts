@@ -94,7 +94,7 @@ export class MatchCandidatesQueryDto {
 
   @ApiPropertyOptional({
     description:
-      'Whether to include sold, disposed, lost, or donated items. Defaults to false (only owned items).',
+      'Whether to include sold, disposed, lost, donated, returned or worn-out items. Defaults to false (only owned items that are not worn out).',
     example: false,
   })
   @IsOptional()

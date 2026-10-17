@@ -169,6 +169,47 @@ describe('DesireMatchesService application rules', () => {
       expect(result.item.isUsableAlternative).toBe(false); // Disposed item is not a usable alternative
     });
 
+    it('allows a manual match to a worn-out item without presenting it as usable', async () => {
+      query
+        .mockResolvedValueOnce({ rows: [{ id: desireId }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: itemId,
+              name: 'Faded sneakers',
+              brand: null,
+              model: null,
+              ownership_status: 'owned',
+              condition: 'worn_out',
+              use_frequency: 'never',
+              category_id: null,
+              category_name: null,
+              subcategory_id: null,
+              subcategory_name: null,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: matchId,
+              created_at: new Date('2026-10-17T10:00:00Z'),
+              updated_at: new Date('2026-10-17T10:00:00Z'),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      const result = await service.create(owner, desireId, { itemId });
+
+      expect(result.item.ownershipStatus).toBe('owned');
+      expect(result.item.condition).toBe('worn_out');
+      expect(result.item.isUsableAlternative).toBe(false);
+      expect(result.hints.conditionHint).toBe('Condition: worn out');
+    });
+
     it('rejects duplicate matches with 409 Conflict', async () => {
       query
         .mockResolvedValueOnce({ rows: [{ id: desireId }] })
