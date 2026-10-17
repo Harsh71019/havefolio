@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { validateWorkerEnvironment } from '../../packages/config/dist/index.js';
+import {
+  validateApiEnvironment,
+  validateWorkerEnvironment,
+} from '../../packages/config/dist/index.js';
 
 const configured = {
   NODE_ENV: 'test',
   WORKER_QUEUE_ENABLED: true,
+  DATABASE_URL:
+    'postgresql://havefolio_test_runtime:test-placeholder@shared-postgres:5432/havefolio_test',
   VALKEY_USERNAME: 'havefolio_test_worker',
   VALKEY_PASSWORD: 'test-placeholder',
   VALKEY_PREFIX: 'havefolio:test:run_123',
@@ -34,4 +39,49 @@ test('enabled queues require dedicated worker credentials and database zero', ()
     assert.throws(() => validateWorkerEnvironment({ ...configured, ...change }));
   }
   assert.equal(validateWorkerEnvironment({}).WORKER_QUEUE_ENABLED, false);
+});
+
+test('API reminder dispatch requires its dedicated producer identity and namespace', () => {
+  const api = {
+    NODE_ENV: 'test',
+    REMINDER_QUEUE_ENABLED: true,
+    VALKEY_USERNAME: 'havefolio_test_api',
+    VALKEY_PASSWORD: 'test-placeholder',
+    VALKEY_PREFIX: 'havefolio:test:run_123',
+  };
+  assert.equal(validateApiEnvironment(api).REMINDER_QUEUE_ENABLED, true);
+  for (const change of [
+    { VALKEY_USERNAME: 'havefolio_test_worker' },
+    { VALKEY_PASSWORD: '' },
+    { VALKEY_PREFIX: undefined },
+    { VALKEY_PREFIX: 'havefolio:production' },
+  ]) {
+    assert.throws(() => validateApiEnvironment({ ...api, ...change }));
+  }
+});
+
+test('optional ntfy delivery requires a safe fixed endpoint', () => {
+  assert.equal(validateWorkerEnvironment(configured).NTFY_ENABLED, false);
+  assert.equal(
+    validateWorkerEnvironment({
+      ...configured,
+      NTFY_ENABLED: true,
+      NTFY_ENDPOINT: 'https://ntfy.example.test/havefolio',
+    }).NTFY_ENABLED,
+    true,
+  );
+  for (const endpoint of [
+    undefined,
+    'https://user:secret@ntfy.example.test/havefolio',
+    'https://ntfy.example.test/havefolio?token=secret',
+    'file:///tmp/ntfy',
+  ]) {
+    assert.throws(() =>
+      validateWorkerEnvironment({
+        ...configured,
+        NTFY_ENABLED: true,
+        NTFY_ENDPOINT: endpoint,
+      }),
+    );
+  }
 });

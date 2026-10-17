@@ -6,6 +6,10 @@ import { DesiresRepository } from './desires.repository.js';
 import { DesiresService } from './desires.service.js';
 import { PhotoProcessor } from '../media/photo-processing.js';
 import { PrivateMediaStorage } from '../media/storage.js';
+import {
+  ReminderQueueService,
+  type ReminderQueueChange,
+} from '../notifications/reminder-queue.service.js';
 
 describe('DesiresService application rules', () => {
   let service: DesiresService;
@@ -13,6 +17,7 @@ describe('DesiresService application rules', () => {
   const storageDelete = jest.fn<(key: string, resType: string) => Promise<void>>();
   const storageRead = jest.fn<() => Promise<Buffer>>();
   const storagePut = jest.fn<() => Promise<unknown>>();
+  const applyReminder = jest.fn<(change: unknown) => Promise<void>>();
   const owner = 'f0000000-0000-4000-8000-000000000001';
 
   beforeEach(async () => {
@@ -20,6 +25,9 @@ describe('DesiresService application rules', () => {
     storageDelete.mockReset();
     storageRead.mockReset();
     storagePut.mockReset();
+    applyReminder.mockReset();
+    applyReminder.mockResolvedValue(undefined);
+    query.mockResolvedValue({ rows: [], rowCount: 0 });
 
     const module = await Test.createTestingModule({
       providers: [
@@ -53,6 +61,10 @@ describe('DesiresService application rules', () => {
             },
           },
         },
+        {
+          provide: ReminderQueueService,
+          useValue: { apply: applyReminder },
+        },
       ],
     }).compile();
 
@@ -85,6 +97,66 @@ describe('DesiresService application rules', () => {
     expect(result.revision).toBe(1);
     expect(result.likelyPriceMinor).toBeNull();
     expect(result.photo).toBeNull();
+  });
+
+  it('commits durable waiting intent even when immediate Valkey dispatch is unavailable', async () => {
+    const startedAt = new Date('2026-10-16T10:00:00.000Z');
+    const reviewAt = new Date('2026-10-23T10:00:00.000Z');
+    const row = {
+      id: 'd0000000-0000-4000-8000-000000000002',
+      owner_id: owner,
+      name: 'Coffee grinder',
+      classification: 'want',
+      likely_price_minor: null,
+      currency: null,
+      product_url: null,
+      reason: null,
+      status: 'waiting',
+      waiting_started_at: startedAt,
+      review_at: reviewAt,
+      revision: 1,
+      created_at: startedAt,
+      updated_at: startedAt,
+    };
+    query
+      .mockImplementationOnce((_sql, values) =>
+        Promise.resolve({ rows: [{ ...row, id: String(values?.[0]) }] }),
+      )
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            desire_id: row.id,
+            schedule_version: 1,
+            scheduled_for: reviewAt,
+          },
+        ],
+      });
+    applyReminder.mockRejectedValueOnce(new Error('synthetic unavailable'));
+
+    const result = await service.create(owner, {
+      name: row.name,
+      classification: 'want',
+      waitingPeriod: {
+        startedAt: startedAt.toISOString(),
+        reviewAt: reviewAt.toISOString(),
+      },
+    });
+
+    expect(result.status).toBe('waiting');
+    expect(query.mock.calls.some(([sql]) => sql.includes('INSERT INTO desire_reminders'))).toBe(
+      true,
+    );
+    const change = applyReminder.mock.calls[0]?.[0] as ReminderQueueChange;
+    expect(change).toEqual({
+      desireId: result.id,
+      current: {
+        desireId: result.id,
+        scheduleVersion: 1,
+        scheduledFor: reviewAt,
+      },
+      obsoleteVersions: [],
+    });
   });
 
   it('rejects empty name or invalid classification on creation', async () => {

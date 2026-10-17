@@ -6,6 +6,8 @@ Compose uses the existing external `shared-services` network. PostgreSQL and Val
 
 Set API `NODE_ENV=production`, `API_CORS_ORIGIN=https://apps.taild40172.ts.net`, `AUTH_REGISTRATION_ENABLED=false`, `API_DOCS_ENABLED=false`, and `MEDIA_STORAGE_ENABLED=true`. Retain existing protected runtime database, API ACL, Cloudinary and HMAC credentials. Keep `VALKEY_PREFIX=havefolio:production`. Worker uses its worker ACL and queue prefix, never API/migration credentials.
 
+Waiting-period reminders additionally require `REMINDER_QUEUE_ENABLED=true` in the API environment and `WORKER_QUEUE_ENABLED=true` in the worker environment. The worker receives the same least-privilege runtime `DATABASE_URL`, `VALKEY_USERNAME=havefolio_production_worker`, and `REMINDER_RECONCILE_INTERVAL_SECONDS` (60 by default). The API retains `havefolio_production_api`. Optional generic ntfy delivery is disabled by default; enabling it requires a protected `NTFY_ENDPOINT` and optional `NTFY_TOKEN` only in the worker environment. Never include desire names, reasons, product URLs or owner identifiers in the ntfy topic, body or telemetry.
+
 Before rollout inspect disk/memory, existing service health, port 3020 and Tailscale Serve configuration. Do not overwrite an existing Serve route. After loading the release images on CT102:
 
 ```sh
@@ -20,6 +22,8 @@ docker compose up -d --wait api worker web
 # Only when the apps node's HTTPS root has no existing route:
 tailscale serve --bg --https=443 http://127.0.0.1:3020
 ```
+
+Migration `0012_desire_reminders.sql` is additive and must run before enabling either reminder flag. It creates the durable reminder intents and owner-scoped in-app notifications that reconciliation relies on. If Valkey is unavailable during a desire write, leave the committed intent in PostgreSQL; do not repeat or roll back the user action. Once the worker reconnects, startup/periodic reconciliation recreates the stable delayed job. Roll back application images only to a schema-compatible release and leave the additive tables in place for a corrected forward rollout.
 
 The web host port binds only to loopback; API, worker and database/cache have no new published ports. Tailscale terminates private HTTPS. The user explicitly selected this in place of the original NPMplus criterion. The API startup checks actual database/schema and authenticated Valkey availability and fails safely when unavailable. Process health is intentionally separate from that startup gate; ongoing dependency-aware monitoring remains PER-41.
 

@@ -6,7 +6,7 @@ import {
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
-import { taxonomyErrorCodes, desireErrorCodes } from '@havefolio/contracts';
+import { taxonomyErrorCodes, desireErrorCodes, notificationErrorCodes } from '@havefolio/contracts';
 import { financialErrorCodes } from '@havefolio/domain';
 import { STATUS_CODES } from 'node:http';
 import type { Request, Response } from 'express';
@@ -17,6 +17,7 @@ const safeMessages = new Set<string>([
   ...financialErrorCodes,
   // Fixed desire-domain tokens (PER-23).
   ...desireErrorCodes,
+  ...notificationErrorCodes,
   'PHOTO_UPLOAD_ID_REQUIRED',
   'PHOTO_PROCESSING_BUSY',
   'PHOTO_DELIVERY_BUSY',
