@@ -182,7 +182,7 @@ export class ItemsService {
       throw new ConflictException('STALE_ITEM_REVISION');
     return row;
   }
-  private async details(c: PoolClient, owner: string, id: string): Promise<ItemDto> {
+  async details(c: PoolClient, owner: string, id: string): Promise<ItemDto> {
     const row = await this.owned(c, owner, id);
     const tags = (
       await c.query<{ tag_id: string }>(
@@ -263,39 +263,57 @@ export class ItemsService {
     );
   }
   async create(owner: string, input: CreateItemDto): Promise<ItemDto> {
-    this.validate(input);
+    this.validate(input); // Reject before opening a transaction; insert re-checks for other callers.
     return this.repository.transaction(owner, async (c) => {
-      await this.taxonomy(c, owner, input);
-      const date = input.purchaseDate ?? { precision: 'unknown' };
-      const keys = Object.keys(columns) as (keyof typeof columns)[];
-      const values = keys.map(
-        (key) =>
-          input[key] ??
-          (['acquisitionType', 'condition', 'useFrequency'].includes(key) ? 'unknown' : null),
-      );
-      const params = [
-        owner,
-        ...values,
-        input.ownershipStatus,
-        date.precision,
-        date.year ?? null,
-        date.month ?? null,
-        date.day ?? null,
-        input,
-      ];
-      const row = (
-        await c.query<{ id: string }>(
-          `INSERT INTO items(owner_id,${keys.map((k) => columns[k]).join(',')},ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,original_entry,original_source) VALUES(${params.map((_v, i) => '$' + (i + 1)).join(',')},'manual') RETURNING id`,
-          params,
-        )
-      ).rows[0]!;
-      await this.tags(c, owner, row.id, input.tagIds);
-      await this.event(c, owner, row.id, 'created', {
-        source: 'user',
-        ownershipStatus: input.ownershipStatus,
-      });
-      return this.details(c, owner, row.id);
+      const id = await this.insert(c, owner, input);
+      return this.details(c, owner, id);
     });
+  }
+  /**
+   * Inserts an item, its tags and the append-only `created` event inside the caller's
+   * transaction. Shared by manual creation and PER-29 desire conversion so both obey one item
+   * contract; provenance only changes the immutable original entry and created-event metadata.
+   */
+  async insert(
+    c: PoolClient,
+    owner: string,
+    input: CreateItemDto,
+    provenance?: { originalEntry: Record<string, unknown>; event: Record<string, unknown> },
+  ): Promise<string> {
+    this.validate(input);
+    await this.taxonomy(c, owner, input);
+    const date = input.purchaseDate ?? { precision: 'unknown' };
+    const keys = Object.keys(columns) as (keyof typeof columns)[];
+    const values = keys.map(
+      (key) =>
+        input[key] ??
+        (['acquisitionType', 'condition', 'useFrequency'].includes(key) ? 'unknown' : null),
+    );
+    const params = [
+      owner,
+      ...values,
+      input.ownershipStatus,
+      date.precision,
+      date.year ?? null,
+      date.month ?? null,
+      date.day ?? null,
+      provenance?.originalEntry ?? input,
+    ];
+    const row = (
+      await c.query<{ id: string }>(
+        `INSERT INTO items(owner_id,${keys.map((k) => columns[k]).join(',')},ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,original_entry,original_source) VALUES(${params.map((_v, i) => '$' + (i + 1)).join(',')},'manual') RETURNING id`,
+        params,
+      )
+    ).rows[0]!;
+    await this.tags(c, owner, row.id, input.tagIds);
+    await this.event(
+      c,
+      owner,
+      row.id,
+      'created',
+      provenance?.event ?? { source: 'user', ownershipStatus: input.ownershipStatus },
+    );
+    return row.id;
   }
   async read(owner: string, id: string): Promise<ItemDto> {
     return this.repository.transaction(owner, (c) => this.details(c, owner, id));

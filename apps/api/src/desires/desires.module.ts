@@ -1,3 +1,6 @@
+import { DesireConversionsController } from './desire-conversions.controller.js';
+import { DesireConversionsService } from './desire-conversions.service.js';
+import { ItemsModule } from '../items/items.module.js';
 import { DesireMatchesController } from './desire-matches.controller.js';
 import { DesireMatchesService } from './desire-matches.service.js';
 import { ReviewsService } from './reviews.service.js';
@@ -10,10 +13,11 @@ import { DesiresRepository } from './desires.repository.js';
 import { DesiresService } from './desires.service.js';
 
 @Module({
-  imports: [MediaModule, NotificationsModule],
-  controllers: [DesiresController, DesireMatchesController],
+  imports: [MediaModule, NotificationsModule, ItemsModule],
+  controllers: [DesiresController, DesireMatchesController, DesireConversionsController],
   providers: [
     ReviewsService,
+    DesireConversionsService,
     DesiresRepository,
     DesiresService,
     DesireMatchesService,
