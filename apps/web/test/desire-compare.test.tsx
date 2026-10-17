@@ -2,7 +2,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
 import type {
-  CreateReviewRequest,
   Desire,
   DesireMatch,
   DesireMatchesPage,
@@ -522,9 +521,7 @@ describe('PER-26: Compare-before-buying decision screen', () => {
     expect(alert).toHaveTextContent(/Unable to connect/i);
 
     // Get the first commandId
-    const firstCallCommandId = (
-      vi.mocked(recordReview).mock.calls[0]![1] as CreateReviewRequest
-    ).commandId;
+    const firstCallCommandId = vi.mocked(recordReview).mock.calls[0]![1].commandId;
 
     // Retry button is shown
     const retryBtn = screen.getByRole('button', { name: /Retry recording decision/i });
@@ -532,9 +529,7 @@ describe('PER-26: Compare-before-buying decision screen', () => {
 
     // Second call must use the EXACT same commandId
     expect(recordReview).toHaveBeenCalledTimes(2);
-    const secondCallCommandId = (
-      vi.mocked(recordReview).mock.calls[1]![1] as CreateReviewRequest
-    ).commandId;
+    const secondCallCommandId = vi.mocked(recordReview).mock.calls[1]![1].commandId;
     expect(secondCallCommandId).toBe(firstCallCommandId);
   });
 
