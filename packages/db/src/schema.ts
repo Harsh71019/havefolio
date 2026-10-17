@@ -192,6 +192,39 @@ export const demoDatasets = pgTable(
   ],
 );
 
+export const merchants = pgTable(
+  'merchants',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    displayName: text('display_name').notNull(),
+    normalizedName: text('normalized_name').notNull(),
+    websiteHost: text('website_host'),
+    state: text('state', { enum: ['active', 'retired'] })
+      .notNull()
+      .default('active'),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('merchant_owner_identity_unique').on(t.id, t.ownerId),
+    unique('merchant_owner_name_unique').on(t.ownerId, t.normalizedName),
+    check(
+      'merchant_display_name_check',
+      sql`length(${t.displayName}) between 1 and 120 and ${t.displayName} = btrim(regexp_replace(normalize(${t.displayName},NFKC), '[[:space:]]+', ' ', 'g')) and ${t.displayName} !~ '[[:cntrl:]]'`,
+    ),
+    check('merchant_normalized_name_check', sql`${t.normalizedName} = lower(${t.displayName})`),
+    check('merchant_state_check', sql`${t.state} in ('active','retired')`),
+    check(
+      'merchant_host_check',
+      sql`${t.websiteHost} is null or (length(${t.websiteHost}) between 1 and 253 and ${t.websiteHost} = lower(${t.websiteHost}) and ${t.websiteHost} ~ '^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')`,
+    ),
+    index('merchant_owner_state_name_idx').on(t.ownerId, t.state, t.normalizedName, t.id),
+  ],
+);
+
 export const items = pgTable(
   'items',
   {
@@ -200,6 +233,8 @@ export const items = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     name: text('name').notNull(),
+    merchantId: uuid('merchant_id'),
+    purchaseUrl: text('purchase_url'),
     demoDatasetId: uuid('demo_dataset_id'),
     categoryId: uuid('category_id'),
     subcategoryId: uuid('subcategory_id'),
@@ -253,6 +288,16 @@ export const items = pgTable(
       name: 'item_demo_dataset_owner_fk',
     }).onDelete('restrict'),
     index('item_owner_demo_dataset_idx').on(t.ownerId, t.demoDatasetId),
+    foreignKey({
+      columns: [t.merchantId, t.ownerId],
+      foreignColumns: [merchants.id, merchants.ownerId],
+      name: 'item_merchant_owner_fk',
+    }).onDelete('restrict'),
+    index('item_owner_merchant_idx').on(t.ownerId, t.merchantId, t.id),
+    check(
+      'item_purchase_url_check',
+      sql`${t.purchaseUrl} is null or (length(${t.purchaseUrl}) between 1 and 2048 and ${t.purchaseUrl} ~* '^https?://[^/@[:space:]]+([/?#][^[:space:]]*)?$' and ${t.purchaseUrl} !~ '[[:cntrl:]]')`,
+    ),
     unique('item_owner_identity_unique').on(t.id, t.ownerId),
     // Refunds reference (item, owner, currency): no cross-owner or cross-currency refund can exist.
     unique('item_owner_currency_identity_unique').on(t.id, t.ownerId, t.currency),

@@ -1,5 +1,5 @@
 {
-  "id": "11bfa3f9-06cf-46f2-ad45-43af8b92618e",
+  "id": "5ff1fc75-9359-47b0-bd4b-9b36fe54b35d",
   "prevId": "f0203648-f97f-46d1-9ce3-942ea8201f21",
   "version": "7",
   "dialect": "postgresql",
@@ -1459,378 +1459,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.goal_contributions": {
-      "name": "goal_contributions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "goal_id": {
-          "name": "goal_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "owner_id": {
-          "name": "owner_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "currency": {
-          "name": "currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount_minor": {
-          "name": "amount_minor",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "command_id": {
-          "name": "command_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "request_hash": {
-          "name": "request_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "supersedes_id": {
-          "name": "supersedes_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sequence": {
-          "name": "sequence",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "contribution_owner_order_idx": {
-          "name": "contribution_owner_order_idx",
-          "columns": [
-            {
-              "expression": "owner_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "goal_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sequence",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "contribution_goal_currency_fk": {
-          "name": "contribution_goal_currency_fk",
-          "tableFrom": "goal_contributions",
-          "tableTo": "goals",
-          "columnsFrom": [
-            "goal_id",
-            "owner_id",
-            "currency"
-          ],
-          "columnsTo": [
-            "id",
-            "owner_id",
-            "currency"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "contribution_supersedes_fk": {
-          "name": "contribution_supersedes_fk",
-          "tableFrom": "goal_contributions",
-          "tableTo": "goal_contributions",
-          "columnsFrom": [
-            "supersedes_id",
-            "goal_id",
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id",
-            "goal_id",
-            "owner_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "contribution_identity_unique": {
-          "name": "contribution_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "goal_id",
-            "owner_id"
-          ]
-        },
-        "contribution_command_unique": {
-          "name": "contribution_command_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "goal_id",
-            "owner_id",
-            "command_id"
-          ]
-        },
-        "contribution_sequence_unique": {
-          "name": "contribution_sequence_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "goal_id",
-            "sequence"
-          ]
-        },
-        "contribution_successor_unique": {
-          "name": "contribution_successor_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "supersedes_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "contribution_amount_check": {
-          "name": "contribution_amount_check",
-          "value": "(\"goal_contributions\".\"kind\" in ('contribution','correction') and \"goal_contributions\".\"amount_minor\">0) or (\"goal_contributions\".\"kind\"='reversal' and \"goal_contributions\".\"amount_minor\"=0)"
-        },
-        "contribution_kind_check": {
-          "name": "contribution_kind_check",
-          "value": "(\"goal_contributions\".\"kind\"='contribution' and \"goal_contributions\".\"supersedes_id\" is null) or (\"goal_contributions\".\"kind\" in ('correction','reversal') and \"goal_contributions\".\"supersedes_id\" is not null)"
-        },
-        "contribution_note_check": {
-          "name": "contribution_note_check",
-          "value": "\"goal_contributions\".\"note\" is null or length(\"goal_contributions\".\"note\") between 1 and 2000"
-        },
-        "contribution_hash_check": {
-          "name": "contribution_hash_check",
-          "value": "\"goal_contributions\".\"request_hash\" ~ '^[a-f0-9]{64}$'"
-        },
-        "contribution_sequence_check": {
-          "name": "contribution_sequence_check",
-          "value": "\"goal_contributions\".\"sequence\">1"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.goals": {
-      "name": "goals",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "owner_id": {
-          "name": "owner_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "target_minor": {
-          "name": "target_minor",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "currency": {
-          "name": "currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "target_date": {
-          "name": "target_date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'active'"
-        },
-        "revision": {
-          "name": "revision",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "goal_owner_order_idx": {
-          "name": "goal_owner_order_idx",
-          "columns": [
-            {
-              "expression": "owner_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "goals_owner_id_users_id_fk": {
-          "name": "goals_owner_id_users_id_fk",
-          "tableFrom": "goals",
-          "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "goal_owner_unique": {
-          "name": "goal_owner_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "owner_id"
-          ]
-        },
-        "goal_currency_unique": {
-          "name": "goal_currency_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "owner_id",
-            "currency"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "goal_name_check": {
-          "name": "goal_name_check",
-          "value": "length(btrim(\"goals\".\"name\")) between 1 and 200 and \"goals\".\"name\"=btrim(\"goals\".\"name\")"
-        },
-        "goal_target_check": {
-          "name": "goal_target_check",
-          "value": "\"goals\".\"target_minor\" >= 0"
-        },
-        "goal_currency_check": {
-          "name": "goal_currency_check",
-          "value": "\"goals\".\"currency\" in ('ADP', 'AED', 'AFA', 'AFN', 'ALK', 'ALL', 'AMD', 'ANG', 'AOA', 'AOK', 'AON', 'AOR', 'ARA', 'ARP', 'ARS', 'ARY', 'ATS', 'AUD', 'AWG', 'AYM', 'AZM', 'AZN', 'BAD', 'BAM', 'BBD', 'BDT', 'BEC', 'BEF', 'BEL', 'BGJ', 'BGK', 'BGL', 'BGN', 'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BOP', 'BOV', 'BRB', 'BRC', 'BRE', 'BRL', 'BRN', 'BRR', 'BSD', 'BTN', 'BUK', 'BWP', 'BYB', 'BYN', 'BYR', 'BZD', 'CAD', 'CDF', 'CHC', 'CHE', 'CHF', 'CHW', 'CLF', 'CLP', 'CNY', 'COP', 'COU', 'CRC', 'CSD', 'CSJ', 'CSK', 'CUC', 'CUP', 'CVE', 'CYP', 'CZK', 'DDM', 'DEM', 'DJF', 'DKK', 'DOP', 'DZD', 'ECS', 'ECV', 'EEK', 'EGP', 'ERN', 'ESA', 'ESB', 'ESP', 'ETB', 'EUR', 'FIM', 'FJD', 'FKP', 'FRF', 'GBP', 'GEK', 'GEL', 'GHC', 'GHP', 'GHS', 'GIP', 'GMD', 'GNE', 'GNF', 'GNS', 'GQE', 'GRD', 'GTQ', 'GWE', 'GWP', 'GYD', 'HKD', 'HNL', 'HRD', 'HRK', 'HTG', 'HUF', 'IDR', 'IEP', 'ILP', 'ILR', 'ILS', 'INR', 'IQD', 'IRR', 'ISJ', 'ISK', 'ITL', 'JMD', 'JOD', 'JPY', 'KES', 'KGS', 'KHR', 'KMF', 'KPW', 'KRW', 'KWD', 'KYD', 'KZT', 'LAJ', 'LAK', 'LBP', 'LKR', 'LRD', 'LSL', 'LSM', 'LTL', 'LTT', 'LUC', 'LUF', 'LUL', 'LVL', 'LVR', 'LYD', 'MAD', 'MDL', 'MGA', 'MGF', 'MKD', 'MLF', 'MMK', 'MNT', 'MOP', 'MRO', 'MRU', 'MTL', 'MTP', 'MUR', 'MVQ', 'MVR', 'MWK', 'MXN', 'MXP', 'MXV', 'MYR', 'MZE', 'MZM', 'MZN', 'NAD', 'NGN', 'NIC', 'NIO', 'NLG', 'NOK', 'NPR', 'NZD', 'OMR', 'PAB', 'PEH', 'PEI', 'PEN', 'PES', 'PGK', 'PHP', 'PKR', 'PLN', 'PLZ', 'PTE', 'PYG', 'QAR', 'RHD', 'ROK', 'ROL', 'RON', 'RSD', 'RUB', 'RUR', 'RWF', 'SAR', 'SBD', 'SCR', 'SDD', 'SDG', 'SDP', 'SEK', 'SGD', 'SHP', 'SIT', 'SKK', 'SLE', 'SLL', 'SOS', 'SRD', 'SRG', 'SSP', 'STD', 'STN', 'SUR', 'SVC', 'SYP', 'SZL', 'THB', 'TJR', 'TJS', 'TMM', 'TMT', 'TND', 'TOP', 'TPE', 'TRL', 'TRY', 'TTD', 'TWD', 'TZS', 'UAH', 'UAK', 'UGS', 'UGW', 'UGX', 'USD', 'USN', 'USS', 'UYI', 'UYN', 'UYP', 'UYU', 'UYW', 'UZS', 'VEB', 'VED', 'VEF', 'VES', 'VNC', 'VND', 'VUV', 'WST', 'XAD', 'XAF', 'XAG', 'XAU', 'XBA', 'XBB', 'XBC', 'XBD', 'XCD', 'XCG', 'XDR', 'XEU', 'XFO', 'XFU', 'XOF', 'XPD', 'XPF', 'XPT', 'XRE', 'XSU', 'XUA', 'YDD', 'YER', 'YUD', 'YUM', 'YUN', 'ZAL', 'ZAR', 'ZMK', 'ZMW', 'ZRN', 'ZRZ', 'ZWC', 'ZWD', 'ZWG', 'ZWL', 'ZWN', 'ZWR')"
-        },
-        "goal_date_check": {
-          "name": "goal_date_check",
-          "value": "\"goals\".\"target_date\" is null or (\"goals\".\"target_date\" between '0001-01-01'::date and '9999-12-31'::date)"
-        },
-        "goal_notes_check": {
-          "name": "goal_notes_check",
-          "value": "\"goals\".\"notes\" is null or length(\"goals\".\"notes\") between 1 and 2000"
-        },
-        "goal_status_check": {
-          "name": "goal_status_check",
-          "value": "\"goals\".\"status\" in ('active','completed','archived')"
-        },
-        "goal_revision_check": {
-          "name": "goal_revision_check",
-          "value": "\"goals\".\"revision\">0"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.item_refunds": {
       "name": "item_refunds",
       "schema": "",
@@ -2461,6 +2089,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "merchant_id": {
+          "name": "merchant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "purchase_url": {
+          "name": "purchase_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "demo_dataset_id": {
           "name": "demo_dataset_id",
           "type": "uuid",
@@ -2620,6 +2260,33 @@
             },
             {
               "expression": "demo_dataset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "item_owner_merchant_idx": {
+          "name": "item_owner_merchant_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "merchant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2936,6 +2603,21 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
+        "item_merchant_owner_fk": {
+          "name": "item_merchant_owner_fk",
+          "tableFrom": "items",
+          "tableTo": "merchants",
+          "columnsFrom": [
+            "merchant_id",
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id",
+            "owner_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
         "item_category_owner_fk": {
           "name": "item_category_owner_fk",
           "tableFrom": "items",
@@ -2991,6 +2673,10 @@
       },
       "policies": {},
       "checkConstraints": {
+        "item_purchase_url_check": {
+          "name": "item_purchase_url_check",
+          "value": "\"items\".\"purchase_url\" is null or (length(\"items\".\"purchase_url\") between 1 and 2048 and \"items\".\"purchase_url\" ~* '^https?://[^/@[:space:]]+([/?#][^[:space:]]*)?$' and \"items\".\"purchase_url\" !~ '[[:cntrl:]]')"
+        },
         "item_name_check": {
           "name": "item_name_check",
           "value": "length(btrim(\"items\".\"name\")) between 1 and 300"
@@ -3659,6 +3345,153 @@
         "media_desire_kind_check": {
           "name": "media_desire_kind_check",
           "value": "\"media_attachments\".\"desire_id\" is null or \"media_attachments\".\"kind\" = 'photo'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.merchants": {
+      "name": "merchants",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "normalized_name": {
+          "name": "normalized_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "website_host": {
+          "name": "website_host",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "merchant_owner_state_name_idx": {
+          "name": "merchant_owner_state_name_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "normalized_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "merchants_owner_id_users_id_fk": {
+          "name": "merchants_owner_id_users_id_fk",
+          "tableFrom": "merchants",
+          "tableTo": "users",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "merchant_owner_identity_unique": {
+          "name": "merchant_owner_identity_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "owner_id"
+          ]
+        },
+        "merchant_owner_name_unique": {
+          "name": "merchant_owner_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "owner_id",
+            "normalized_name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "merchant_display_name_check": {
+          "name": "merchant_display_name_check",
+          "value": "length(\"merchants\".\"display_name\") between 1 and 120 and \"merchants\".\"display_name\" = btrim(regexp_replace(normalize(\"merchants\".\"display_name\",NFKC), '[[:space:]]+', ' ', 'g')) and \"merchants\".\"display_name\" !~ '[[:cntrl:]]'"
+        },
+        "merchant_normalized_name_check": {
+          "name": "merchant_normalized_name_check",
+          "value": "\"merchants\".\"normalized_name\" = lower(\"merchants\".\"display_name\")"
+        },
+        "merchant_state_check": {
+          "name": "merchant_state_check",
+          "value": "\"merchants\".\"state\" in ('active','retired')"
+        },
+        "merchant_host_check": {
+          "name": "merchant_host_check",
+          "value": "\"merchants\".\"website_host\" is null or (length(\"merchants\".\"website_host\") between 1 and 253 and \"merchants\".\"website_host\" = lower(\"merchants\".\"website_host\") and \"merchants\".\"website_host\" ~ '^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')"
         }
       },
       "isRLSEnabled": false
