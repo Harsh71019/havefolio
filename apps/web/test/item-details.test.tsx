@@ -395,7 +395,7 @@ describe('item details rendering', () => {
     expect(await screen.findByText(/No receipts or warranties yet/)).toBeInTheDocument();
     expect(api.readRelatedItems).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: /Add details \(9 optional\)/ }));
+    await user.click(screen.getByRole('button', { name: /Add details \(10 optional\)/ }));
     const dialog = await screen.findByRole('dialog', { name: 'Add details' });
     expect(dialog).toHaveTextContent('All optional');
     await user.click(within(dialog).getByRole('button', { name: 'Add brand' }));

@@ -1,4 +1,5 @@
 import { TelemetryModule } from '@havefolio/logging';
+import { MerchantsModule } from './merchants/merchants.module.js';
 import { ItemsModule } from './items/items.module.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -27,6 +28,7 @@ import { DesiresModule } from './desires/desires.module.js';
     AuthModule,
     TaxonomyModule,
     ItemsModule,
+    MerchantsModule,
     DesiresModule,
     NotificationsModule,
     OperationsModule,

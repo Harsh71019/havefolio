@@ -190,6 +190,8 @@ type MissingDetail = { label: string; section: EditSection; field: string };
 /** Optional details not yet recorded; shown as invitations, never as requirements. */
 function missingDetails(item: ItemResponse): MissingDetail[] {
   const missing: MissingDetail[] = [];
+  if (!item.merchantId)
+    missing.push({ label: 'Purchase merchant', section: 'purchase', field: 'merchantId' });
   if (!item.brand) missing.push({ label: 'Brand', section: 'basics', field: 'brand' });
   if (!item.model) missing.push({ label: 'Model', section: 'basics', field: 'model' });
   if (item.pricePaidMinor === null && item.acquisitionType !== 'gift')
@@ -496,6 +498,15 @@ export function ItemDetails({
                 [current.acquisitionType === 'gift' ? 'Amount you paid' : 'Price paid', price],
                 ['When you got it', date],
                 [
+                  'Purchase merchant',
+                  {
+                    value: current.merchant
+                      ? `${current.merchant.displayName}${current.merchant.state === 'retired' ? ' (retired)' : ''}`
+                      : 'Not recorded',
+                    muted: !current.merchant,
+                  },
+                ],
+                [
                   'How you got it',
                   {
                     value: acquisitionLabels[current.acquisitionType],
@@ -504,6 +515,18 @@ export function ItemDetails({
                 ],
               ]}
             />
+            {current.purchaseUrl ? (
+              <a
+                href={current.purchaseUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="mt-3 inline-block rounded-sm py-2 text-sm underline focus-visible:outline-2"
+              >
+                Open purchase page
+              </a>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">Purchase URL: Not recorded</p>
+            )}
           </DetailCard>
 
           <Card>

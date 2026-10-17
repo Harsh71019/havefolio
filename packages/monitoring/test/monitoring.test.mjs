@@ -244,3 +244,21 @@ test('PER-22 financial fields and alternate-case values never survive the event 
   assert.ok(!result.includes('INR'));
   assert.ok(!result.includes('notes'));
 });
+
+test('merchant routes, search and purchase links are stripped from error reports', () => {
+  const purchaseUrl = 'https://shop.example.test/synthetic?ref=synthetic';
+  const output = JSON.stringify(
+    scrubEvent({
+      request: { url: '/api/v1/merchants?q=synthetic-search', data: { purchaseUrl } },
+      extra: { purchaseUrl, merchantName: 'Synthetic seller' },
+      exception: { values: [{ type: 'Error', value: purchaseUrl }] },
+      tags: { route: '/api/v1/merchants?q=synthetic-search' },
+    }),
+  );
+  assert.equal(
+    normalizeRoute('/api/v1/merchants/11111111-1111-4111-8111-111111111111?q=synthetic-search'),
+    '/api/v1/merchants/:id',
+  );
+  for (const value of [purchaseUrl, 'synthetic-search', 'Synthetic seller'])
+    assert.equal(output.includes(value), false);
+});
