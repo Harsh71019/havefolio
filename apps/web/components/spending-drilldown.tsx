@@ -31,6 +31,7 @@ export function spendingItemQuery(
     spendingDateBucket: b.dateBucket,
     currency: b.currency,
     limit: 25,
+    ...(q.merchantId ? { merchantId: q.merchantId } : {}),
     ...(q.categoryId ? { categoryId: q.categoryId } : {}),
     ...(q.subcategoryId ? { subcategoryId: q.subcategoryId } : {}),
     ...(q.purchasedFrom ? { purchasedFrom: q.purchasedFrom } : {}),
@@ -47,6 +48,10 @@ export function spendingItemQuery(
       query.categoryId = child.categoryId;
       query.subcategoryId = b.key;
     } else query.spendingUnassigned = 'subcategory';
+  }
+  if (q.grouping === 'merchant') {
+    if (b.key) query.merchantId = b.key;
+    else query.spendingUnassigned = 'merchant';
   }
   if (q.grouping === 'year' && b.key) query.spendingYear = b.key;
   return query;

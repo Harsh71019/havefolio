@@ -62,6 +62,7 @@ const bucket = (patch: Partial<SpendingBucket> = {}): SpendingBucket => ({
   explicitZeroCount: 1,
   knownDateCount: 6,
   unknownDateCount: 0,
+  missingMerchantCount: 0,
   ...patch,
 });
 const report = (q: SpendingQuery, buckets: SpendingBucket[]): SpendingReport => ({
@@ -102,16 +103,50 @@ function fixture(
                   ? child
                   : q.grouping === 'year'
                     ? '2024'
-                    : null,
+                    : q.grouping === 'merchant'
+                      ? '00000000-0000-4000-a000-000000000031'
+                      : null,
+            merchant:
+              q.grouping === 'merchant'
+                ? {
+                    id: '00000000-0000-4000-a000-000000000031',
+                    displayName: 'Amazon India',
+                    websiteHost: 'amazon.in',
+                    state: 'active',
+                  }
+                : undefined,
           }),
           bucket({
             currency: 'USD',
             grossMinor: '5000',
             refundedMinor: '0',
             netMinor: '5000',
-            key: q.grouping === 'category' ? other : q.grouping === 'year' ? '2025' : null,
+            key:
+              q.grouping === 'category'
+                ? other
+                : q.grouping === 'year'
+                  ? '2025'
+                  : q.grouping === 'merchant'
+                    ? '00000000-0000-4000-a000-000000000032'
+                    : null,
+            merchant:
+              q.grouping === 'merchant'
+                ? {
+                    id: '00000000-0000-4000-a000-000000000032',
+                    displayName: 'Local Bookstore',
+                    websiteHost: null,
+                    state: 'retired',
+                  }
+                : undefined,
           }),
-          bucket({ dateBucket: 'unknownDate', unknownDateCount: 6, knownDateCount: 0 }),
+          bucket({
+            dateBucket: 'unknownDate',
+            unknownDateCount: 6,
+            knownDateCount: 0,
+            missingMerchantCount: 6,
+            key: null,
+            merchant: null,
+          }),
           bucket({ dateBucket: 'spanningRange' }),
         ];
     return Promise.resolve(response(report(q, rows)));
@@ -144,6 +179,46 @@ describe('exact aggregate presentation', () => {
     );
     expect(spendingGroupName(bucket({ key: child }), 'subcategory', taxonomy)).toBe('Cookware');
     expect(spendingGroupName(bucket({ key: other }), 'category')).toBe('Category name unavailable');
+  });
+  it('names recorded, retired, not recorded and unavailable merchants', () => {
+    expect(spendingGroupName(bucket(), 'merchant')).toBe('Not recorded');
+    expect(
+      spendingGroupName(
+        bucket({
+          key: '00000000-0000-4000-a000-000000000031',
+          merchant: {
+            id: '00000000-0000-4000-a000-000000000031',
+            displayName: 'Amazon India',
+            websiteHost: 'amazon.in',
+            state: 'active',
+          },
+        }),
+        'merchant',
+      ),
+    ).toBe('Amazon India');
+    expect(
+      spendingGroupName(
+        bucket({
+          key: '00000000-0000-4000-a000-000000000032',
+          merchant: {
+            id: '00000000-0000-4000-a000-000000000032',
+            displayName: 'Local Bookstore',
+            websiteHost: null,
+            state: 'retired',
+          },
+        }),
+        'merchant',
+      ),
+    ).toBe('Local Bookstore (retired)');
+    expect(
+      spendingGroupName(
+        bucket({
+          key: '00000000-0000-4000-a000-000000000033',
+          merchant: null,
+        }),
+        'merchant',
+      ),
+    ).toBe('Merchant unavailable');
   });
 });
 describe('validated URL and API state', () => {
@@ -450,5 +525,20 @@ describe('exact bounded inventory drill-down', () => {
     expect(
       spendingItemQuery({ scope: 'all-history', grouping: 'subcategory' }, bucket({ key: child })),
     ).toBeNull();
+    expect(
+      spendingItemQuery(
+        { scope: 'current-owned', grouping: 'merchant' },
+        bucket({ key: '00000000-0000-4000-a000-000000000031' }),
+      ),
+    ).toMatchObject({
+      spendingScope: 'current-owned',
+      merchantId: '00000000-0000-4000-a000-000000000031',
+    });
+    expect(
+      spendingItemQuery({ scope: 'all-history', grouping: 'merchant' }, bucket({ key: null })),
+    ).toMatchObject({
+      spendingScope: 'all-history',
+      spendingUnassigned: 'merchant',
+    });
   });
 });

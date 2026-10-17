@@ -50,6 +50,7 @@ export interface SpendingItemInput {
   ownershipStatus: OwnershipStatus;
   purchaseDate: DateComponents;
   refunds: readonly RecordedRefund[];
+  merchantId?: string | null;
 }
 
 export type ItemSpending =
