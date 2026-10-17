@@ -55,6 +55,15 @@ The first four covers in display order stay eager; subsequent covers stay lazy. 
 change does not request inventory or taxonomy again. Large can select the existing display
 variant; Compact can select the thumbnail when its slot and device pixel ratio allow it.
 
+## Category grids (PER-59)
+
+Each category renders one density grid holding all of its loaded cards, in taxonomy order:
+items without a subcategory first, then each subcategory, items by name then id. Subcategories
+no longer get their own heading and grid, because one-item subcategories otherwise left every
+grid with a single filled column. Each card shows `Category › Subcategory` (including a
+`(retired)` marker) and the link exposes it first in its accessible description. Synthetic
+1512px Compact screenshots are `docs/screenshots/per-59-compact-1512-*.png`.
+
 ## Boundaries and verification
 
 No API, database, migration, OpenAPI, upload, telemetry, service or environment change.

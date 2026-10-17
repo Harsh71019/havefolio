@@ -288,11 +288,11 @@ describe('My Store page', () => {
       'Not yet categorised',
       'Categories with nothing yet',
     ]);
-    expect(screen.getByRole('heading', { level: 3, name: 'Appliances' })).toBeVisible();
     const kettle = card('Kettle');
     expect(kettle).toHaveAccessibleName('Kettle Owned');
+    expect(within(kettle).getByText('Kitchen › Appliances')).toBeVisible();
     expect(kettle).toHaveAccessibleDescription(
-      /Paid ₹2,499 Acquired 12 Mar 2024 · 2 years ago Use Often/,
+      'Kitchen › Appliances Paid ₹2,499 Acquired 12 Mar 2024 · 2 years ago Use Often',
     );
     expect(kettle).toHaveAttribute('href', `/items/${uuid(1)}`);
     const image = within(kettle).getByRole('img', { name: 'Steel kettle' });
@@ -323,6 +323,82 @@ describe('My Store page', () => {
     // While more pages exist, taxonomy's owner-wide count shows the group is partial.
     expect(screen.getByText('2 of 5 shown')).toBeVisible();
     expect(screen.getByText('1 item')).toBeVisible();
+  });
+
+  it('places one-item subcategories in one category grid, keeping each card’s subcategory', async () => {
+    // PER-59 regression: one item per subcategory previously produced one single-card grid each.
+    const electronics = uuid(920);
+    const subs = ['Audio', 'Cameras', 'Phones', 'Wearables'].map((name, n) => ({
+      id: uuid(930 + n),
+      categoryId: electronics,
+      name,
+      position: n,
+      isDemo: false,
+      retiredAt: n === 3 ? '2026-01-01T00:00:00.000Z' : null,
+      itemCount: 1,
+    }));
+    const sparse: TaxonomySnapshot = {
+      ...taxonomy,
+      categories: [
+        ...taxonomy.categories,
+        {
+          id: electronics,
+          name: 'Electronics',
+          position: 3,
+          isDemo: false,
+          retiredAt: null,
+          itemCount: 5,
+        },
+      ],
+      subcategories: [...taxonomy.subcategories, ...subs],
+    };
+    // Supplied out of display order; Wearables is retired.
+    const items = [
+      item(14, { name: 'Smartwatch', categoryId: electronics, subcategoryId: subs[3]!.id }),
+      item(12, { name: 'Camera', categoryId: electronics, subcategoryId: subs[1]!.id }),
+      item(11, { name: 'Headphones', categoryId: electronics, subcategoryId: subs[0]!.id }),
+      item(15, { name: 'Charger', categoryId: electronics }),
+      item(13, { name: 'Phone', categoryId: electronics, subcategoryId: subs[2]!.id }),
+    ];
+    const fake = source([page(items)], sparse);
+    render(<MyStore source={fake} now={now} />);
+    const section = (await screen.findByRole('heading', { level: 2, name: 'Electronics' }))
+      .parentElement!.parentElement!;
+    expect(section.querySelectorAll('.store-grid')).toHaveLength(1);
+    expect(within(section).queryAllByRole('heading', { level: 3 })).toHaveLength(0);
+    const cards = within(section.querySelector('.store-grid')!).getAllByRole('link');
+    expect(cards.map((c) => c.querySelector('[id$="-name"]')?.textContent)).toEqual([
+      'Charger',
+      'Headphones',
+      'Camera',
+      'Phone',
+      'Smartwatch',
+    ]);
+    const expected: [string, string | null][] = [
+      ['Charger', null],
+      ['Headphones', 'Electronics › Audio'],
+      ['Camera', 'Electronics › Cameras'],
+      ['Phone', 'Electronics › Phones'],
+      ['Smartwatch', 'Electronics › Wearables (retired)'],
+    ];
+    for (const [name, context] of expected) {
+      const link = card(name);
+      if (context) {
+        expect(within(link).getByText(context)).toBeVisible();
+        expect(link).toHaveAccessibleDescription(
+          new RegExp(`^${context.replace(/[()]/g, '\\$&')} Paid`),
+        );
+      } else {
+        expect(link).toHaveAccessibleDescription(/^Paid Not recorded/);
+      }
+    }
+    // Density changes restyle the same grid without another inventory request.
+    expect(fake.loadPage).toHaveBeenCalledTimes(1);
+    for (const mode of storeDensities) {
+      act(() => selectDensity(mode));
+      expect(section.querySelectorAll('.store-grid')).toHaveLength(1);
+    }
+    expect(fake.loadPage).toHaveBeenCalledTimes(1);
   });
 
   it('uses fallback alt text, decorative covers and quiet failed-image text', async () => {
