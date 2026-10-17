@@ -1,8 +1,13 @@
 import type {
+  CreateDesireMatchRequest,
   CreateReviewRequest,
-  ReviewHistoryPage,
-  ReviewEvent,
+  DesireMatch,
+  DesireMatchesPage,
   ItemsPage,
+  MatchCandidatesPage,
+  PatchDesireMatchRequest,
+  ReviewEvent,
+  ReviewHistoryPage,
 } from '@havefolio/contracts';
 import {
   type CreateDesireRequest,
@@ -40,6 +45,12 @@ export const desireMessages: Record<string, string> = {
   DESIRE_PHOTO_LIMIT: 'A desire can only have one photo attached.',
   DESIRE_MEDIA_PENDING: 'Photo processing is still pending. Try again in a moment.',
   DESIRES_UNAVAILABLE: 'The desires service is temporarily unavailable. Try again shortly.',
+  MATCH_ALREADY_EXISTS: 'This possession is already matched to this desire.',
+  MATCH_NOT_FOUND: 'This match is no longer available.',
+  INVALID_MATCH_REASON: 'Enter an explanation up to 1000 characters, or leave it blank.',
+  INVALID_MATCH_RELEVANCE: 'Select whether this match is relevant or irrelevant.',
+  MATCH_LIMIT_EXCEEDED: 'A desire can have up to 50 matched items.',
+  MATCHES_UNAVAILABLE: 'Possession matching is temporarily unavailable. Try again shortly.',
   AUTH_REQUIRED: 'Your session has expired. Sign in again to continue.',
   PHOTO_UPLOAD_ID_REQUIRED: 'Photo upload tracking identifier is missing.',
   PHOTO_FILE_REQUIRED: 'Select a photo file to upload.',
@@ -252,6 +263,90 @@ export function deleteDesirePhoto(
     body: JSON.stringify({ revision }),
     ...(signal ? { signal } : {}),
   });
+}
+
+export function getDesireMatches(
+  desireId: string,
+  options: {
+    after?: string | undefined;
+    limit?: number | undefined;
+    signal?: AbortSignal | undefined;
+  } = {},
+): Promise<DesireMatchesPage> {
+  const params = new URLSearchParams();
+  if (options.after) params.set('after', options.after);
+  if (options.limit) params.set('limit', String(options.limit));
+  const query = params.toString();
+  return request<DesireMatchesPage>(
+    `/api/v1/desires/${encodeURIComponent(desireId)}/matches${query ? `?${query}` : ''}`,
+    { ...(options.signal ? { signal: options.signal } : {}) },
+  );
+}
+
+export function addDesireMatch(
+  desireId: string,
+  input: CreateDesireMatchRequest,
+  signal?: AbortSignal,
+): Promise<DesireMatch> {
+  return request<DesireMatch>(`/api/v1/desires/${encodeURIComponent(desireId)}/matches`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+    ...(signal ? { signal } : {}),
+  });
+}
+
+export function updateDesireMatch(
+  desireId: string,
+  matchId: string,
+  input: PatchDesireMatchRequest,
+  signal?: AbortSignal,
+): Promise<DesireMatch> {
+  return request<DesireMatch>(
+    `/api/v1/desires/${encodeURIComponent(desireId)}/matches/${encodeURIComponent(matchId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+      ...(signal ? { signal } : {}),
+    },
+  );
+}
+
+export function deleteDesireMatch(
+  desireId: string,
+  matchId: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  return request<void>(
+    `/api/v1/desires/${encodeURIComponent(desireId)}/matches/${encodeURIComponent(matchId)}`,
+    {
+      method: 'DELETE',
+      ...(signal ? { signal } : {}),
+    },
+  );
+}
+
+export function getMatchCandidates(
+  desireId: string,
+  options: {
+    q?: string | undefined;
+    categoryId?: string | undefined;
+    includeUnavailable?: boolean | undefined;
+    after?: string | undefined;
+    limit?: number | undefined;
+    signal?: AbortSignal | undefined;
+  } = {},
+): Promise<MatchCandidatesPage> {
+  const params = new URLSearchParams();
+  if (options.q) params.set('q', options.q);
+  if (options.categoryId) params.set('categoryId', options.categoryId);
+  if (options.includeUnavailable) params.set('includeUnavailable', 'true');
+  if (options.after) params.set('after', options.after);
+  if (options.limit) params.set('limit', String(options.limit));
+  const query = params.toString();
+  return request<MatchCandidatesPage>(
+    `/api/v1/desires/${encodeURIComponent(desireId)}/matches/candidates${query ? `?${query}` : ''}`,
+    { ...(options.signal ? { signal: options.signal } : {}) },
+  );
 }
 
 export function desirePhotoContentUrl(

@@ -52,7 +52,7 @@ import {
   AlertDialogTrigger,
 } from '@havefolio/ui/components/alert-dialog';
 import { PrivatePhoto } from '@havefolio/ui/components/havefolio/private-photo';
-import { Camera, Clock, RotateCcw, Trash2, Upload, X } from 'lucide-react';
+import { Boxes, Camera, Clock, RotateCcw, Trash2, Upload, X } from 'lucide-react';
 import { amountEntryToMinor, minorToAmountEntry } from './money-entry';
 import {
   deleteDesire,
@@ -457,9 +457,17 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
               Reflect on your current thoughts and adjust this record as needed.
             </CardDescription>
           </div>
-          <Badge variant="outline" className="text-xs">
-            Rev {desire.revision}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="min-h-9 text-xs">
+              <Link href={`/wants/${desire.id}/matches`}>
+                <Boxes className="mr-1.5 size-3.5" aria-hidden="true" />
+                Matches
+              </Link>
+            </Button>
+            <Badge variant="outline" className="text-xs">
+              Rev {desire.revision}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 

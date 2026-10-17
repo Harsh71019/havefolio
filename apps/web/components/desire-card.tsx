@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from '@havefolio/ui/components/alert-dialog';
 import { PrivatePhoto } from '@havefolio/ui/components/havefolio/private-photo';
-import { Clock, ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { Boxes, Clock, ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import {
   deleteDesire,
   desirePhotoSource,
@@ -147,6 +147,12 @@ export function DesireCard({
 
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-1 shrink-0 self-end sm:self-start pt-2 sm:pt-0">
+            <Button asChild variant="outline" size="sm" className="min-h-11 px-3">
+              <Link href={`/wants/${desire.id}/matches`}>
+                <Boxes className="mr-1.5 size-3.5" aria-hidden="true" />
+                Matches
+              </Link>
+            </Button>
             <Button asChild variant="outline" size="sm" className="min-h-11">
               <Link href={`/wants/${desire.id}/history`}>Decision history</Link>
             </Button>
