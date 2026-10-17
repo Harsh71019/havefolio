@@ -7,7 +7,7 @@ import { cn } from '#lib/utils';
 export type OwnedItemFact = { label: string; value: string; muted?: boolean };
 
 export type OwnedItemCardProps = {
-  /** Prefix for element ids so a wrapping link can reference the name, status and facts. */
+  /** Prefix for element ids so a wrapping link can reference the name, status, context and facts. */
   idPrefix: string;
   name: string;
   /** Category context, for example "Kitchen › Appliances". */
@@ -56,7 +56,10 @@ export function OwnedItemCard({
       <CardHeader className="gap-2 px-4 pt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           {context ? (
-            <span className="min-w-0 truncate text-xs font-medium text-muted-foreground">
+            <span
+              id={`${idPrefix}-context`}
+              className="min-w-0 truncate text-xs font-medium text-muted-foreground"
+            >
               {context}
             </span>
           ) : null}

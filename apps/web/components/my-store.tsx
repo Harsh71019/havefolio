@@ -364,32 +364,29 @@ function StoreContent({
                 : `${group.loaded} item${group.loaded === 1 ? '' : 's'}`}
             </span>
           </div>
-          {group.subgroups.map((subgroup) => (
-            <div key={subgroup.key} className="space-y-3">
-              {subgroup.title ? (
-                <h3 className="text-base font-medium text-muted-foreground">{subgroup.title}</h3>
-              ) : null}
-              <ul className={gridClass}>
-                {subgroup.items.map((item) => (
-                  <li key={item.id}>
-                    <StoreCard
-                      density={density}
-                      item={item}
-                      context={
-                        // Context only adds information for a genuine subcategory.
-                        subgroup.title && !subgroup.key.endsWith(':none')
-                          ? `${group.title} › ${subgroup.title}`
-                          : undefined
-                      }
-                      eager={eagerIds.has(item.id)}
-                      now={now}
-                      returnTo={returnTo}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* One grid per category so sparse subcategories still fill the density's columns;
+              each card carries its subcategory instead of a per-subcategory heading. */}
+          <ul className={gridClass}>
+            {group.subgroups.flatMap((subgroup) =>
+              subgroup.items.map((item) => (
+                <li key={item.id}>
+                  <StoreCard
+                    density={density}
+                    item={item}
+                    context={
+                      // Context only adds information for a genuine subcategory.
+                      subgroup.title && !subgroup.key.endsWith(':none')
+                        ? `${group.title} › ${subgroup.title}`
+                        : undefined
+                    }
+                    eager={eagerIds.has(item.id)}
+                    now={now}
+                    returnTo={returnTo}
+                  />
+                </li>
+              )),
+            )}
+          </ul>
         </section>
       ))}
       {emptyCategories.length ? (
@@ -450,7 +447,7 @@ function StoreCard({
     <Link
       href={itemHref(item.id, returnTo)}
       aria-labelledby={`${id}-name ${id}-status`}
-      aria-describedby={`${id}-facts`}
+      aria-describedby={context ? `${id}-context ${id}-facts` : `${id}-facts`}
       className="block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <OwnedItemCard
