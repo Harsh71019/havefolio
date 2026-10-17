@@ -94,6 +94,52 @@ test(
       assert.equal(reminder.rows[0].state, 'delivered');
       assert.ok(reminder.rows[0].delivered_at instanceof Date);
 
+      // PER-28: resolution and reopening invalidate every earlier delivery/ntfy attempt.
+      await run.runtime.query("SELECT set_config('havefolio.owner_id',$1,false)", [ownerId]);
+      const resolved = await run.runtime.query(
+        `INSERT INTO desire_review_events(desire_id,owner_id,command_id,request_hash,sequence,outcome)
+        VALUES($1,$2,$3,$4,2,'declined') RETURNING id`,
+        [desireId, ownerId, randomUUID(), 'a'.repeat(64)],
+      );
+      assert.equal((await repository.deliver({ ...data, scheduledFor })).status, 'stale');
+      const oldNotice = (
+        await run.runtime.query('SELECT id,read_at FROM notifications WHERE desire_id=$1', [
+          desireId,
+        ])
+      ).rows[0];
+      assert.ok(oldNotice.read_at);
+      assert.equal(await repository.claimNtfy(oldNotice.id), false);
+      assert.ok(!(await repository.listPendingNtfy()).includes(oldNotice.id));
+      const replacementDate = new Date(Date.now() + 3600000);
+      await run.runtime.query(
+        `INSERT INTO desire_review_events(desire_id,owner_id,command_id,request_hash,sequence,outcome,review_at,supersedes_event_id)
+        VALUES($1,$2,$3,$4,3,'delayed',$5,$6)`,
+        [desireId, ownerId, randomUUID(), 'b'.repeat(64), replacementDate, resolved.rows[0].id],
+      );
+      assert.equal(
+        (await repository.deliver({ desireId, scheduleVersion: 1, scheduledFor })).status,
+        'stale',
+      );
+      assert.equal(
+        (await repository.deliver({ desireId, scheduleVersion: 3, scheduledFor: replacementDate }))
+          .status,
+        'early',
+      );
+      const reopened = await repository.deliver(
+        { desireId, scheduleVersion: 3, scheduledFor: replacementDate },
+        new Date(replacementDate.getTime() + 1),
+      );
+      assert.equal(reopened.status, 'delivered');
+      assert.equal(
+        (
+          await run.runtime.query(
+            'SELECT count(*)::int AS count FROM notifications WHERE desire_id=$1',
+            [desireId],
+          )
+        ).rows[0].count,
+        2,
+      );
+
       const futureDesireId = randomUUID();
       const future = new Date(Date.now() + 60 * 60 * 1000);
       await run.runtime.query(

@@ -558,7 +558,7 @@ export const desires = pgTable(
     productUrl: text('product_url'),
     reason: text('reason'),
     status: text('status', {
-      enum: ['considering', 'waiting'],
+      enum: ['considering', 'waiting', 'bought', 'declined', 'used_owned'],
     })
       .notNull()
       .default('considering'),
@@ -592,7 +592,7 @@ export const desires = pgTable(
     ),
     check(
       'desire_waiting_check',
-      sql`(${t.status} = 'considering' and ${t.waitingStartedAt} is null and ${t.reviewAt} is null) or (${t.status} = 'waiting' and ${t.waitingStartedAt} is not null and ${t.reviewAt} is not null and isfinite(${t.waitingStartedAt}) and isfinite(${t.reviewAt}) and ${t.reviewAt} > ${t.waitingStartedAt})`,
+      sql`(${t.status} in ('considering','bought','declined','used_owned') and ${t.waitingStartedAt} is null and ${t.reviewAt} is null) or (${t.status} = 'waiting' and ${t.waitingStartedAt} is not null and ${t.reviewAt} is not null and isfinite(${t.waitingStartedAt}) and isfinite(${t.reviewAt}) and ${t.reviewAt} > ${t.waitingStartedAt})`,
     ),
     check('desire_revision_check', sql`${t.revision} >= 1`),
     check(
@@ -790,5 +790,66 @@ export const mediaAttachments = pgTable(
       sql`${table.itemId} is null or ${table.desireId} is null`,
     ),
     check('media_desire_kind_check', sql`${table.desireId} is null or ${table.kind} = 'photo'`),
+  ],
+);
+
+/** Append-only review snapshots. Item UUIDs survive deletion; insert-time ownership is enforced by trigger. */
+export const desireReviewEvents = pgTable(
+  'desire_review_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    desireId: uuid('desire_id').notNull(),
+    ownerId: uuid('owner_id').notNull(),
+    commandId: uuid('command_id').notNull(),
+    requestHash: text('request_hash').notNull(),
+    sequence: integer('sequence').notNull(),
+    outcome: text('outcome', { enum: ['bought', 'delayed', 'declined', 'used_owned'] }).notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true, precision: 3 })
+      .notNull()
+      .defaultNow(),
+    note: text('note'),
+    linkedItemId: uuid('linked_item_id'),
+    reviewAt: timestamp('review_at', { withTimezone: true, precision: 3 }),
+    supersedesEventId: uuid('supersedes_event_id'),
+    estimatedNotSpentMinor: bigint('estimated_not_spent_minor', { mode: 'bigint' }),
+    currency: text('currency'),
+  },
+  (t) => [
+    unique('review_identity_unique').on(t.id, t.desireId, t.ownerId),
+    unique('review_command_unique').on(t.ownerId, t.desireId, t.commandId),
+    unique('review_sequence_unique').on(t.desireId, t.sequence),
+    foreignKey({
+      columns: [t.desireId, t.ownerId],
+      foreignColumns: [desires.id, desires.ownerId],
+      name: 'review_desire_owner_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [t.supersedesEventId, t.desireId, t.ownerId],
+      foreignColumns: [t.id, t.desireId, t.ownerId],
+      name: 'review_supersedes_owner_fk',
+    }),
+    check(
+      'review_outcome_check',
+      sql`${t.outcome} in ('bought','delayed','declined','used_owned')`,
+    ),
+    check('review_sequence_check', sql`${t.sequence} > 1`),
+    check('review_hash_check', sql`${t.requestHash} ~ '^[a-f0-9]{64}$'`),
+    check(
+      'review_note_check',
+      sql`${t.note} is null or (length(btrim(${t.note})) between 1 and 2000 and ${t.note}=btrim(${t.note}))`,
+    ),
+    check(
+      'review_date_check',
+      sql`isfinite(${t.occurredAt}) and ((${t.outcome}='delayed' and ${t.reviewAt} is not null and isfinite(${t.reviewAt}) and ${t.reviewAt}>${t.occurredAt}) or (${t.outcome}<>'delayed' and ${t.reviewAt} is null))`,
+    ),
+    check(
+      'review_link_check',
+      sql`(${t.outcome}='used_owned' and ${t.linkedItemId} is not null) or (${t.outcome}='bought') or (${t.outcome} in ('delayed','declined') and ${t.linkedItemId} is null)`,
+    ),
+    check(
+      'review_estimate_check',
+      sql`(${t.estimatedNotSpentMinor} is null and ${t.currency} is null) or (${t.outcome}='declined' and ${t.estimatedNotSpentMinor} is not null and ${t.estimatedNotSpentMinor}>=0 and ${t.currency} is not null and ${t.currency} ~ '^[A-Z]{3}$')`,
+    ),
+    index('review_owner_desire_order_idx').on(t.ownerId, t.desireId, t.sequence),
   ],
 );

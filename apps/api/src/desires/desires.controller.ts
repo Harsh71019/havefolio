@@ -47,6 +47,13 @@ import {
   PatchDesireDto,
   RevisionDto,
 } from './desires.dto.js';
+import {
+  CreateReviewDto,
+  ReviewsQueryDto,
+  ReviewEventDto,
+  ReviewHistoryPageDto,
+} from './reviews.dto.js';
+import { ReviewsService } from './reviews.service.js';
 import { DesiresService } from './desires.service.js';
 
 @ApiTags('desires')
@@ -54,17 +61,17 @@ import { DesiresService } from './desires.service.js';
 @ApiBadRequestResponse({
   type: DesireErrorDto,
   description:
-    'INVALID_DESIRE, INVALID_DESIRE_PRICE, INVALID_DESIRE_URL, INVALID_DESIRE_WAIT, INVALID_DESIRE_CURSOR, PHOTO_UPLOAD_ID_REQUIRED, PHOTO_VARIANT_INVALID or malformed body.',
+    'INVALID_REVIEW, INVALID_REVIEW_DATE, INVALID_REVIEW_ITEM, INVALID_DESIRE, INVALID_DESIRE_PRICE, INVALID_DESIRE_URL, INVALID_DESIRE_WAIT, INVALID_DESIRE_CURSOR, PHOTO_UPLOAD_ID_REQUIRED, PHOTO_VARIANT_INVALID or malformed body.',
 })
 @ApiUnauthorizedResponse({ type: DesireErrorDto, description: 'AUTH_REQUIRED.' })
 @ApiNotFoundResponse({
   type: DesireErrorDto,
-  description: 'DESIRE_NOT_FOUND or DESIRE_PHOTO_NOT_FOUND.',
+  description: 'DESIRE_NOT_FOUND, DESIRE_PHOTO_NOT_FOUND or REVIEW_ITEM_UNAVAILABLE.',
 })
 @ApiConflictResponse({
   type: DesireErrorDto,
   description:
-    'STALE_DESIRE_REVISION, DESIRE_MEDIA_PENDING, PHOTO_QUOTA_EXCEEDED, PHOTO_UPLOAD_ID_REUSED, PHOTO_UPLOAD_PENDING, PHOTO_UPLOAD_RECOVERED.',
+    'REVIEW_COMMAND_REUSED, REVIEW_CORRECTION_REQUIRED, REVIEW_EVENT_REQUIRED, STALE_DESIRE_REVISION, DESIRE_MEDIA_PENDING, PHOTO_QUOTA_EXCEEDED, PHOTO_UPLOAD_ID_REUSED, PHOTO_UPLOAD_PENDING, PHOTO_UPLOAD_RECOVERED.',
 })
 @ApiServiceUnavailableResponse({
   type: DesireErrorDto,
@@ -76,7 +83,40 @@ export class DesiresController {
   private activeUploads = 0;
   private deliveringPhotos = 0;
 
-  constructor(private readonly service: DesiresService) {}
+  constructor(
+    private readonly service: DesiresService,
+    private readonly reviews: ReviewsService,
+  ) {}
+
+  @Get(':id/reviews')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary:
+      'Read owner-private decision history, newest first. Never sum historical estimate snapshots.',
+  })
+  @ApiOkResponse({ type: ReviewHistoryPageDto })
+  history(
+    @CurrentOwner() owner: OwnerContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query() query: ReviewsQueryDto,
+  ): Promise<ReviewHistoryPageDto> {
+    return this.reviews.list(owner.id, id, query);
+  }
+
+  @Post(':id/reviews')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary:
+      'Append a retry-safe outcome or explicit correction. Does not create inventory or savings.',
+  })
+  @ApiCreatedResponse({ type: ReviewEventDto })
+  review(
+    @CurrentOwner() owner: OwnerContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() input: CreateReviewDto,
+  ): Promise<ReviewEventDto> {
+    return this.reviews.create(owner.id, id, input);
+  }
 
   @Post()
   @Header('Cache-Control', 'no-store')

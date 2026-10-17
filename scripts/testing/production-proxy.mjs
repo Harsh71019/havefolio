@@ -306,6 +306,12 @@ try {
       '{"revision":1,"name":"Updated"}',
     ],
     ['DELETE', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6', '{"revision":1}'],
+    ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/reviews'],
+    [
+      'POST',
+      '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/reviews',
+      '{"commandId":"e3ba903a-b211-4cf4-aad0-ce3a312975ea","revision":1,"outcome":"declined"}',
+    ],
     ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo'],
     ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo/content/thumbnail'],
     ['DELETE', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo', '{"revision":1}'],

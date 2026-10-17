@@ -4,10 +4,23 @@ import { MAX_MINOR_UNITS, parseMinorUnitAmount } from './money.js';
 export const desireClassifications = ['need', 'want', 'greed'] as const;
 export type DesireClassification = (typeof desireClassifications)[number];
 
-export const desireStatuses = ['considering', 'waiting'] as const;
+export const desireStatuses = [
+  'considering',
+  'waiting',
+  'bought',
+  'declined',
+  'used_owned',
+] as const;
 export type DesireStatus = (typeof desireStatuses)[number];
 
-export const desireEffectiveStates = ['considering', 'waiting', 'ready_for_review'] as const;
+export const desireEffectiveStates = [
+  'considering',
+  'waiting',
+  'ready_for_review',
+  'bought',
+  'declined',
+  'used_owned',
+] as const;
 export type DesireEffectiveState = (typeof desireEffectiveStates)[number];
 
 export const desireErrorCodes = [
@@ -56,7 +69,7 @@ export function deriveDesireEffectiveState(
     if (!Number.isFinite(review.getTime())) return 'considering';
     return review.getTime() <= now.getTime() ? 'ready_for_review' : 'waiting';
   }
-  return 'considering';
+  return status;
 }
 
 export function validateProductUrl(url: string | null | undefined): string | null {

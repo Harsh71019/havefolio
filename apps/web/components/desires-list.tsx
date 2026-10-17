@@ -137,7 +137,16 @@ export function DesiresList(): ReactElement {
           >
             All
           </Button>
-          {(['considering', 'waiting', 'ready_for_review'] as const).map((key) => {
+          {(
+            [
+              'considering',
+              'waiting',
+              'ready_for_review',
+              'bought',
+              'declined',
+              'used_owned',
+            ] as const
+          ).map((key) => {
             const isSelected = filter === key;
             return (
               <Button

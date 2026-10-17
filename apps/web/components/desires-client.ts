@@ -1,3 +1,9 @@
+import type {
+  CreateReviewRequest,
+  ReviewHistoryPage,
+  ReviewEvent,
+  ItemsPage,
+} from '@havefolio/contracts';
 import {
   type CreateDesireRequest,
   type Desire,
@@ -13,6 +19,14 @@ import type { PrivatePhotoSource } from '@havefolio/ui/components/havefolio/priv
 
 // Fixed public API codes only. Never echo server text, provider details or private input.
 export const desireMessages: Record<string, string> = {
+  REVIEW_EVENT_REQUIRED:
+    'Change the waiting period through Decision history to preserve the recorded decisions.',
+  REVIEW_COMMAND_REUSED: 'This submission changed. Reload history before trying again.',
+  REVIEW_CORRECTION_REQUIRED: 'Reload history and correct the latest decision.',
+  REVIEW_ITEM_UNAVAILABLE: 'That item is unavailable. Choose another item or outcome.',
+  INVALID_REVIEW: 'Check the decision and optional note, then try again.',
+  INVALID_REVIEW_DATE: 'Choose a future review date for a delayed decision.',
+  INVALID_REVIEW_ITEM: 'Choose an owned item for this decision.',
   INVALID_DESIRE: 'Check the desire name and details, then try again.',
   INVALID_DESIRE_PRICE: 'Enter a valid likely price and currency, or leave both empty.',
   INVALID_DESIRE_URL: 'Enter a valid web link starting with http:// or https://.',
@@ -311,6 +325,15 @@ export const effectiveStateInfo: Record<
   DesireEffectiveState,
   { label: string; description: string }
 > = {
+  bought: { label: 'Bought', description: 'Recorded as bought. Purchase details are separate.' },
+  declined: {
+    label: 'Declined',
+    description: 'Recorded as declined. Any amount not spent is an estimate.',
+  },
+  used_owned: {
+    label: 'Using something owned',
+    description: 'Recorded a decision to use an owned item.',
+  },
   considering: {
     label: 'Considering',
     description: 'Reflecting without a set deadline.',
@@ -363,3 +386,25 @@ export const waitingPresets: WaitingPresetOption[] = [
     deriveReviewAt: () => null,
   },
 ];
+
+export function readReviews(
+  id: string,
+  before?: number,
+  signal?: AbortSignal,
+): Promise<ReviewHistoryPage> {
+  return request(
+    `/api/v1/desires/${encodeURIComponent(id)}/reviews${before ? `?before=${before}` : ''}`,
+    { method: 'GET', ...(signal ? { signal } : {}) },
+  );
+}
+export function recordReview(id: string, input: CreateReviewRequest): Promise<ReviewEvent> {
+  return request(`/api/v1/desires/${encodeURIComponent(id)}/reviews`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+export function reviewItems(after?: string): Promise<ItemsPage> {
+  const params = new URLSearchParams({ ownershipStatus: 'owned', limit: '25' });
+  if (after) params.set('after', after);
+  return request(`/api/v1/items?${params}`, { method: 'GET' });
+}

@@ -1,6 +1,6 @@
 import { TelemetryModule } from '@havefolio/logging';
 import { randomUUID } from 'node:crypto';
-import { beforeAll, afterAll, describe, expect, it, jest } from '@jest/globals';
+import { beforeAll, beforeEach, afterAll, describe, expect, it, jest } from '@jest/globals';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -520,7 +520,7 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       ).rows,
     ).toEqual([
       {
-        schedule_version: 1,
+        schedule_version: 2,
         scheduled_for: reviewTime,
         state: 'pending',
       },
@@ -552,7 +552,7 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       ).rows,
     ).toEqual([
       {
-        schedule_version: 2,
+        schedule_version: 3,
         scheduled_for: extendedReviewTime,
         state: 'pending',
       },
@@ -750,6 +750,8 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       ['/api/v1/desires', 'post'],
       ['/api/v1/desires', 'get'],
       ['/api/v1/desires/{id}', 'get'],
+      ['/api/v1/desires/{id}/reviews', 'get'],
+      ['/api/v1/desires/{id}/reviews', 'post'],
       ['/api/v1/desires/{id}', 'patch'],
       ['/api/v1/desires/{id}', 'delete'],
       ['/api/v1/desires/{id}/photo', 'post'],
@@ -765,6 +767,9 @@ describe('desire records, waiting periods, keyset pagination and private photo l
     // Check schemas
     const schemas = document.components!.schemas!;
     for (const name of [
+      'CreateReviewDto',
+      'ReviewEventDto',
+      'ReviewHistoryPageDto',
       'CreateDesireDto',
       'PatchDesireDto',
       'DesireDto',
@@ -790,5 +795,328 @@ describe('desire records, waiting periods, keyset pagination and private photo l
     ]) {
       expect(desireProps).not.toHaveProperty(forbidden);
     }
+  });
+  describe('PER-28 immutable review history', () => {
+    const future = (): string => new Date(Date.now() + 86400000).toISOString();
+    const review = (id: string, revision: number, outcome: string, extra: object = {}): HttpTest =>
+      post(`/${id}/reviews`, { commandId: randomUUID(), revision, outcome, ...extra });
+    const ownedItem = async (who = owner): Promise<string> =>
+      (
+        await run.runtime.query<{ id: string }>(
+          "INSERT INTO items(owner_id,name,currency,original_entry,original_source) VALUES($1,'Synthetic owned item','INR','{}','manual') RETURNING id",
+          [who],
+        )
+      ).rows[0]!.id;
+    beforeEach(() => service.resetClock());
+
+    it('requires authentication, rejects identity injection and hides foreign desires/history', async () => {
+      const id = randomUUID();
+      await http().get(`/api/v1/desires/${id}/reviews`).expect(401);
+      await http().post(`/api/v1/desires/${id}/reviews`).send({}).expect(401);
+      const foreign = (
+        await run.runtime.query<{ id: string }>(
+          "INSERT INTO desires(owner_id,name) VALUES($1,'Other private desire') RETURNING id",
+          [other],
+        )
+      ).rows[0]!.id;
+      for (const target of [foreign, id]) {
+        await get(`/${target}/reviews`).expect(404);
+        await review(target, 1, 'declined').expect(404);
+      }
+      const d = await createMinimal();
+      await review(d.id, 1, 'declined', { ownerId: other }).expect(400);
+      expect((await get(`/${d.id}/reviews`).expect(200)).headers['cache-control']).toBe('no-store');
+    });
+
+    it.each(['bought', 'declined', 'used_owned'] as const)(
+      'derives %s from an immutable event and cancels the reminder',
+      async (outcome) => {
+        const d = (
+          await post('', { name: 'Review outcome', waitingPeriod: { reviewAt: future() } }).expect(
+            201,
+          )
+        ).body as DesireDto;
+        const e = (
+          await review(
+            d.id,
+            d.revision,
+            outcome,
+            outcome === 'used_owned'
+              ? { linkedItemId: await ownedItem() }
+              : { note: 'Private reflection' },
+          ).expect(201)
+        ).body as { id: string };
+        const current = (await get(`/${d.id}`).expect(200)).body as DesireDto;
+        expect(current.status).toBe(outcome);
+        expect(current.effectiveState).toBe(outcome);
+        expect(current.reviewAt).toBeNull();
+        expect(current.revision).toBe(2);
+        const history = (await get(`/${d.id}/reviews`).expect(200)).body;
+        expect(history.items).toHaveLength(1);
+        expect(history.currentEventId).toBe(e.id);
+        expect(JSON.stringify(history)).not.toContain('owner_id');
+        expect(
+          (await run.runtime.query('SELECT * FROM desire_reminders WHERE desire_id=$1', [d.id]))
+            .rowCount,
+        ).toBe(0);
+        await review(d.id, 2, 'bought').expect(409);
+      },
+    );
+
+    it('schedules delayed outcomes, reschedules them, paginates and preserves notes', async () => {
+      const d = await createMinimal();
+      const date = future();
+      const e = (
+        await review(d.id, 1, 'delayed', { reviewAt: date, note: '  Keep thinking  ' }).expect(201)
+      ).body;
+      expect(e.note).toBe('Keep thinking');
+      expect(e.reviewAt).toBe(date);
+      const nextDate = new Date(Date.now() + 172800000).toISOString();
+      await review(d.id, 2, 'delayed', { reviewAt: nextDate }).expect(201);
+      const current = (await get(`/${d.id}`).expect(200)).body;
+      expect(current.status).toBe('waiting');
+      expect(current.reviewAt).toBe(nextDate);
+      const intent = (
+        await run.runtime.query(
+          'SELECT schedule_version,scheduled_for FROM desire_reminders WHERE desire_id=$1',
+          [d.id],
+        )
+      ).rows[0];
+      expect(intent.schedule_version).toBe(3);
+      expect(intent.scheduled_for.toISOString()).toBe(nextDate);
+      const page = (await get(`/${d.id}/reviews?limit=1`).expect(200)).body;
+      expect(page.items[0].sequence).toBe(3);
+      expect(page.nextBefore).toBe(3);
+      const earlier = (await get(`/${d.id}/reviews?before=${page.nextBefore}&limit=1`).expect(200))
+        .body;
+      expect(earlier.items[0].id).toBe(e.id);
+      expect(earlier.currentEventId).toBe(page.currentEventId);
+      expect(earlier.nextBefore).toBeNull();
+      await patch(d.id, { revision: 3, waitingPeriod: null }).expect(409);
+      await get(`/${d.id}/reviews?limit=101`).expect(400);
+    });
+
+    it('deduplicates concurrent retries and rejects a reused command with a changed body', async () => {
+      const d = await createMinimal();
+      const body = {
+        commandId: randomUUID(),
+        revision: 1,
+        outcome: 'declined',
+        note: 'Original note',
+      };
+      const results = await Promise.all([
+        post(`/${d.id}/reviews`, body),
+        post(`/${d.id}/reviews`, body),
+      ]);
+      expect(results.map((r) => r.status)).toEqual([201, 201]);
+      expect(results[0].body.id).toBe(results[1].body.id);
+      await post(`/${d.id}/reviews`, { ...body, note: 'Changed' }).expect(409);
+      expect((await get(`/${d.id}/reviews`)).body.items).toHaveLength(1);
+      expect((await get(`/${d.id}`)).body.revision).toBe(2);
+    });
+
+    it.each([
+      ['9223372036854775807', 'INR'],
+      ['101', 'USD'],
+      ['0', 'JPY'],
+      [null, null],
+    ])(
+      'snapshots exact money %s %s and counts only the current declined estimate',
+      async (amount, currency) => {
+        const d = (
+          await post('', {
+            name: 'Exact estimated amount',
+            likelyPriceMinor: amount,
+            currency,
+          }).expect(201)
+        ).body;
+        const first = (await review(d.id, 1, 'declined').expect(201)).body;
+        let history = (await get(`/${d.id}/reviews`)).body;
+        expect(history.estimatedNotSpentMinor).toBe(amount);
+        expect(history.currency).toBe(currency);
+        const correction = (
+          await review(d.id, 2, 'declined', {
+            supersedesEventId: first.id,
+            note: 'Correction, retaining estimate',
+          }).expect(201)
+        ).body;
+        history = (await get(`/${d.id}/reviews`)).body;
+        expect(history.items).toHaveLength(2);
+        expect(history.estimatedNotSpentMinor).toBe(amount);
+        expect(history.currency).toBe(currency);
+        await review(d.id, 3, 'bought', { supersedesEventId: first.id }).expect(409);
+        await review(d.id, 3, 'bought', { supersedesEventId: correction.id }).expect(201);
+        history = (await get(`/${d.id}/reviews`)).body;
+        expect(history.estimatedNotSpentMinor).toBeNull();
+        expect(history.currency).toBeNull();
+        expect(history.items[2].estimatedNotSpentMinor).toBe(amount);
+        expect(history.items[2].id).toBe(first.id);
+      },
+    );
+
+    it('keeps recorded estimates stable across metadata edits until explicitly corrected', async () => {
+      const d = (
+        await post('', {
+          name: 'Snapshot estimate',
+          likelyPriceMinor: '101',
+          currency: 'INR',
+        }).expect(201)
+      ).body;
+      const e = (await review(d.id, 1, 'declined').expect(201)).body;
+      await patch(d.id, { revision: 2, likelyPriceMinor: '202', currency: 'USD' }).expect(200);
+      expect((await get(`/${d.id}/reviews`)).body).toMatchObject({
+        estimatedNotSpentMinor: '101',
+        currency: 'INR',
+      });
+      await review(d.id, 3, 'declined', { supersedesEventId: e.id }).expect(201);
+      const history = (await get(`/${d.id}/reviews`)).body;
+      expect(history).toMatchObject({ estimatedNotSpentMinor: '202', currency: 'USD' });
+      expect(history.items[1]).toMatchObject({ estimatedNotSpentMinor: '101', currency: 'INR' });
+    });
+
+    it('can reopen a resolved review with a correction and never reuses a cancelled reminder version', async () => {
+      const d = (await post('', { name: 'Reopen', waitingPeriod: { reviewAt: future() } })).body;
+      const e = (await review(d.id, 1, 'declined').expect(201)).body;
+      const date = future();
+      await review(d.id, 2, 'delayed', { reviewAt: date, supersedesEventId: e.id }).expect(201);
+      const r = (
+        await run.runtime.query(
+          'SELECT schedule_version FROM desire_reminders WHERE desire_id=$1',
+          [d.id],
+        )
+      ).rows[0];
+      expect(r.schedule_version).toBe(3);
+      expect((await get(`/${d.id}`)).body.reviewAt).toBe(date);
+    });
+
+    it('rejects missing, foreign, and non-owned linked items and retains an unavailable link after deletion', async () => {
+      const d = await createMinimal();
+      await review(d.id, 1, 'used_owned').expect(400);
+      await review(d.id, 1, 'used_owned', { linkedItemId: randomUUID() }).expect(404);
+      await review(d.id, 1, 'used_owned', { linkedItemId: await ownedItem(other) }).expect(404);
+      const id = await ownedItem();
+      await run.runtime.query("UPDATE items SET ownership_status='sold' WHERE id=$1", [id]);
+      await review(d.id, 1, 'used_owned', { linkedItemId: id }).expect(404);
+      await run.runtime.query("UPDATE items SET ownership_status='owned' WHERE id=$1", [id]);
+      const e = (await review(d.id, 1, 'used_owned', { linkedItemId: id }).expect(201)).body;
+      expect(e.linkedItemName).toBe('Synthetic owned item');
+      await run.runtime.query('DELETE FROM items WHERE id=$1', [id]);
+      const history = (await get(`/${d.id}/reviews`)).body;
+      expect(history.items[0].linkedItemId).toBe(id);
+      expect(history.items[0].linkedItemName).toBeNull();
+    });
+
+    it('supports bought with an optional owned-item link without creating an inventory purchase', async () => {
+      const d = await createMinimal();
+      const id = await ownedItem();
+      const e = (await review(d.id, 1, 'bought', { linkedItemId: id }).expect(201)).body;
+      expect(e.linkedItemId).toBe(id);
+      expect(e.estimatedNotSpentMinor).toBeNull();
+      expect(
+        (await run.runtime.query('SELECT price_paid_minor FROM items WHERE id=$1', [id])).rows[0]
+          .price_paid_minor,
+      ).toBeNull();
+    });
+
+    it('validates outcome/date/note combinations and stale revisions without changing state', async () => {
+      const d = await createMinimal();
+      for (const [outcome, extra] of [
+        ['invalid', {}],
+        ['delayed', {}],
+        ['delayed', { reviewAt: '2027-01-01' }],
+        ['delayed', { reviewAt: '2000-01-01T00:00:00Z' }],
+        ['bought', { reviewAt: future() }],
+        ['declined', { linkedItemId: randomUUID() }],
+        ['declined', { note: ' ' }],
+        ['declined', { note: null }],
+        ['declined', { note: 'a'.repeat(2001) }],
+      ] as const) {
+        await review(d.id, 1, outcome, extra).expect(400);
+      }
+      await review(d.id, 10, 'declined').expect(409);
+      expect((await get(`/${d.id}/reviews`)).body.items).toEqual([]);
+    });
+
+    it('enforces database isolation, immutable history, projection, constraints and parent erasure', async () => {
+      const d = await createMinimal();
+      const e = (await review(d.id, 1, 'declined').expect(201)).body;
+      expect(
+        (await run.runtime.query('SELECT * FROM desire_review_events WHERE desire_id=$1', [d.id]))
+          .rows,
+      ).toEqual([]);
+      await run.runtime.query("SELECT set_config('havefolio.owner_id',$1,false)", [other]);
+      expect(
+        (await run.runtime.query('SELECT * FROM desire_review_events WHERE desire_id=$1', [d.id]))
+          .rows,
+      ).toEqual([]);
+      await run.runtime.query("SELECT set_config('havefolio.owner_id',$1,false)", [owner]);
+      await expect(
+        run.runtime.query("UPDATE desire_review_events SET note='Changed' WHERE id=$1", [e.id]),
+      ).rejects.toMatchObject({ code: '23514' });
+      await expect(
+        run.runtime.query('DELETE FROM desire_review_events WHERE id=$1', [e.id]),
+      ).rejects.toMatchObject({ code: '23514' });
+      // Projection guard sees history even without a caller owner context.
+      await run.runtime.query("SELECT set_config('havefolio.owner_id','',false)");
+      await expect(
+        run.runtime.query("UPDATE desires SET status='considering' WHERE id=$1", [d.id]),
+      ).rejects.toMatchObject({ code: '23514' });
+      await run.runtime.query("SELECT set_config('havefolio.owner_id',$1,false)", [owner]);
+      const insert = `INSERT INTO desire_review_events(desire_id,owner_id,command_id,request_hash,sequence,outcome,supersedes_event_id,linked_item_id) VALUES($1,$2,$3,$4,3,'bought',$5,$6)`;
+      await expect(
+        run.runtime.query(insert, [d.id, other, randomUUID(), 'a'.repeat(64), e.id, null]),
+      ).rejects.toMatchObject({ code: '23503' });
+      await expect(
+        run.runtime.query(insert, [
+          d.id,
+          owner,
+          randomUUID(),
+          'a'.repeat(64),
+          e.id,
+          await ownedItem(other),
+        ]),
+      ).rejects.toMatchObject({ code: '23503' });
+      const originalCommand = (
+        await run.runtime.query<{ command_id: string }>(
+          'SELECT command_id FROM desire_review_events WHERE id=$1',
+          [e.id],
+        )
+      ).rows[0]!.command_id;
+      await expect(
+        run.runtime.query(insert, [d.id, owner, originalCommand, 'a'.repeat(64), e.id, null]),
+      ).rejects.toMatchObject({ code: '23505', constraint: 'review_command_unique' });
+      for (const [requestHash, note, outcome, reviewAt, constraint] of [
+        ['invalid', null, 'bought', null, 'review_hash_check'],
+        ['a'.repeat(64), ' ', 'bought', null, 'review_note_check'],
+        ['a'.repeat(64), null, 'unknown', null, 'review_link_check'],
+        ['a'.repeat(64), null, 'bought', future(), 'review_date_check'],
+      ] as const) {
+        await expect(
+          run.runtime.query(
+            `INSERT INTO desire_review_events(desire_id,owner_id,command_id,request_hash,sequence,outcome,supersedes_event_id,note,review_at) VALUES($1,$2,$3,$4,3,$5,$6,$7,$8)`,
+            [d.id, owner, randomUUID(), requestHash, outcome, e.id, note, reviewAt],
+          ),
+        ).rejects.toMatchObject({ code: '23514', constraint });
+      }
+      const indexes = (
+        await run.runtime.query<{ indexname: string }>(
+          "SELECT indexname FROM pg_indexes WHERE schemaname=$1 AND tablename='desire_review_events'",
+          [run.schema],
+        )
+      ).rows.map((r) => r.indexname);
+      expect(indexes).toEqual(
+        expect.arrayContaining([
+          'review_sequence_unique',
+          'review_command_unique',
+          'review_owner_desire_order_idx',
+          'review_identity_unique',
+        ]),
+      );
+      await run.runtime.query("SELECT set_config('havefolio.owner_id','',false)");
+      const corrected = await review(d.id, 2, 'bought', { supersedesEventId: e.id }).expect(201);
+      expect(corrected.body.supersedesEventId).toBe(e.id);
+      await remove(d.id, 3).expect(204);
+      await get(`/${d.id}/reviews`).expect(404);
+    });
   });
 });
