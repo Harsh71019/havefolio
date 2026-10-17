@@ -17,7 +17,7 @@ const base: ItemResponse = {
   pricePaidMinor: null,
   purchaseDate: { precision: 'unknown' },
   acquisitionType: 'unknown',
-  condition: 'working',
+  condition: 'worn_out',
   useFrequency: 'unknown',
   ownershipStatus: 'owned',
   categoryId: null,
@@ -134,6 +134,7 @@ test('purchase detail and edit remain private, responsive and keyboard accessibl
   await expect(link).toHaveAttribute('rel', 'noreferrer noopener');
   await expect(link).toHaveAttribute('target', '_blank');
   await expect(page.getByText('Local seller', { exact: true })).toBeVisible();
+  await expect(page.getByText('Worn out', { exact: true })).toBeVisible();
   await expect(page.getByText(base.purchaseUrl!, { exact: true })).toHaveCount(0);
   for (const theme of ['light', 'dark']) {
     await page.evaluate((value) => {

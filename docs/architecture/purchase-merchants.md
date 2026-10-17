@@ -26,7 +26,7 @@ Cross-owner and missing IDs have the same fixed not-found response. The current 
 registered-owner authentication policy is unchanged; isolation is also tested with dormant
 synthetic owner records at the service/database boundary.
 
-Forward migration `0016_purchase_merchants.sql` adds the table, constraints, nullable item
+Forward migration `0017_purchase_merchants.sql` adds the table, constraints, nullable item
 columns, unique owner/name and composite owner/identity keys, an owner/state/name search
 index and an owner/merchant/item index for later aggregation. Existing migration history
 is unchanged. Production needs the forward migration before deploying this API/UI; review
@@ -94,6 +94,9 @@ clearing, failed item-save recovery, merchant outage and custom creation. Screen
 API-mocked presentation evidence, not authenticated-live production proof. Manual screen
 reader/assistive-technology review remains a release verification step.
 
-PER-55 can change the same schema, item DTO/contracts and forms. Keep separate migration
-history and land PER-55 first as requested; rebase and resolve migration numbering and
-shared contracts intentionally, then rerun all gates before marking PER-56 ready.
+PER-55 merged first in PR #38. This branch is rebased onto that merged main and preserves
+its `0016_worn_out_condition.sql`, snapshot and journal entry without changes. PER-56's
+merchant migration is regenerated as `0017_purchase_merchants.sql`; its snapshot includes
+both the existing worn-out condition and the new merchant fields. Shared DTOs, contracts
+and forms retain `worn_out`. Integration and browser regressions cover purchase-source
+changes on a worn-out item while preserving its condition and owned status.

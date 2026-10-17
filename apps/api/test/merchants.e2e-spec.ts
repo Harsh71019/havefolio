@@ -126,6 +126,23 @@ describe('owner-private purchase merchants and URLs', () => {
     );
     expect((await createMerchant('Amazon India')).id).not.toBe(original.id);
   });
+  it('preserves PER-55 worn-out condition and ownership through purchase source changes', async () => {
+    const merchant = await createMerchant('Worn-out item seller');
+    const item = await createItem({
+      condition: 'worn_out',
+      merchantId: merchant.id,
+      purchaseUrl: 'https://shop.example.test/synthetic',
+    });
+    expect(item.condition).toBe('worn_out');
+    expect(item.ownershipStatus).toBe('owned');
+    const updated = (await patchItem(item, { merchantId: null, purchaseUrl: null }).expect(200))
+      .body as ItemDto;
+    expect(updated.condition).toBe('worn_out');
+    expect(updated.ownershipStatus).toBe('owned');
+    const events = (await history(item.id)).events;
+    expect(events.filter((e) => e.eventType === 'details_updated')).toHaveLength(1);
+    expect(events.filter((e) => e.eventType === 'condition_changed')).toHaveLength(0);
+  });
   it('uses the same database Unicode lowercase mapping for creation and search', async () => {
     const merchant = await createMerchant('İstanbul seller');
     for (const q of ['İstanbul', 'istanbul']) {
