@@ -19,7 +19,8 @@ export function normalizeSpendingQuery(q: SpendingQueryDto): SpendingQueryDto {
   }
   if (q.purchasedFrom && q.purchasedTo && q.purchasedFrom > q.purchasedTo) invalid();
   const grouping = q.grouping ?? 'overall';
-  if (!['overall', 'category', 'subcategory', 'year', 'month'].includes(grouping)) invalid();
+  if (!['overall', 'category', 'subcategory', 'year', 'month', 'merchant'].includes(grouping))
+    invalid();
   return { ...q, grouping };
 }
 
@@ -36,20 +37,35 @@ export function spendingSql(
     return `$${values.length}`;
   };
   const membership = spendingMembershipSql(q, bind);
+  const isMerchant = q.grouping === 'merchant';
   const key = {
     overall: 'NULL::text',
     category: 'category_id::text',
     subcategory: 'subcategory_id::text',
     year: "lpad(purchase_year::text,4,'0')",
     month: "lpad(purchase_year::text,4,'0')||'-'||lpad(purchase_month::text,2,'0')",
+    merchant: 's.merchant_id::text',
   }[q.grouping ?? 'overall'];
+  const merchantJoin = isMerchant
+    ? 'LEFT JOIN merchants m ON m.id=s.merchant_id AND m.owner_id=$1'
+    : '';
+  const merchantSelect = isMerchant
+    ? "CASE WHEN s.merchant_id IS NOT NULL THEN jsonb_build_object('id',m.id::text,'displayName',m.display_name,'websiteHost',m.website_host,'state',m.state) ELSE NULL END AS merchant,"
+    : 'NULL::jsonb AS merchant,';
+  const groupBy = isMerchant
+    ? 'GROUP BY currency,s.merchant_id,m.id,m.display_name,m.website_host,m.state,m.normalized_name,relation'
+    : `GROUP BY currency,${key},relation`;
+  const orderBy = isMerchant
+    ? 'ORDER BY currency,(s.merchant_id IS NULL) ASC,m.normalized_name ASC NULLS LAST,relation'
+    : `ORDER BY currency,${key} NULLS FIRST,relation`;
+
   return {
     values,
     text: `WITH ${membership}, refunds AS (
     SELECT r.item_id,sum(r.amount_minor) AS refunded FROM item_refunds r
       JOIN source s ON s.id=r.item_id AND s.owner_id=r.owner_id AND s.currency=r.currency
       WHERE r.owner_id=$1 GROUP BY r.item_id
-  ) SELECT currency,${key} AS key,relation AS "dateBucket",
+  ) SELECT currency,${key} AS key,${merchantSelect}relation AS "dateBucket",
     coalesce(sum(price_paid_minor),0)::text AS "grossMinor",sum(coalesce(r.refunded,0::numeric))::text AS "refundedMinor",
     (coalesce(sum(price_paid_minor),0)-sum(coalesce(r.refunded,0::numeric)))::text AS "netMinor",
     count(*) FILTER (WHERE price_paid_minor IS NOT NULL)::text AS "pricedItemCount",
@@ -58,10 +74,11 @@ export function spendingSql(
     count(*) FILTER (WHERE price_paid_minor=0)::text AS "explicitZeroCount",
     count(*) FILTER (WHERE purchase_date_precision<>'unknown')::text AS "knownDateCount",
     count(*) FILTER (WHERE purchase_date_precision='unknown')::text AS "unknownDateCount",
+    count(*) FILTER (WHERE s.merchant_id IS NULL)::text AS "missingMerchantCount",
     count(*)::text AS "totalItemCount",
     bool_or(purchase_date_precision='year') AS "hasYearPrecision"
-    FROM related s LEFT JOIN refunds r ON r.item_id=s.id WHERE relation<>'outside' GROUP BY currency,${key},relation
-    ORDER BY currency,key NULLS FIRST,relation LIMIT 1001`,
+    FROM related s ${merchantJoin} LEFT JOIN refunds r ON r.item_id=s.id WHERE relation<>'outside' ${groupBy}
+    ${orderBy} LIMIT 1001`,
   };
 }
 
@@ -74,6 +91,7 @@ type AggregateRow = Omit<
   | 'knownDateCount'
   | 'unknownDateCount'
   | 'totalItemCount'
+  | 'missingMerchantCount'
 > & {
   pricedItemCount: string;
   unknownPriceCount: string;
@@ -82,6 +100,7 @@ type AggregateRow = Omit<
   knownDateCount: string;
   unknownDateCount: string;
   totalItemCount: string;
+  missingMerchantCount: string;
   hasYearPrecision: boolean;
 };
 const countKeys = [
@@ -92,6 +111,7 @@ const countKeys = [
   'knownDateCount',
   'unknownDateCount',
   'totalItemCount',
+  'missingMerchantCount',
 ] as const;
 @Injectable()
 export class SpendingService {
@@ -108,6 +128,13 @@ export class SpendingService {
         );
         if (!result.rows[0]?.valid) invalid();
       }
+      if (q.merchantId) {
+        const result = await c.query<{ valid: boolean }>(
+          `SELECT EXISTS(SELECT 1 FROM merchants WHERE owner_id=$1 AND id=$2) AS valid`,
+          [owner, q.merchantId],
+        );
+        if (!result.rows[0]?.valid) invalid();
+      }
       const query = spendingSql(owner, q);
       const { rows } = await c.query<AggregateRow>(query.text, query.values);
       if (rows.length > 1000) throw new BadRequestException('SPENDING_BUCKET_LIMIT');
@@ -115,8 +142,6 @@ export class SpendingService {
         throw new BadRequestException('SPENDING_PRECISION_UNREPRESENTABLE');
       const buckets = rows.map((row) => {
         if (BigInt(row.netMinor) < 0n) throw new Error('Spending invariant violated');
-        const bucket = { ...row };
-        Reflect.deleteProperty(bucket, 'hasYearPrecision');
         const counts = Object.fromEntries(
           countKeys.map((k) => {
             const n = Number(row[k]);
@@ -124,7 +149,19 @@ export class SpendingService {
             return [k, n];
           }),
         ) as Pick<SpendingBucket, (typeof countKeys)[number]>;
-        return { ...bucket, ...counts };
+        const result: SpendingBucket = {
+          currency: row.currency,
+          key: row.key,
+          dateBucket: row.dateBucket,
+          grossMinor: row.grossMinor,
+          refundedMinor: row.refundedMinor,
+          netMinor: row.netMinor,
+          ...counts,
+        };
+        if (q.grouping === 'merchant') {
+          result.merchant = row.merchant ?? null;
+        }
+        return result;
       });
       return {
         scope: q.scope,

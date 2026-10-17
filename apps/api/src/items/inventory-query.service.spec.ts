@@ -57,8 +57,40 @@ describe('inventory query rules', () => {
     { dateKnown: 'only', purchasedTo: '2024-01-01' },
     { direction: 'desc', sort: 'oldest' },
     { subcategoryId: 'child' },
+    { spendingUnassigned: 'merchant' },
+    {
+      spendingScope: 'current-owned',
+      spendingUnassigned: 'merchant',
+      merchantId: '00000000-0000-0000-0000-000000000001',
+    },
   ] as ItemsQueryDto[])('rejects unsupported semantic combination %j', (q) => {
     expect(() => normalizeQuery(q)).toThrow('INVALID_ITEM_QUERY');
+  });
+  it('binds merchantId and handles unassigned merchant drill-down SQL', () => {
+    const merchantSql = inventorySql(
+      'owner',
+      normalizeQuery({
+        spendingScope: 'current-owned',
+        merchantId: '00000000-0000-0000-0000-000000000001',
+      }),
+    );
+    expect(merchantSql.values).toContain('00000000-0000-0000-0000-000000000001');
+
+    const unassignedSql = inventorySql(
+      'owner',
+      normalizeQuery({
+        spendingScope: 'current-owned',
+        spendingUnassigned: 'merchant',
+      }),
+    );
+    expect(unassignedSql.text).toContain('merchant_id IS NULL');
+  });
+  it('rejects foreign merchant in taxonomy check', async () => {
+    query.mockResolvedValueOnce({ rows: [{ valid: false }] } as never);
+    await expect(
+      service.list('owner', { merchantId: '00000000-0000-0000-0000-000000000002' }),
+    ).rejects.toThrow('INVALID_ITEM_QUERY');
+    expect(query).toHaveBeenCalledTimes(1);
   });
   it.each([
     { q: 'x'.repeat(201) },

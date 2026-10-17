@@ -31,7 +31,10 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
     token = newToken();
   const category = randomUUID(),
     child = randomUUID(),
-    foreign = randomUUID();
+    foreign = randomUUID(),
+    merchantActive = randomUUID(),
+    merchantRetired = randomUUID(),
+    foreignMerchant = randomUUID();
   const fixtures: SpendingItemInput[] = [];
   const ids: string[] = [];
   let app: NestExpressApplication, service: SpendingService;
@@ -61,6 +64,13 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       [child, owner, category],
     );
     await run.runtime.query('UPDATE categories SET retired_at=now() WHERE id=$1', [category]);
+    await run.runtime.query(
+      `INSERT INTO merchants(id,owner_id,display_name,normalized_name,website_host,state)
+       VALUES($1,$2,'Amazon India','amazon india','amazon.in','active'),
+             ($3,$2,'Flipkart','flipkart','flipkart.com','retired'),
+             ($4,$5,'Foreign Store','foreign store',NULL,'active')`,
+      [merchantActive, owner, merchantRetired, foreignMerchant, other],
+    );
     const statuses = ['owned', 'sold', 'donated', 'disposed', 'lost', 'returned'] as const;
     const dates = [
       { precision: 'exact', year: 2024, month: 2, day: 29 },
@@ -69,6 +79,7 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       { precision: 'unknown' },
     ] as const;
     for (let n = 0; n < 24; n++) {
+      const merchantId = n < 8 ? merchantActive : n < 16 ? merchantRetired : null;
       const input: SpendingItemInput = {
         currency: n === 23 ? 'USD' : n === 20 || n === 21 ? 'EUR' : 'INR',
         pricePaidMinor:
@@ -85,6 +96,7 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
           (n % 6 === 0 && n !== 12) || n % 6 === 2 ? 'gift' : n % 6 === 3 ? 'secondhand' : 'bought',
         ownershipStatus: statuses[Math.floor(n / 4) % 6]!,
         purchaseDate: dates[n % 4]!,
+        merchantId,
         refunds:
           n % 6 === 4
             ? [
@@ -103,7 +115,7 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       fixtures.push(input);
       const d = input.purchaseDate;
       const result = await run.runtime.query<{ id: string }>(
-        `INSERT INTO items(owner_id,name,currency,price_paid_minor,acquisition_type,ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,subcategory_id,original_entry,original_source,created_at) VALUES($1,'Synthetic item',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'{}','manual','2030-01-01') RETURNING id`,
+        `INSERT INTO items(owner_id,name,currency,price_paid_minor,acquisition_type,ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,subcategory_id,merchant_id,original_entry,original_source,created_at) VALUES($1,'Synthetic item',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'{}','manual','2030-01-01') RETURNING id`,
         [
           owner,
           input.currency,
@@ -116,6 +128,7 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
           d.day ?? null,
           n < 12 ? category : null,
           n < 6 ? child : null,
+          merchantId,
         ],
       );
       const id = result.rows[0]!.id;
@@ -139,8 +152,8 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
     for (let n = 0; n < ids.length; n++) {
       const sample = (
         await run.runtime.query<{ id: string }>(
-          `INSERT INTO items(owner_id,demo_dataset_id,name,currency,price_paid_minor,acquisition_type,ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,subcategory_id,original_entry,original_source)
-        SELECT owner_id,$2,name,currency,price_paid_minor,acquisition_type,ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,subcategory_id,original_entry,original_source FROM items WHERE id=$1 RETURNING id`,
+          `INSERT INTO items(owner_id,demo_dataset_id,name,currency,price_paid_minor,acquisition_type,ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,subcategory_id,merchant_id,original_entry,original_source)
+        SELECT owner_id,$2,name,currency,price_paid_minor,acquisition_type,ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,subcategory_id,merchant_id,original_entry,original_source FROM items WHERE id=$1 RETURNING id`,
           [ids[n], dataset],
         )
       ).rows[0]!.id;
@@ -182,9 +195,9 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
     await run.close();
   });
   it.each(['current-owned', 'all-history'] as const)(
-    'drills down every category/subcategory/year date bucket with exact %s membership and opaque pages',
+    'drills down every category/subcategory/year/merchant date bucket with exact %s membership and opaque pages',
     async (scope) => {
-      for (const grouping of ['category', 'subcategory', 'year'] as const) {
+      for (const grouping of ['category', 'subcategory', 'year', 'merchant'] as const) {
         for (const range of [{}, { purchasedFrom: '2024-02-29', purchasedTo: '2024-02-29' }]) {
           const r = await report({ scope, grouping, ...range });
           for (const bucket of r.buckets) {
@@ -206,6 +219,18 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
               } else query.spendingUnassigned = 'subcategory';
             }
             if (grouping === 'year' && bucket.key) query.spendingYear = bucket.key;
+            if (grouping === 'merchant') {
+              if (bucket.key) {
+                query.merchantId = bucket.key;
+                expect(bucket.merchant).toBeDefined();
+                expect(bucket.merchant?.id).toBe(bucket.key);
+                expect(['Amazon India', 'Flipkart']).toContain(bucket.merchant?.displayName);
+              } else {
+                query.spendingUnassigned = 'merchant';
+                expect(bucket.merchant).toBeNull();
+                expect(bucket.missingMerchantCount).toBe(bucket.totalItemCount);
+              }
+            }
             const collected: ItemsPage['items'] = [];
             let cursor: string | null = null;
             do {
@@ -245,7 +270,9 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       { spendingScope: 'invalid' },
       { spendingScope: 'current-owned', ownershipStatus: 'sold' },
       { spendingScope: 'all-history', categoryId: foreign },
+      { spendingScope: 'all-history', merchantId: foreignMerchant },
       { spendingScope: 'all-history', spendingUnassigned: 'category', categoryId: category },
+      { spendingScope: 'all-history', spendingUnassigned: 'merchant', merchantId: merchantActive },
       { spendingScope: 'all-history', spendingYear: '0000' },
     ]) {
       const r = await request(app.getHttpServer())
@@ -358,7 +385,7 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
     }
     return [...result].sort(([a], [b]) => a.localeCompare(b));
   };
-  it.each(['category', 'subcategory', 'year'])(
+  it.each(['category', 'subcategory', 'year', 'merchant'])(
     'reconciles %s drilldown with overall including unassigned and retired taxonomy',
     async (grouping) => {
       expect(merge((await report({ grouping })).buckets)).toEqual(merge((await report()).buckets));
@@ -417,6 +444,8 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
     { categoryId: foreign },
     { categoryId: randomUUID() },
     { categoryId: category, subcategoryId: randomUUID() },
+    { merchantId: foreignMerchant },
+    { merchantId: randomUUID() },
   ])('rejects invalid or cross-owner query %j', async (q) => {
     await get(q).expect(400);
   });
@@ -439,7 +468,11 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
     expect(operation.responses).toHaveProperty('401');
     expect(operation.responses).toHaveProperty('503');
     expect(doc.components!.schemas!.SpendingBucketDto).toMatchObject({
-      properties: { grossMinor: { type: 'string' }, netMinor: { type: 'string' } },
+      properties: {
+        grossMinor: { type: 'string' },
+        netMinor: { type: 'string' },
+        missingMerchantCount: { type: 'number' },
+      },
     });
     expect(JSON.stringify(operation.parameters)).toContain('scope');
     const itemParameters = doc.paths['/api/v1/items']!.get!.parameters as { name: string }[];
@@ -449,6 +482,7 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
         'spendingDateBucket',
         'spendingUnassigned',
         'spendingYear',
+        'merchantId',
       ]),
     );
   });
@@ -460,6 +494,9 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       expect(queries).toHaveBeenCalledTimes(4);
       queries.mockClear();
       await service.report(owner, { scope: 'all-history', categoryId: category });
+      expect(queries).toHaveBeenCalledTimes(5);
+      queries.mockClear();
+      await service.report(owner, { scope: 'all-history', merchantId: merchantActive });
       expect(queries).toHaveBeenCalledTimes(5);
     } finally {
       queries.mockRestore();
@@ -534,7 +571,7 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       await new Promise<void>((resolve) => receiver.close(() => resolve()));
     }
   });
-  it('measures realistic owner/period/category plans using existing indexes', async () => {
+  it('measures realistic owner/period/category/merchant plans using existing indexes', async () => {
     const synthetic = randomUUID();
     await run.runtime.query('INSERT INTO users(id) VALUES($1)', [synthetic]);
     await run.runtime.query(
@@ -543,9 +580,9 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       [synthetic],
     );
     await run.runtime.query(
-      `INSERT INTO items(owner_id,name,currency,price_paid_minor,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,original_entry,original_source)
-      SELECT $1,'Synthetic plan item','INR',n,'exact',2020+(n%5),2,1,$2,'{}','manual' FROM generate_series(1,2000) n`,
-      [owner, category],
+      `INSERT INTO items(owner_id,name,currency,price_paid_minor,purchase_date_precision,purchase_year,purchase_month,purchase_day,category_id,merchant_id,original_entry,original_source)
+      SELECT $1,'Synthetic plan item','INR',n,'exact',2020+(n%5),2,1,$2,$3,'{}','manual' FROM generate_series(1,2000) n`,
+      [owner, category, merchantActive],
     );
     await run.runtime.query(
       `INSERT INTO item_refunds(owner_id,item_id,currency,amount_minor)
@@ -558,6 +595,8 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       { scope: 'all-history' as const },
       { scope: 'all-history' as const, purchasedFrom: '2024-02-01', purchasedTo: '2024-02-29' },
       { scope: 'current-owned' as const, categoryId: category },
+      { scope: 'all-history' as const, merchantId: merchantActive },
+      { scope: 'all-history' as const, grouping: 'merchant' as const },
     ]) {
       const sql = spendingSql(owner, q);
       const result = await run.runtime.query(
@@ -569,12 +608,20 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
       const text = JSON.stringify(plan);
       expect(text).toMatch(/Index|Bitmap/);
       plans.push({
-        shape: q.categoryId ? 'category' : q.purchasedFrom ? 'period' : 'owner',
+        shape: q.merchantId
+          ? 'merchant'
+          : q.grouping === 'merchant'
+            ? 'merchant-grouping'
+            : q.categoryId
+              ? 'category'
+              : q.purchasedFrom
+                ? 'period'
+                : 'owner',
         executionMs: plan['Execution Time'],
       });
     }
     console.info(
-      'PER-20 synthetic plan evidence (14024 items, 2024 target-owner items, 400 synthetic refunds)',
+      'PER-57 synthetic plan evidence (14024 items, 2024 target-owner items, 400 synthetic refunds)',
       plans,
     );
   }, 30000);

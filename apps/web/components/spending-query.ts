@@ -2,13 +2,14 @@ import type { SpendingQuery, TaxonomySnapshot } from '@havefolio/contracts';
 import { isCurrencyCode, parseCalendarDay } from '@havefolio/domain';
 
 export type InsightsQuery = SpendingQuery & {
-  grouping: 'overall' | 'category' | 'subcategory' | 'year';
+  grouping: 'overall' | 'category' | 'subcategory' | 'year' | 'merchant';
 };
 export type InsightsPatch = { [K in keyof InsightsQuery]?: InsightsQuery[K] | undefined };
 const keys = [
   'scope',
   'grouping',
   'currency',
+  'merchantId',
   'categoryId',
   'subcategoryId',
   'purchasedFrom',
@@ -24,10 +25,17 @@ export function readSpendingQuery(params: URLSearchParams): InsightsQuery {
     if (params.getAll(key).length !== 1) continue;
     const value = params.get(key)!;
     if (key === 'scope' && (value === 'current-owned' || value === 'all-history')) q.scope = value;
-    if (key === 'grouping' && ['overall', 'category', 'subcategory', 'year'].includes(value))
+    if (
+      key === 'grouping' &&
+      ['overall', 'category', 'subcategory', 'year', 'merchant'].includes(value)
+    )
       q.grouping = value as InsightsQuery['grouping'];
     if (key === 'currency' && isCurrencyCode(value.toUpperCase())) q.currency = value.toUpperCase();
-    if ((key === 'categoryId' || key === 'subcategoryId') && uuid.test(value)) q[key] = value;
+    if (
+      (key === 'categoryId' || key === 'subcategoryId' || key === 'merchantId') &&
+      uuid.test(value)
+    )
+      q[key] = value;
     if (key === 'purchasedFrom' || key === 'purchasedTo') {
       try {
         parseCalendarDay(value);

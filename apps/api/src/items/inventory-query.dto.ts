@@ -27,12 +27,12 @@ export class ItemsQueryDto extends PaginationQueryDto {
   @IsIn(['dated', 'spanningRange', 'unknownDate'])
   spendingDateBucket?: 'dated' | 'spanningRange' | 'unknownDate';
   @ApiPropertyOptional({
-    enum: ['category', 'subcategory'],
+    enum: ['category', 'subcategory', 'merchant'],
     description: 'Requires spendingScope. Selects a null assignment, not all assignments.',
   })
   @ValidateIf((_o, v) => v !== undefined)
-  @IsIn(['category', 'subcategory'])
-  spendingUnassigned?: 'category' | 'subcategory';
+  @IsIn(['category', 'subcategory', 'merchant'])
+  spendingUnassigned?: 'category' | 'subcategory' | 'merchant';
   @ApiPropertyOptional({
     pattern: '^[0-9]{4}$',
     description: 'Requires spendingScope. Recorded purchase year, never an invented date.',
@@ -65,6 +65,10 @@ export class ItemsQueryDto extends PaginationQueryDto {
   @ValidateIf((_o, v) => v !== undefined)
   @IsIn(['asc', 'desc'])
   direction?: 'asc' | 'desc';
+  @ApiPropertyOptional({ format: 'uuid', description: 'Filter items by merchant ID.' })
+  @ValidateIf((_o, v) => v !== undefined)
+  @IsUUID()
+  merchantId?: string;
   @ApiPropertyOptional({ format: 'uuid' })
   @ValidateIf((_o, v) => v !== undefined)
   @IsUUID()

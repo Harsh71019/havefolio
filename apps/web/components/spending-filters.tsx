@@ -98,6 +98,7 @@ export function SpendingFilters({
             { value: 'overall', label: 'Summary only' },
             { value: 'category', label: 'Category totals' },
             { value: 'subcategory', label: 'Subcategory totals' },
+            { value: 'merchant', label: 'Merchant totals' },
             { value: 'year', label: 'Yearly trend' },
           ],
           (v) => change({ grouping: v as InsightsQuery['grouping'] }),

@@ -15,6 +15,7 @@ export function spendingMembershipSql(q: SpendingQuery, bind: (v: unknown) => st
     ['currency', 'currency'],
     ['categoryId', 'category_id'],
     ['subcategoryId', 'subcategory_id'],
+    ['merchantId', 'merchant_id'],
   ] as const)
     if (q[key]) clauses.push(`i.${column}=${bind(q[key])}`);
   // Sargable coarse bounds narrow the owner/date index; exact containment remains below.
@@ -29,7 +30,7 @@ export function spendingMembershipSql(q: SpendingQuery, bind: (v: unknown) => st
   const from = bind(q.purchasedFrom ?? null),
     to = bind(q.purchasedTo ?? null);
   return `source AS MATERIALIZED (
-    SELECT i.id,i.owner_id,i.currency,i.price_paid_minor,i.acquisition_type,i.category_id,i.subcategory_id,
+    SELECT i.id,i.owner_id,i.currency,i.price_paid_minor,i.acquisition_type,i.category_id,i.subcategory_id,i.merchant_id,
       i.purchase_date_precision,i.purchase_year,i.purchase_month,
       make_date(i.purchase_year,coalesce(i.purchase_month,1),coalesce(i.purchase_day,1)) AS first_day,
       CASE i.purchase_date_precision WHEN 'year' THEN make_date(i.purchase_year,12,31)

@@ -1,23 +1,32 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, IsUUID, Length } from 'class-validator';
-import type { SpendingQuery, SpendingReport, SpendingBucket } from '@havefolio/contracts';
+import type {
+  SpendingQuery,
+  SpendingReport,
+  SpendingBucket,
+  SpendingBucketMerchant,
+} from '@havefolio/contracts';
 
 export class SpendingQueryDto implements SpendingQuery {
   @ApiProperty({ enum: ['current-owned', 'all-history'] })
   @IsIn(['current-owned', 'all-history'])
   scope!: SpendingQuery['scope'];
   @ApiPropertyOptional({
-    enum: ['overall', 'category', 'subcategory', 'year', 'month'],
+    enum: ['overall', 'category', 'subcategory', 'year', 'month', 'merchant'],
     default: 'overall',
   })
   @IsOptional()
-  @IsIn(['overall', 'category', 'subcategory', 'year', 'month'])
+  @IsIn(['overall', 'category', 'subcategory', 'year', 'month', 'merchant'])
   grouping?: NonNullable<SpendingQuery['grouping']>;
   @ApiPropertyOptional({ description: 'Original ISO 4217 currency; never converted.' })
   @IsOptional()
   @IsString()
   @Length(3, 3)
   currency?: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Filter spending by a specific merchant.' })
+  @IsOptional()
+  @IsUUID()
+  merchantId?: string;
   @ApiPropertyOptional({ format: 'uuid' })
   @IsOptional()
   @IsUUID()
@@ -43,13 +52,21 @@ export class SpendingQueryDto implements SpendingQuery {
   @Length(10, 10)
   purchasedTo?: string;
 }
+
+export class SpendingBucketMerchantDto implements SpendingBucketMerchant {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ maxLength: 120 }) displayName!: string;
+  @ApiProperty({ type: String, nullable: true, maxLength: 253 }) websiteHost!: string | null;
+  @ApiProperty({ enum: ['active', 'retired'] }) state!: 'active' | 'retired';
+}
+
 export class SpendingBucketDto implements SpendingBucket {
   @ApiProperty() currency!: string;
   @ApiProperty({
     type: String,
     nullable: true,
     description:
-      'Taxonomy UUID (null = unassigned), YYYY, YYYY-MM, or null for overall/unknown date. Month reports reject year-only purchases.',
+      'Taxonomy UUID (null = unassigned), merchant UUID (null = not recorded), YYYY, YYYY-MM, or null for overall/unknown date. Month reports reject year-only purchases.',
   })
   key!: string | null;
   @ApiProperty({ enum: ['dated', 'spanningRange', 'unknownDate'] })
@@ -68,10 +85,18 @@ export class SpendingBucketDto implements SpendingBucket {
   @ApiProperty({ minimum: 0 }) knownDateCount!: number;
   @ApiProperty({ minimum: 0 }) unknownDateCount!: number;
   @ApiProperty({ minimum: 0 }) totalItemCount!: number;
+  @ApiProperty({ minimum: 0, description: 'Items with no merchant recorded.' })
+  missingMerchantCount!: number;
+  @ApiPropertyOptional({
+    type: () => SpendingBucketMerchantDto,
+    nullable: true,
+    description: 'Merchant identity when grouping by merchant and key is not null.',
+  })
+  merchant?: SpendingBucketMerchantDto | null | undefined;
 }
 export class SpendingReportDto implements SpendingReport {
   @ApiProperty({ enum: ['current-owned', 'all-history'] }) scope!: SpendingReport['scope'];
-  @ApiProperty({ enum: ['overall', 'category', 'subcategory', 'year', 'month'] })
+  @ApiProperty({ enum: ['overall', 'category', 'subcategory', 'year', 'month', 'merchant'] })
   grouping!: SpendingReport['grouping'];
   @ApiProperty({ enum: ['purchase-date'] }) basis!: 'purchase-date';
   @ApiProperty({ type: String, nullable: true, format: 'date' }) purchasedFrom!: string | null;
