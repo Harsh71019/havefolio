@@ -382,6 +382,9 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                   Edit want
                 </Link>
               </Button>
+              <Button asChild variant="outline" size="sm" className="min-h-11">
+                <Link href={`/wants/${desire.id}/compare`}>Compare before buying</Link>
+              </Button>
               <Button asChild variant="default" size="sm" className="min-h-11">
                 <Link href="/wants">Done / Continue</Link>
               </Button>
@@ -530,6 +533,9 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                 >
                   <Search className="mr-1.5 size-4" aria-hidden="true" />
                   Search your inventory
+                </Button>
+                <Button asChild variant="outline" className="min-h-11">
+                  <Link href={`/wants/${desire.id}/compare`}>Compare before buying</Link>
                 </Button>
                 <Button asChild variant="outline" className="min-h-11">
                   <Link href="/wants">Continue without matching</Link>
