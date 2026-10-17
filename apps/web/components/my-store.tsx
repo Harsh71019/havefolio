@@ -27,6 +27,10 @@ import {
 } from '@havefolio/ui/components/empty';
 import { ItemCover } from '@havefolio/ui/components/havefolio/item-cover';
 import { OwnedItemCard } from '@havefolio/ui/components/havefolio/owned-item-card';
+import { RadioGroup, RadioGroupItem } from '@havefolio/ui/components/radio-group';
+import { Label } from '@havefolio/ui/components/label';
+import { densityImageSizes, storeDensities, type StoreDensity } from './store-density-config';
+import { selectDensity, useStoreDensity } from './store-density';
 import { Skeleton } from '@havefolio/ui/components/skeleton';
 import {
   apiInventorySource,
@@ -53,10 +57,7 @@ const statusIcons: Record<ItemStatus, LucideIcon> = {
   lost: SearchXIcon,
   returned: Undo2Icon,
 };
-const cardSizes =
-  '(min-width: 1280px) 18rem, (min-width: 1024px) 30vw, (min-width: 480px) 46vw, 92vw';
-// At most three columns beside the desktop sidebar so facts never wrap mid-word.
-const gridClass = 'grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 lg:grid-cols-3';
+const gridClass = 'store-grid grid grid-cols-1 gap-4 min-[520px]:grid-cols-2';
 
 const noSubscribe = (): (() => void) => () => undefined;
 /** The deleted item's name left by the item page; read once, then cleared. */
@@ -102,6 +103,7 @@ export function MyStore({
   /** Fixed clock for deterministic age labels in tests. */
   now?: Date;
 }): React.JSX.Element {
+  const density = useStoreDensity();
   const [refresh, setRefresh] = useState(0);
   useEffect(() => {
     const changed = (): void => setRefresh((n) => n + 1);
@@ -184,7 +186,7 @@ export function MyStore({
   }
 
   return (
-    <section aria-label="Your items" className="mt-8 space-y-8">
+    <section aria-label="Your items" className="my-store mt-8 space-y-8">
       <p role="status" aria-live="polite" className="sr-only">
         {load.kind === 'loading' ? 'Loading your items.' : announcement}
       </p>
@@ -202,10 +204,39 @@ export function MyStore({
           You are offline. Items already shown stay visible; reconnect to load more.
         </div>
       ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">
+          {load.kind === 'ready'
+            ? `Showing ${load.items.length} item${load.items.length === 1 ? '' : 's'}${load.nextCursor ? ' so far' : ''}.${load.taxonomy ? '' : ' Categories could not load, so items are not grouped.'}`
+            : load.kind === 'loading'
+              ? 'Loading your items…'
+              : 'Items unavailable'}
+        </p>
+        <div className="hidden items-center gap-3 lg:flex">
+          <span id="store-density-label" className="text-sm font-medium">
+            View density
+          </span>
+          <RadioGroup
+            aria-labelledby="store-density-label"
+            orientation="horizontal"
+            value={density}
+            onValueChange={selectDensity}
+            className="flex gap-3"
+          >
+            {storeDensities.map((mode) => (
+              <Label key={mode} className="flex min-h-11 cursor-pointer items-center gap-2">
+                <RadioGroupItem value={mode} aria-label={mode[0]!.toUpperCase() + mode.slice(1)} />
+                {mode[0]!.toUpperCase() + mode.slice(1)}
+              </Label>
+            ))}
+          </RadioGroup>
+        </div>
+      </div>
       {load.kind === 'loading' ? <StoreSkeleton /> : null}
       {load.kind === 'failed' ? <LoadFailure error={load.error} onRetry={retry} /> : null}
       {load.kind === 'ready' ? (
         <StoreContent
+          density={density}
           load={load}
           now={now}
           more={more}
@@ -224,10 +255,10 @@ function StoreSkeleton(): React.JSX.Element {
     <div aria-hidden="true" className="space-y-4" data-testid="store-skeleton">
       <Skeleton className="h-7 w-40 motion-reduce:animate-none" />
       <div className={gridClass}>
-        {[0, 1, 2, 3].map((n) => (
+        {[0, 1, 2, 3, 4, 5].map((n) => (
           <div key={n} className="overflow-hidden rounded-xl border">
-            <Skeleton className="aspect-[4/3] rounded-none motion-reduce:animate-none" />
-            <div className="space-y-3 p-4">
+            <Skeleton className="store-card-media aspect-[4/3] rounded-none motion-reduce:animate-none" />
+            <div className="store-skeleton-body space-y-3 p-4">
               <Skeleton className="h-4 w-1/3 motion-reduce:animate-none" />
               <Skeleton className="h-5 w-2/3 motion-reduce:animate-none" />
               <Skeleton className="h-10 w-full motion-reduce:animate-none" />
@@ -270,6 +301,7 @@ function LoadFailure({
 }
 
 function StoreContent({
+  density,
   load,
   more,
   now,
@@ -277,6 +309,7 @@ function StoreContent({
   online,
   returnTo,
 }: {
+  density: StoreDensity;
   load: Extract<Load, { kind: 'ready' }>;
   returnTo: string;
   more: { busy: boolean; error?: string };
@@ -310,18 +343,12 @@ function StoreContent({
       </Card>
     );
   const { groups, emptyCategories } = groupInventory(load.items, load.taxonomy);
-  const total = load.items.length;
   // The first few cards in display order load eagerly; the rest wait until near the viewport.
   const eagerIds = new Set(
     groups.flatMap((g) => g.subgroups.flatMap((s) => s.items.map((i) => i.id))).slice(0, 4),
   );
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        Showing {total} item{total === 1 ? '' : 's'}
-        {load.nextCursor ? ' so far' : ''}
-        {load.taxonomy ? '' : '. Categories could not load, so items are not grouped'}.
-      </p>
       {groups.map((group) => (
         <section key={group.key} aria-labelledby={`group-${group.key}`} className="space-y-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -346,6 +373,7 @@ function StoreContent({
                 {subgroup.items.map((item) => (
                   <li key={item.id}>
                     <StoreCard
+                      density={density}
                       item={item}
                       context={
                         // Context only adds information for a genuine subcategory.
@@ -400,12 +428,14 @@ function StoreContent({
 }
 
 function StoreCard({
+  density,
   context,
   eager,
   item,
   now,
   returnTo,
 }: {
+  density: StoreDensity;
   item: ItemListEntry;
   returnTo: string;
   context: string | undefined;
@@ -424,6 +454,7 @@ function StoreCard({
       className="block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <OwnedItemCard
+        className="store-card"
         idPrefix={id}
         name={item.name}
         {...(context ? { context } : {})}
@@ -443,7 +474,7 @@ function StoreCard({
         media={
           cover ? (
             <ItemCover
-              className="h-full"
+              className="absolute inset-0 h-full"
               announceFailure={false}
               failedLabel="Photo could not load."
               loading={eager ? 'eager' : 'lazy'}
@@ -451,11 +482,11 @@ function StoreCard({
                 item.id,
                 { id: cover.photoId, width: cover.width, height: cover.height },
                 cover.decorative ? '' : (cover.altText ?? `Photo of ${item.name}`),
-                cardSizes,
+                densityImageSizes[density],
               )}
             />
           ) : (
-            <ItemCover className="h-full" cover={null} emptyLabel="No photo yet" />
+            <ItemCover className="absolute inset-0 h-full" cover={null} emptyLabel="No photo yet" />
           )
         }
         footer={
