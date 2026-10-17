@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type {
   CreateReviewRequest,
   Desire,
+  DesireConversion,
   ItemListEntry,
   ReviewEvent,
   ReviewHistoryPage,
@@ -17,6 +18,7 @@ import { Textarea } from '@havefolio/ui/components/textarea';
 import { RadioGroup, RadioGroupItem } from '@havefolio/ui/components/radio-group';
 import { Skeleton } from '@havefolio/ui/components/skeleton';
 import {
+  getConversion,
   getDesire,
   readReviews,
   recordReview,
@@ -55,6 +57,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
   const [itemBusy, setItemBusy] = useState(false);
   const [success, setSuccess] = useState('');
   const [uncertain, setUncertain] = useState(false);
+  const [conversion, setConversion] = useState<DesireConversion | null>(null);
   const pending = useRef<CreateReviewRequest | null>(null);
   const notice = useRef<HTMLParagraphElement>(null);
   const reload = useCallback(
@@ -91,6 +94,19 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
       });
     return () => controller.abort();
   }, [desireId]);
+  // PER-29: the optional inventory offer never blocks reading or recording decisions.
+  const status = desire?.status;
+  const revision = desire?.revision;
+  useEffect(() => {
+    if (!status) return;
+    const controller = new AbortController();
+    void getConversion(desireId, controller.signal)
+      .then((c) => {
+        if (!controller.signal.aborted) setConversion(c.conversion);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [desireId, status, revision]);
   const loadItems = async (after?: string): Promise<void> => {
     setItemBusy(true);
     setError('');
@@ -229,6 +245,34 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
           </p>
         </CardContent>
       </Card>
+      {conversion || desire.status === 'bought' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Inventory</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm break-words">
+            {conversion ? (
+              <p>
+                Added to your inventory as{' '}
+                <Link href={`/items/${conversion.itemId}`} className="underline">
+                  {conversion.itemName}
+                </Link>
+                .
+              </p>
+            ) : (
+              <>
+                <p className="text-muted-foreground">
+                  Your bought decision is complete on its own. You can also add the item to your
+                  inventory by confirming what you paid and when.
+                </p>
+                <Button asChild variant="outline" className="min-h-11">
+                  <Link href={`/wants/${desireId}/convert`}>Add to inventory (optional)</Link>
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
       {resolved && !correction ? (
         <Button
           className="min-h-11"

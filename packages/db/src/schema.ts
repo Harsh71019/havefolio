@@ -908,3 +908,63 @@ export const desireItemMatches = pgTable(
     index('desire_item_match_owner_item_idx').on(t.ownerId, t.itemId, t.createdAt, t.id),
   ],
 );
+
+/**
+ * PER-29: the optional link from a desire's effective bought outcome to the owned item the owner
+ * confirmed from it. At most one per desire; retries resolve by command ID. Identity is immutable;
+ * only resumable photo-copy progress changes. Insert-time bought-outcome checks are SQL triggers.
+ */
+export const desireConversions = pgTable(
+  'desire_conversions',
+  {
+    id: uuid('id').primaryKey(),
+    ownerId: uuid('owner_id').notNull(),
+    desireId: uuid('desire_id').notNull(),
+    itemId: uuid('item_id').notNull(),
+    boughtEventId: uuid('bought_event_id').notNull(),
+    commandId: uuid('command_id').notNull(),
+    requestHash: text('request_hash').notNull(),
+    photoState: text('photo_state', {
+      enum: ['not_requested', 'pending', 'copied', 'unavailable'],
+    })
+      .notNull()
+      .default('not_requested'),
+    photoAttempt: integer('photo_attempt').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('conversion_owner_desire_unique').on(t.ownerId, t.desireId),
+    unique('conversion_owner_command_unique').on(t.ownerId, t.commandId),
+    unique('conversion_item_unique').on(t.itemId),
+    foreignKey({
+      columns: [t.desireId, t.ownerId],
+      foreignColumns: [desires.id, desires.ownerId],
+      name: 'conversion_desire_owner_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [t.itemId, t.ownerId],
+      foreignColumns: [items.id, items.ownerId],
+      name: 'conversion_item_owner_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [t.boughtEventId, t.desireId, t.ownerId],
+      foreignColumns: [
+        desireReviewEvents.id,
+        desireReviewEvents.desireId,
+        desireReviewEvents.ownerId,
+      ],
+      name: 'conversion_bought_event_owner_fk',
+    }).onDelete('cascade'),
+    check('conversion_hash_check', sql`${t.requestHash} ~ '^[a-f0-9]{64}$'`),
+    check(
+      'conversion_photo_check',
+      sql`${t.photoState} in ('not_requested','pending','copied','unavailable') and ${t.photoAttempt} between 0 and 5 and ((${t.photoState} = 'not_requested') = (${t.photoAttempt} = 0))`,
+    ),
+    check(
+      'conversion_times_check',
+      sql`isfinite(${t.createdAt}) and isfinite(${t.updatedAt}) and ${t.createdAt} <= ${t.updatedAt}`,
+    ),
+    index('conversion_owner_created_idx').on(t.ownerId, t.createdAt, t.id),
+  ],
+);

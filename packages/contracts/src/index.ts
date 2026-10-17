@@ -582,6 +582,17 @@ export const desireMatchErrorCodes = [
 ] as const;
 export type DesireMatchErrorCode = (typeof desireMatchErrorCodes)[number];
 
+/** PER-29: fixed bought-desire conversion tokens; never names, notes, URLs or amounts. */
+export const desireConversionErrorCodes = [
+  'INVALID_CONVERSION',
+  'DESIRE_NOT_BOUGHT',
+  'STALE_BOUGHT_OUTCOME',
+  'DESIRE_ALREADY_CONVERTED',
+  'CONVERSION_COMMAND_REUSED',
+  'CONVERSION_NOT_FOUND',
+] as const;
+export type DesireConversionErrorCode = (typeof desireConversionErrorCodes)[number];
+
 export const desireErrorCodes = [
   'INVALID_DESIRE',
   'INVALID_DESIRE_PRICE',
@@ -596,6 +607,7 @@ export const desireErrorCodes = [
   'DESIRE_MEDIA_PENDING',
   'DESIRES_UNAVAILABLE',
   ...desireMatchErrorCodes,
+  ...desireConversionErrorCodes,
 ] as const;
 export type DesireErrorCode = (typeof desireErrorCodes)[number];
 
@@ -731,4 +743,74 @@ export interface MatchCandidatesPage {
   items: MatchCandidateItem[];
   nextCursor: string | null;
   hasMore: boolean;
+}
+
+/**
+ * PER-29: optional conversion of an effective bought desire into an owned item. Suggestions are
+ * copied desire data the owner may accept or edit; the likely price is reference only and is
+ * never used as the actual price paid.
+ */
+export const conversionPhotoStates = ['not_requested', 'pending', 'copied', 'unavailable'] as const;
+export type ConversionPhotoState = (typeof conversionPhotoStates)[number];
+
+export interface DesireConversion {
+  id: string;
+  desireId: string;
+  itemId: string;
+  itemName: string;
+  boughtEventId: string;
+  /** False after a later review correction; the item is retained, never silently deleted. */
+  boughtOutcomeCurrent: boolean;
+  photo: ConversionPhotoState;
+  createdAt: string;
+}
+
+export interface DesireConversionSuggestions {
+  name: string;
+  notes: string | null;
+  productUrl: string | null;
+  photo: DesirePhoto | null;
+  /** Reference only: what the owner expected to pay. Never the actual price paid. */
+  likelyPriceMinor: string | null;
+  likelyCurrency: string | null;
+}
+
+export type DesireConversionEligibility = 'eligible' | 'converted' | 'not_bought';
+
+export interface DesireConversionState {
+  desireId: string;
+  eligibility: DesireConversionEligibility;
+  /** The current effective bought event, or null when the current outcome is not bought. */
+  boughtEventId: string | null;
+  suggestions: DesireConversionSuggestions;
+  conversion: DesireConversion | null;
+}
+
+/** Explicit actual price paid: a known amount (including "0") or unknown. Never inferred. */
+export type ConfirmedPricePaid = { state: 'known'; minor: string } | { state: 'unknown' };
+
+export interface ConvertDesireItemRequest {
+  name: string;
+  ownershipStatus: ItemStatus;
+  currency: string;
+  pricePaid: ConfirmedPricePaid;
+  purchaseDate: PurchaseDate;
+  acquisitionType: ItemAcquisition;
+  condition: ItemCondition;
+  useFrequency: ItemFrequency;
+  categoryId?: string | null | undefined;
+  subcategoryId?: string | null | undefined;
+  tagIds?: string[] | undefined;
+  brand?: string | null | undefined;
+  model?: string | null | undefined;
+  notes?: string | null | undefined;
+}
+
+export interface ConvertDesireRequest {
+  /** Stable client command UUID. Retry the identical body with the same UUID. */
+  commandId: string;
+  /** The effective bought event the owner is confirming. */
+  boughtEventId: string;
+  copyPhoto: boolean;
+  item: ConvertDesireItemRequest;
 }

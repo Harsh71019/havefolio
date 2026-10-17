@@ -355,6 +355,13 @@ try {
       '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/reviews',
       '{"commandId":"e3ba903a-b211-4cf4-aad0-ce3a312975ea","revision":1,"outcome":"declined"}',
     ],
+    ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/conversion'],
+    [
+      'POST',
+      '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/conversion',
+      '{"commandId":"e3ba903a-b211-4cf4-aad0-ce3a312975ea","boughtEventId":"9b2f4c2e-3c1d-4d55-9a83-5a6d2d1b8c11","copyPhoto":false}',
+    ],
+    ['POST', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/conversion/photo'],
     ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo'],
     ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo/content/thumbnail'],
     ['DELETE', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo', '{"revision":1}'],

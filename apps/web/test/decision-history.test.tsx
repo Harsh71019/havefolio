@@ -5,6 +5,7 @@ import type { Desire, ReviewEvent, ReviewHistoryPage, ItemListEntry } from '@hav
 import type * as DesiresClient from '../components/desires-client';
 import { DecisionHistory } from '../components/decision-history';
 import {
+  getConversion,
   getDesire,
   readReviews,
   recordReview,
@@ -19,6 +20,7 @@ vi.mock('../components/desires-client', async (importOriginal) => {
     readReviews: vi.fn(),
     recordReview: vi.fn(),
     reviewItems: vi.fn(),
+    getConversion: vi.fn(),
   };
 });
 const d: Desire = {
@@ -67,8 +69,62 @@ beforeEach(() => {
   vi.mocked(readReviews).mockResolvedValue(empty);
   vi.mocked(recordReview).mockResolvedValue(event);
   vi.mocked(reviewItems).mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
+  vi.mocked(getConversion).mockRejectedValue(new Error('not requested in PER-28 tests'));
 });
 afterEach(() => vi.resetAllMocks());
+describe('PER-29 optional inventory offer', () => {
+  it('offers conversion after bought without blocking history, and links an existing item', async () => {
+    vi.mocked(getDesire).mockResolvedValue({ ...d, status: 'bought', effectiveState: 'bought' });
+    vi.mocked(getConversion).mockResolvedValueOnce({
+      desireId: d.id,
+      eligibility: 'eligible',
+      boughtEventId: event.id,
+      suggestions: {
+        name: d.name,
+        notes: null,
+        productUrl: null,
+        photo: null,
+        likelyPriceMinor: null,
+        likelyCurrency: null,
+      },
+      conversion: null,
+    });
+    const { unmount } = render(<DecisionHistory desireId={d.id} />);
+    expect(
+      await screen.findByRole('link', { name: 'Add to inventory (optional)' }),
+    ).toHaveAttribute('href', `/wants/${d.id}/convert`);
+    expect(screen.getByText(/bought decision is complete on its own/)).toBeInTheDocument();
+    unmount();
+    vi.mocked(getConversion).mockResolvedValueOnce({
+      desireId: d.id,
+      eligibility: 'converted',
+      boughtEventId: null,
+      suggestions: {
+        name: d.name,
+        notes: null,
+        productUrl: null,
+        photo: null,
+        likelyPriceMinor: null,
+        likelyCurrency: null,
+      },
+      conversion: {
+        id: 'c1000000-0000-4000-a000-000000000001',
+        desireId: d.id,
+        itemId: 'i1000000-0000-4000-a000-000000000001',
+        itemName: 'Synthetic owned item',
+        boughtEventId: event.id,
+        boughtOutcomeCurrent: false,
+        photo: 'not_requested',
+        createdAt: event.occurredAt,
+      },
+    });
+    render(<DecisionHistory desireId={d.id} />);
+    expect(await screen.findByRole('link', { name: 'Synthetic owned item' })).toHaveAttribute(
+      'href',
+      '/items/i1000000-0000-4000-a000-000000000001',
+    );
+  });
+});
 describe('PER-28 accessible decision history', () => {
   it('announces loading and empty history without inventing estimates', async () => {
     render(<DecisionHistory desireId={d.id} />);
