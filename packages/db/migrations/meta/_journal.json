@@ -85,6 +85,13 @@
       "when": 1792092713854,
       "tag": "0011_desire_records",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792120138506,
+      "tag": "0012_desire_reminders",
+      "breakpoints": true
     }
   ]
 }

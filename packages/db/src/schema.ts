@@ -609,6 +609,90 @@ export const desires = pgTable(
   ],
 );
 
+/**
+ * Durable reminder intent for a desire waiting period (PER-27). PostgreSQL is authoritative;
+ * BullMQ only carries a versioned, reproducible delivery attempt.
+ */
+export const desireReminders = pgTable(
+  'desire_reminders',
+  {
+    desireId: uuid('desire_id').primaryKey(),
+    ownerId: uuid('owner_id').notNull(),
+    scheduleVersion: integer('schedule_version').notNull().default(1),
+    scheduledFor: timestamp('scheduled_for', { withTimezone: true, precision: 3 }).notNull(),
+    state: text('state', { enum: ['pending', 'scheduled', 'delivered'] })
+      .notNull()
+      .default('pending'),
+    lastEnqueuedAt: timestamp('last_enqueued_at', { withTimezone: true, precision: 3 }),
+    deliveredAt: timestamp('delivered_at', { withTimezone: true, precision: 3 }),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.desireId, t.ownerId],
+      foreignColumns: [desires.id, desires.ownerId],
+      name: 'desire_reminder_owner_fk',
+    }).onDelete('cascade'),
+    check('desire_reminder_version_check', sql`${t.scheduleVersion} >= 1`),
+    check(
+      'desire_reminder_state_check',
+      sql`(${t.state} in ('pending','scheduled') and ${t.deliveredAt} is null) or (${t.state} = 'delivered' and ${t.deliveredAt} is not null)`,
+    ),
+    check(
+      'desire_reminder_times_check',
+      sql`isfinite(${t.scheduledFor}) and isfinite(${t.createdAt}) and isfinite(${t.updatedAt}) and ${t.createdAt} <= ${t.updatedAt} and (${t.lastEnqueuedAt} is null or isfinite(${t.lastEnqueuedAt})) and (${t.deliveredAt} is null or isfinite(${t.deliveredAt}))`,
+    ),
+    index('desire_reminder_reconcile_idx').on(t.state, t.scheduledFor, t.desireId),
+    index('desire_reminder_owner_idx').on(t.ownerId, t.scheduledFor, t.desireId),
+  ],
+);
+
+/** Owner-visible reminder delivery. It stores no desire name, note, URL or price. */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id').notNull(),
+    desireId: uuid('desire_id').notNull(),
+    type: text('type', { enum: ['desire_wait_ended'] }).notNull(),
+    reminderVersion: integer('reminder_version').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true, precision: 3 }).notNull(),
+    readAt: timestamp('read_at', { withTimezone: true, precision: 3 }),
+    ntfyState: text('ntfy_state', { enum: ['pending', 'sending', 'sent', 'failed'] })
+      .notNull()
+      .default('pending'),
+    ntfyAttempts: integer('ntfy_attempts').notNull().default(0),
+    ntfyClaimedAt: timestamp('ntfy_claimed_at', { withTimezone: true, precision: 3 }),
+    ntfySentAt: timestamp('ntfy_sent_at', { withTimezone: true, precision: 3 }),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.desireId, t.ownerId],
+      foreignColumns: [desires.id, desires.ownerId],
+      name: 'notification_desire_owner_fk',
+    }).onDelete('cascade'),
+    unique('notification_reminder_delivery_unique').on(t.desireId, t.reminderVersion, t.type),
+    check('notification_reminder_version_check', sql`${t.reminderVersion} >= 1`),
+    check('notification_ntfy_attempts_check', sql`${t.ntfyAttempts} between 0 and 20`),
+    check(
+      'notification_ntfy_state_check',
+      sql`(${t.ntfyState} = 'pending' and ${t.ntfyAttempts} = 0 and ${t.ntfyClaimedAt} is null and ${t.ntfySentAt} is null) or (${t.ntfyState} = 'sending' and ${t.ntfyAttempts} > 0 and ${t.ntfyClaimedAt} is not null and ${t.ntfySentAt} is null) or (${t.ntfyState} = 'failed' and ${t.ntfyAttempts} > 0 and ${t.ntfyClaimedAt} is null and ${t.ntfySentAt} is null) or (${t.ntfyState} = 'sent' and ${t.ntfyAttempts} > 0 and ${t.ntfyClaimedAt} is null and ${t.ntfySentAt} is not null)`,
+    ),
+    check(
+      'notification_times_check',
+      sql`isfinite(${t.occurredAt}) and isfinite(${t.createdAt}) and isfinite(${t.updatedAt}) and ${t.createdAt} <= ${t.updatedAt} and (${t.readAt} is null or isfinite(${t.readAt})) and (${t.ntfyClaimedAt} is null or isfinite(${t.ntfyClaimedAt})) and (${t.ntfySentAt} is null or isfinite(${t.ntfySentAt}))`,
+    ),
+    index('notification_owner_created_idx').on(t.ownerId, t.createdAt, t.id),
+    index('notification_owner_unread_idx')
+      .on(t.ownerId, t.createdAt, t.id)
+      .where(sql`${t.readAt} is null`),
+    index('notification_ntfy_recovery_idx').on(t.ntfyState, t.ntfyClaimedAt, t.id),
+  ],
+);
+
 // Provider records survive until exact-key cleanup; deletion of their owner/item/desire is restricted.
 export const mediaAttachments = pgTable(
   'media_attachments',

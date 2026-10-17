@@ -16,6 +16,7 @@ import {
   randomUUID,
 } from 'node:crypto';
 import { captureFailure } from '@havefolio/monitoring/server';
+import type { PoolClient } from 'pg';
 
 import {
   deriveDesireEffectiveState,
@@ -28,6 +29,10 @@ import {
 import { PhotoProcessor, type PhotoInput } from '../media/photo-processing.js';
 import { PrivateMediaStorage, type StoredAsset } from '../media/storage.js';
 import { DesiresRepository } from './desires.repository.js';
+import {
+  ReminderQueueService,
+  type ReminderQueueChange,
+} from '../notifications/reminder-queue.service.js';
 import type {
   CreateDesireDto,
   PatchDesireDto,
@@ -73,6 +78,12 @@ interface Cursor {
   expiresAt: number;
 }
 
+interface ReminderIntentRow {
+  desire_id: string;
+  schedule_version: number;
+  scheduled_for: Date;
+}
+
 const badCursor = (): never => {
   throw new BadRequestException('INVALID_DESIRE_CURSOR');
 };
@@ -87,6 +98,7 @@ export class DesiresService {
     private readonly processor: PhotoProcessor,
     private readonly storage: PrivateMediaStorage,
     private readonly config: ConfigService,
+    private readonly reminders: ReminderQueueService,
   ) {
     const secret = config.get<string>('AUTH_RATE_KEY_SECRET');
     this.key = secret
@@ -184,6 +196,72 @@ export class DesiresService {
     };
   }
 
+  private async syncReminderIntent(
+    client: PoolClient,
+    ownerId: string,
+    desireId: string,
+    scheduledFor: Date | null,
+  ): Promise<ReminderQueueChange> {
+    const existing = (
+      await client.query<ReminderIntentRow>(
+        `SELECT desire_id,schedule_version,scheduled_for
+         FROM desire_reminders
+         WHERE desire_id=$1 AND owner_id=$2
+         FOR UPDATE`,
+        [desireId, ownerId],
+      )
+    ).rows[0];
+
+    if (!scheduledFor) {
+      if (existing) {
+        await client.query('DELETE FROM desire_reminders WHERE desire_id=$1 AND owner_id=$2', [
+          desireId,
+          ownerId,
+        ]);
+      }
+      return {
+        desireId,
+        obsoleteVersions: existing ? [existing.schedule_version] : [],
+      };
+    }
+
+    if (existing?.scheduled_for.getTime() === scheduledFor.getTime()) {
+      return {
+        desireId,
+        current: {
+          desireId,
+          scheduleVersion: existing.schedule_version,
+          scheduledFor: existing.scheduled_for,
+        },
+        obsoleteVersions: [],
+      };
+    }
+
+    const scheduleVersion = (existing?.schedule_version ?? 0) + 1;
+    const result = await client.query<ReminderIntentRow>(
+      `INSERT INTO desire_reminders(
+         desire_id,owner_id,schedule_version,scheduled_for,state,last_enqueued_at,delivered_at
+       ) VALUES($1,$2,$3,$4,'pending',null,null)
+       ON CONFLICT(desire_id) DO UPDATE
+       SET owner_id=excluded.owner_id,
+           schedule_version=excluded.schedule_version,
+           scheduled_for=excluded.scheduled_for,
+           state='pending',last_enqueued_at=null,delivered_at=null,updated_at=now()
+       RETURNING desire_id,schedule_version,scheduled_for`,
+      [desireId, ownerId, scheduleVersion, scheduledFor],
+    );
+    const current = result.rows[0]!;
+    return {
+      desireId,
+      current: {
+        desireId,
+        scheduleVersion: current.schedule_version,
+        scheduledFor: current.scheduled_for,
+      },
+      obsoleteVersions: existing ? [existing.schedule_version] : [],
+    };
+  }
+
   async create(owner: string, input: CreateDesireDto): Promise<DesireDto> {
     const trimmedName = input.name?.trim();
     if (!trimmedName || trimmedName.length > 300) {
@@ -233,7 +311,7 @@ export class DesiresService {
       throw err;
     }
 
-    return this.repo.transaction(owner, async (c) => {
+    const created = await this.repo.transaction(owner, async (c) => {
       const id = randomUUID();
       const result = await c.query<DesireRow>(
         `INSERT INTO desires(
@@ -255,8 +333,12 @@ export class DesiresService {
           waiting.reviewAt,
         ],
       );
-      return this.mapDesire(result.rows[0]!, undefined);
+      const row = result.rows[0]!;
+      const reminder = await this.syncReminderIntent(c, owner, id, row.review_at);
+      return { desire: this.mapDesire(row, undefined), reminder };
     });
+    await this.reminders.apply(created.reminder).catch(() => undefined);
+    return created.desire;
   }
 
   async get(owner: string, id: string): Promise<DesireDto> {
@@ -380,7 +462,7 @@ export class DesiresService {
       throw new BadRequestException('INVALID_DESIRE');
     }
 
-    return this.repo.transaction(owner, async (c) => {
+    const changed = await this.repo.transaction(owner, async (c) => {
       const desireRes = await c.query<DesireRow>(
         'SELECT * FROM desires WHERE id=$1 AND owner_id=$2 FOR UPDATE',
         [id, owner],
@@ -498,12 +580,16 @@ export class DesiresService {
         [owner, id],
       );
 
-      return this.mapDesire(updatedRes.rows[0]!, photoRes.rows[0]);
+      const updated = updatedRes.rows[0]!;
+      const reminder = await this.syncReminderIntent(c, owner, id, updated.review_at);
+      return { desire: this.mapDesire(updated, photoRes.rows[0]), reminder };
     });
+    await this.reminders.apply(changed.reminder).catch(() => undefined);
+    return changed.desire;
   }
 
   async delete(owner: string, id: string, revision: number): Promise<void> {
-    await this.repo.transaction(owner, async (c) => {
+    const reminder = await this.repo.transaction(owner, async (c) => {
       const desireRes = await c.query<DesireRow>(
         'SELECT * FROM desires WHERE id=$1 AND owner_id=$2 FOR UPDATE',
         [id, owner],
@@ -567,8 +653,11 @@ export class DesiresService {
         );
       }
 
+      const queueChange = await this.syncReminderIntent(c, owner, id, null);
       await c.query('DELETE FROM desires WHERE id=$1 AND owner_id=$2', [id, owner]);
+      return queueChange;
     });
+    await this.reminders.apply(reminder).catch(() => undefined);
   }
 
   // --- Photo support ---

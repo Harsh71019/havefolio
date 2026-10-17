@@ -111,6 +111,7 @@ export const apiEnvironmentSchema = z
       (v) => (v === '' ? undefined : v),
       z.string().min(32).optional(),
     ),
+    REMINDER_QUEUE_ENABLED: booleanFromEnvironment.default(false),
     VALKEY_HOST: z.string().min(1).default('shared-redis'),
     VALKEY_PORT: z.coerce.number().int().min(1).max(65535).default(6379),
     VALKEY_USERNAME: optionalEnvironmentString,
@@ -138,6 +139,18 @@ export const apiEnvironmentSchema = z
         code: 'custom',
         path: ['VALKEY_PREFIX'],
         message: 'Auth namespace must match environment',
+      });
+    if (config.REMINDER_QUEUE_ENABLED && !config.VALKEY_PREFIX)
+      context.addIssue({
+        code: 'custom',
+        path: ['VALKEY_PREFIX'],
+        message: 'Enabled reminder dispatch requires an environment-scoped queue prefix',
+      });
+    if (config.REMINDER_QUEUE_ENABLED && (!config.VALKEY_USERNAME || !config.VALKEY_PASSWORD))
+      context.addIssue({
+        code: 'custom',
+        path: ['REMINDER_QUEUE_ENABLED'],
+        message: 'Enabled reminder dispatch requires dedicated API Valkey credentials',
       });
     if (config.VALKEY_USERNAME && config.VALKEY_USERNAME !== `havefolio_${environment}_api`)
       context.addIssue({
@@ -239,6 +252,7 @@ export const workerEnvironmentSchema = z
     LOG_LEVEL: logLevel,
     ...loggingFields,
     WORKER_QUEUE_ENABLED: booleanFromEnvironment.default(false),
+    DATABASE_URL: optionalEnvironmentString,
     VALKEY_HOST: z.literal('shared-redis').default('shared-redis'),
     VALKEY_PORT: z.coerce.number().int().min(1).max(65_535).default(6379),
     VALKEY_USERNAME: optionalEnvironmentString,
@@ -248,10 +262,43 @@ export const workerEnvironmentSchema = z
       .string()
       .regex(/^havefolio:(dev|test|production)(:[A-Za-z0-9_-]+)*$/)
       .default('havefolio:dev'),
+    REMINDER_RECONCILE_INTERVAL_SECONDS: z.coerce.number().int().min(15).max(3600).default(60),
+    NTFY_ENABLED: booleanFromEnvironment.default(false),
+    NTFY_ENDPOINT: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().url().max(512).optional(),
+    ),
+    NTFY_TOKEN: optionalEnvironmentString,
   })
   .superRefine((config, context) => {
-    if (!config.WORKER_QUEUE_ENABLED) return;
     const environment = config.NODE_ENV === 'development' ? 'dev' : config.NODE_ENV;
+    if (config.NTFY_ENDPOINT) {
+      try {
+        const url = new URL(config.NTFY_ENDPOINT);
+        if (
+          !['http:', 'https:'].includes(url.protocol) ||
+          url.username ||
+          url.password ||
+          url.search ||
+          url.hash
+        )
+          throw new Error();
+      } catch {
+        context.addIssue({
+          code: 'custom',
+          path: ['NTFY_ENDPOINT'],
+          message: 'Ntfy endpoint must be an HTTP(S) URL without credentials, query or fragment',
+        });
+      }
+    }
+    if (config.NTFY_ENABLED && !config.NTFY_ENDPOINT) {
+      context.addIssue({
+        code: 'custom',
+        path: ['NTFY_ENDPOINT'],
+        message: 'Enabled ntfy delivery requires a protected endpoint',
+      });
+    }
+    if (!config.WORKER_QUEUE_ENABLED) return;
     if (
       !config.VALKEY_PREFIX.startsWith(`havefolio:${environment}:`) &&
       config.VALKEY_PREFIX !== `havefolio:${environment}`
@@ -275,6 +322,28 @@ export const workerEnvironmentSchema = z
         path: ['VALKEY_DATABASE'],
         message: 'Shared Valkey uses database zero and ACL prefix isolation',
       });
+    }
+    if (!config.DATABASE_URL) {
+      context.addIssue({
+        code: 'custom',
+        path: ['DATABASE_URL'],
+        message: 'Enabled reminder workers require the runtime PostgreSQL connection',
+      });
+    } else {
+      try {
+        const url = new URL(config.DATABASE_URL);
+        if (
+          !['postgres:', 'postgresql:'].includes(url.protocol) ||
+          !/_runtime$/.test(decodeURIComponent(url.username))
+        )
+          throw new Error();
+      } catch {
+        context.addIssue({
+          code: 'custom',
+          path: ['DATABASE_URL'],
+          message: 'Worker requires a runtime PostgreSQL connection',
+        });
+      }
     }
   });
 

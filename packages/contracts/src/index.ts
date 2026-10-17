@@ -574,3 +574,30 @@ export const desireErrorCodes = [
   'DESIRES_UNAVAILABLE',
 ] as const;
 export type DesireErrorCode = (typeof desireErrorCodes)[number];
+
+/** PER-27: private in-app reminder delivery. */
+export const notificationTypes = ['desire_wait_ended'] as const;
+export type NotificationType = (typeof notificationTypes)[number];
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  desireId: string;
+  occurredAt: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationsPage {
+  items: Notification[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  unreadCount: number;
+}
+
+export const notificationErrorCodes = [
+  'INVALID_NOTIFICATION_CURSOR',
+  'NOTIFICATION_NOT_FOUND',
+  'NOTIFICATIONS_UNAVAILABLE',
+] as const;
+export type NotificationErrorCode = (typeof notificationErrorCodes)[number];

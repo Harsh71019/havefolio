@@ -69,3 +69,40 @@ test('a collector that never answers is bounded and cannot hold application work
     await new Promise((resolve) => receiver.close(resolve));
   }
 });
+
+test('error floods are capped independently while sampled traces and application work continue', async () => {
+  const received = { event: 0, transaction: 0 };
+  const dropped = [];
+  const receiver = createServer((req, res) => {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      const item = JSON.parse(body.split('\n')[1]);
+      received[item.type]++;
+      res.end('{}');
+    });
+  });
+  await new Promise((resolve) => receiver.listen(0, '127.0.0.1', resolve));
+  const transport = boundedTransport({
+    url: `http://127.0.0.1:${receiver.address().port}/`,
+    recordDroppedEvent: (...args) => dropped.push(args),
+  });
+  try {
+    for (let i = 0; i < 30; i++) {
+      await transport.send([
+        {},
+        [[{ type: 'event' }, { exception: { values: [{ type: 'Error', value: 'private' }] } }]],
+      ]);
+    }
+    await transport.send([
+      {},
+      [[{ type: 'transaction' }, { type: 'transaction', transaction: '/store' }]],
+    ]);
+    await transport.flush(1000);
+    assert.equal(received.event, 20);
+    assert.equal(received.transaction, 1);
+    assert.equal(dropped.filter(([reason]) => reason === 'ratelimit_backoff').length, 10);
+  } finally {
+    await new Promise((resolve) => receiver.close(resolve));
+  }
+});

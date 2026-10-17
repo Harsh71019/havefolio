@@ -210,6 +210,7 @@ test('SDK options disable PII, logs, replay, sessions and remote reports; error 
   assert.equal(options.sendDefaultPii, false);
   assert.equal(options.autoSessionTracking, false);
   assert.equal(options.enableLogs, false);
+  assert.equal(options.sampleRate, 1);
   assert.equal(options.defaultIntegrations, false);
   assert.equal(options.transportOptions.bufferSize, 32);
   assert.equal(options.tracesSampler({ name: '/store' }), 0);
