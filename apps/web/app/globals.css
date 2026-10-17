@@ -1,1 +1,78 @@
 @import '@havefolio/ui/styles/globals.css';
+
+/* PER-58: geometry is scoped to My Store; mobile/tablet ignores desktop preferences. */
+@media (min-width: 1024px) {
+  .my-store .store-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html[data-store-density='compact'] .my-store .store-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  html[data-store-density='large'] .my-store .store-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-store-density='compact']
+    .my-store
+    :is(.store-card-media, [data-slot='owned-item-media']) {
+    aspect-ratio: 16 / 9;
+  }
+  html[data-store-density='compact'] .my-store .store-skeleton-body {
+    padding: 0.75rem;
+  }
+  html[data-store-density='large'] .my-store .store-skeleton-body {
+    padding: 1.5rem;
+  }
+  html[data-store-density='compact'] .my-store .store-card [data-slot='card-header'] {
+    padding: 0.75rem 0.75rem 0;
+    gap: 0.375rem;
+  }
+  html[data-store-density='compact'] .my-store .store-card [data-slot='card-content'] {
+    padding: 0 0.75rem 0.75rem;
+  }
+  html[data-store-density='compact'] .my-store .store-card [data-slot='owned-item-fact'] {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+    padding-block: 0.25rem;
+  }
+  html[data-store-density='compact'] .my-store .store-card dd {
+    text-align: left;
+  }
+  html[data-store-density='compact'] .my-store .store-card [data-slot='owned-item-footer'] {
+    padding: 0.5rem 0.75rem;
+  }
+  html[data-store-density='large'] .my-store .store-card [data-slot='card-header'] {
+    padding: 1.5rem 1.5rem 0;
+  }
+  html[data-store-density='large'] .my-store .store-card [data-slot='card-title'] {
+    font-size: 1.25rem;
+  }
+  html[data-store-density='large'] .my-store .store-card [data-slot='card-content'] {
+    padding: 0 1.5rem 1.5rem;
+  }
+  html[data-store-density='large'] .my-store .store-card [data-slot='owned-item-fact'] {
+    padding-block: 0.75rem;
+  }
+}
+@media (min-width: 1280px) {
+  .my-store .store-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  html[data-store-density='compact'] .my-store .store-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  html[data-store-density='large'] .my-store .store-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1920px) {
+  .my-store .store-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  html[data-store-density='compact'] .my-store .store-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  html[data-store-density='large'] .my-store .store-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

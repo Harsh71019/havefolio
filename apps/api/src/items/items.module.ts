@@ -40,5 +40,6 @@ import { ItemsService } from './items.service.js';
     PhotoProcessor,
     PhotoRecoveryService,
   ],
+  exports: [ItemsService],
 })
 export class ItemsModule {}

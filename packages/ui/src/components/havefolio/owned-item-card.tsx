@@ -40,6 +40,7 @@ export function OwnedItemCard({
   return (
     <Card className={cn('h-full gap-0 overflow-hidden py-0', className)}>
       <div
+        data-slot="owned-item-media"
         className={cn(
           'relative aspect-[4/3] bg-muted text-muted-foreground',
           inactive && 'opacity-70 grayscale',
@@ -76,11 +77,15 @@ export function OwnedItemCard({
       <CardContent className="px-4 pb-4 text-sm">
         <dl id={`${idPrefix}-facts`} className="divide-y">
           {facts.map((fact) => (
-            <div key={fact.label} className="flex items-baseline justify-between gap-3 py-1.5">
+            <div
+              key={fact.label}
+              data-slot="owned-item-fact"
+              className="flex items-baseline justify-between gap-3 py-1.5"
+            >
               <dt className="shrink-0 text-xs text-muted-foreground">{fact.label}</dt>
               <dd
                 className={cn(
-                  'min-w-0 text-right',
+                  'min-w-0 break-words text-right',
                   fact.muted ? 'text-muted-foreground italic' : 'font-medium',
                 )}
               >
@@ -90,7 +95,11 @@ export function OwnedItemCard({
           ))}
         </dl>
       </CardContent>
-      {footer ? <div className="mt-auto border-t px-4 py-3">{footer}</div> : null}
+      {footer ? (
+        <div data-slot="owned-item-footer" className="mt-auto border-t px-4 py-3">
+          {footer}
+        </div>
+      ) : null}
     </Card>
   );
 }
