@@ -97,7 +97,7 @@ export const taxonomyErrorCodes = [
 export const itemStatuses = ['owned', 'sold', 'donated', 'disposed', 'lost', 'returned'] as const;
 export type ItemStatus = (typeof itemStatuses)[number];
 
-export const itemConditions = ['working', 'needs_repair', 'broken', 'unknown'] as const;
+export const itemConditions = ['working', 'needs_repair', 'broken', 'worn_out', 'unknown'] as const;
 export type ItemCondition = (typeof itemConditions)[number];
 
 export const itemFrequencies = ['often', 'sometimes', 'rarely', 'never', 'unknown'] as const;

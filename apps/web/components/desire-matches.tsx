@@ -612,7 +612,10 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                                 variant="secondary"
                                 className="text-muted-foreground font-normal"
                               >
-                                Unavailable ({match.item.ownershipStatus})
+                                {match.item.ownershipStatus === 'owned' &&
+                                match.item.condition === 'worn_out'
+                                  ? 'Worn out · still owned'
+                                  : `Unavailable (${match.item.ownershipStatus})`}
                               </Badge>
                             )}
 
@@ -850,7 +853,8 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                 htmlFor={`${componentId}-include-unavailable`}
                 className="text-xs sm:text-sm font-normal text-muted-foreground cursor-pointer"
               >
-                Include unavailable possessions (sold, donated, disposed, lost, returned)
+                Include unavailable or worn-out possessions (sold, donated, disposed, lost,
+                returned, worn out)
               </Label>
             </div>
           </CardContent>

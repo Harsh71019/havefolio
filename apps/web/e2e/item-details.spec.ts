@@ -432,6 +432,70 @@ test('keyboard-only editing, conflict review and confirmation', async ({ page },
   await expect(page.getByText('Status:', { exact: false }).locator('..')).toContainText('Sold');
 });
 
+test('PER-55: marks an item worn out by keyboard while it stays owned', async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await mock(page, complete);
+  // Registered after mock(), so this history response takes precedence.
+  await page.route(`**/api/v1/items/${id(1)}/history**`, (route) =>
+    route.fulfill({
+      json: {
+        events: [
+          ...history.slice(0, 1),
+          {
+            id: id(790),
+            eventType: 'condition_changed',
+            occurredAt: '2026-10-01T05:30:00.000Z',
+            createdAt: '2026-10-01T05:30:00.000Z',
+            metadata: { source: 'user', from: 'working', to: 'worn_out' },
+          },
+        ],
+        nextCursor: null,
+        hasMore: false,
+      },
+    }),
+  );
+  const label = testInfo.project.name === 'mobile' ? '360' : 'desktop';
+  await page.setViewportSize({ width: label === '360' ? 360 : 1280, height: 1000 });
+  await page.goto(`/items/${id(1)}`);
+  await setTheme(page, 'light');
+  const edit = page.getByRole('button', { name: 'Edit condition and use' });
+  await edit.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Edit condition and use' });
+  await expect(dialog.getByRole('combobox', { name: 'Condition' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('option')).toHaveText([
+    'Working',
+    'Needs repair',
+    'Broken',
+    'Worn out',
+    'Not recorded',
+  ]);
+  await page.getByRole('option', { name: 'Worn out' }).press('Enter');
+  await expect(dialog.getByRole('combobox', { name: 'Condition' })).toHaveText('Worn out');
+  await page.screenshot({ path: `../../docs/screenshots/per-55-edit-${label}-light.png` });
+  await dialog.getByRole('button', { name: 'Save' }).press('Enter');
+  await expect(dialog).toBeHidden();
+  await expect(edit).toBeFocused();
+  expect(state.patches.at(-1)).toEqual({ condition: 'worn_out', revision: 4 });
+  expect(state.actions).toEqual([]);
+  await expect(page.getByText('Status:', { exact: false }).locator('..')).toContainText('Owned');
+  const historyList = page.getByRole('list', { name: 'Item history, oldest first' });
+  await expect(historyList).toContainText('Working → Worn out');
+  await expect(historyList).not.toContainText('worn_out');
+  for (const theme of ['light', 'dark'] as const) {
+    await setTheme(page, theme);
+    await expectNoOverflow(page);
+    await page.screenshot({
+      path: `../../docs/screenshots/per-55-details-${label}-${theme}.png`,
+      fullPage: true,
+      animations: 'disabled',
+    });
+  }
+});
+
 test('history reads as text and deletion needs the item name', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'Covered once at desktop width.');
   const state = await mock(page, complete);

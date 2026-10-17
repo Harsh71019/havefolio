@@ -647,6 +647,10 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
                               <Badge variant="destructive" className="text-xs font-normal">
                                 Unavailable
                               </Badge>
+                            ) : item.isConditionWornOut ? (
+                              <Badge variant="secondary" className="text-xs font-normal">
+                                Worn out
+                              </Badge>
                             ) : null}
                           </div>
 

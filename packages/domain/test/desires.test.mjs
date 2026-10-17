@@ -221,16 +221,20 @@ test('match relevance validation accepts relevant and irrelevant, defaults to re
   );
 });
 
-test('usable alternative determination checks for owned status only', async () => {
+test('usable alternative requires owned status and a condition other than worn out', async () => {
   const { isUsableAlternative } = await import('../dist/index.js');
-  assert.equal(isUsableAlternative('owned'), true);
-  assert.equal(isUsableAlternative('sold'), false);
-  assert.equal(isUsableAlternative('donated'), false);
-  assert.equal(isUsableAlternative('disposed'), false);
-  assert.equal(isUsableAlternative('lost'), false);
-  assert.equal(isUsableAlternative('returned'), false);
-  assert.equal(isUsableAlternative(null), false);
-  assert.equal(isUsableAlternative(undefined), false);
+  for (const condition of ['working', 'needs_repair', 'broken', 'unknown', null, undefined])
+    assert.equal(isUsableAlternative('owned', condition), true);
+  assert.equal(isUsableAlternative('owned', 'worn_out'), false);
+  for (const status of ['sold', 'donated', 'disposed', 'lost', 'returned', null, undefined]) {
+    assert.equal(isUsableAlternative(status, 'working'), false);
+    assert.equal(isUsableAlternative(status, 'worn_out'), false);
+  }
+});
+
+test('deriveMatchHints discloses a worn-out condition', async () => {
+  const { deriveMatchHints } = await import('../dist/index.js');
+  assert.equal(deriveMatchHints({ condition: 'worn_out' }).conditionHint, 'Condition: worn out');
 });
 
 test('deriveMatchHints formats hints without asserting equivalence', async () => {

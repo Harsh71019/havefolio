@@ -18,6 +18,7 @@ export const conditionLabels: Record<ItemCondition, string> = {
   working: 'Working',
   needs_repair: 'Needs repair',
   broken: 'Broken',
+  worn_out: 'Worn out',
   unknown: 'Not recorded',
 };
 export const frequencyLabels: Record<ItemFrequency, string> = {

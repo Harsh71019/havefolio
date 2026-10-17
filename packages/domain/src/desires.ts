@@ -218,8 +218,12 @@ export function validateMatchRelevance(relevance?: string | null): MatchRelevanc
   return relevance;
 }
 
-export function isUsableAlternative(ownershipStatus: string | null | undefined): boolean {
-  return ownershipStatus === 'owned';
+// A worn-out item is still owned, but it is not offered as a ready alternative.
+export function isUsableAlternative(
+  ownershipStatus: string | null | undefined,
+  condition: string | null | undefined,
+): boolean {
+  return ownershipStatus === 'owned' && condition !== 'worn_out';
 }
 
 export function deriveMatchHints(item: {

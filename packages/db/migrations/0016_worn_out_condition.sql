@@ -1,0 +1,2 @@
+ALTER TABLE "items" DROP CONSTRAINT "item_condition_check";--> statement-breakpoint
+ALTER TABLE "items" ADD CONSTRAINT "item_condition_check" CHECK ("items"."condition" in ('working','needs_repair','broken','worn_out','unknown'));

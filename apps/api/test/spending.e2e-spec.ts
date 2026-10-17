@@ -382,6 +382,15 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
     await run.runtime.query("UPDATE items SET ownership_status='owned' WHERE id=$1", [ids[0]]);
     expect(await report()).toEqual(before);
   });
+  it('keeps worn-out items in historical and current-owned spending because ownership is unchanged', async () => {
+    const history = await report();
+    const current = await report({ scope: 'current-owned' });
+    expect(current.buckets.reduce((n, b) => n + b.totalItemCount, 0)).toBeGreaterThan(0);
+    await run.runtime.query("UPDATE items SET condition='worn_out' WHERE owner_id=$1", [owner]);
+    expect(await report()).toEqual(history);
+    expect(await report({ scope: 'current-owned' })).toEqual(current);
+    await run.runtime.query("UPDATE items SET condition='unknown' WHERE owner_id=$1", [owner]);
+  });
   it('reads confirmed refund writes atomically with unchanged gross', async () => {
     const before = await report();
     const write = await run.runtime.query(

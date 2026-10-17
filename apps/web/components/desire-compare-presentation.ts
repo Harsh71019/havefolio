@@ -79,6 +79,7 @@ export interface FormattedMatchedItem {
   conditionLabel: string;
   isConditionNeedsRepair: boolean;
   isConditionBroken: boolean;
+  isConditionWornOut: boolean;
   usageLabel: string;
   isUsableAlternative: boolean;
   isUnavailable: boolean;
@@ -122,6 +123,7 @@ export function formatMatchedItem(
   const conditionLabel = conditionLabels[cond] ?? 'Condition not recorded';
   const isConditionNeedsRepair = cond === 'needs_repair';
   const isConditionBroken = cond === 'broken';
+  const isConditionWornOut = cond === 'worn_out';
 
   // Usage
   const frequencyDisplayLabels: Record<ItemFrequency, string> = {
@@ -146,8 +148,9 @@ export function formatMatchedItem(
     conditionLabel,
     isConditionNeedsRepair,
     isConditionBroken,
+    isConditionWornOut,
     usageLabel,
-    isUsableAlternative: item.isUsableAlternative && !isUnavailable,
+    isUsableAlternative: item.isUsableAlternative && !isUnavailable && !isConditionWornOut,
     isUnavailable,
     cover: item.cover,
     relevance: match.relevance,

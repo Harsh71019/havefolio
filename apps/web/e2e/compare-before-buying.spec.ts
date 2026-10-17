@@ -254,6 +254,59 @@ test.describe('PER-26: Compare-before-buying decision screen', () => {
     }
   });
 
+  test('PER-55: discloses a worn-out possession without offering it as ready to use', async ({
+    page,
+  }, testInfo) => {
+    const wornMatches: DesireMatch[] = [
+      mockMatches[0]!,
+      {
+        ...mockMatches[1]!,
+        reason: 'Speaker I still keep, though it has worn out.',
+        item: { ...mockMatches[1]!.item, condition: 'worn_out', isUsableAlternative: false },
+        hints: { ...mockMatches[1]!.hints, conditionHint: 'Condition: worn out' },
+      },
+    ];
+    await page.route(new RegExp(`/api/v1/desires/${desireId}/matches`), (r) =>
+      r.fulfill({ json: { items: wornMatches } }),
+    );
+    await page.route(new RegExp(`/api/v1/items/${itemId2}`), (r) =>
+      r.fulfill({ json: { ...mockItem2, condition: 'worn_out' } }),
+    );
+    await page.goto(`/wants/${desireId}/compare`);
+
+    const worn = page
+      .getByRole('heading', { name: 'Old Bluetooth speaker', exact: true })
+      .locator('xpath=ancestor::div[contains(@class,"space-y-2")][1]');
+    await expect(worn.getByText('Worn out', { exact: true }).first()).toBeVisible();
+    await expect(worn.getByText('Condition: worn out', { exact: true })).toBeVisible();
+    // Only the working possession offers the use shortcut (auto-selected on load).
+    const useShortcut = /^(Use this item|Selected to use)$/;
+    await expect(worn.getByRole('button', { name: useShortcut })).toHaveCount(0);
+    await expect(worn.getByRole('button', { name: /Repair this item/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: useShortcut })).toHaveCount(1);
+    await expect(page.getByRole('radio', { name: /Pass on this purchase/i })).toBeEnabled();
+
+    // Use the real theme toggle and settle transitions so captured colours are final.
+    for (const theme of ['light', 'dark']) {
+      const current = await page.locator('html').getAttribute('class');
+      if (!current?.split(' ').includes(theme))
+        await page.getByRole('button', { name: 'Toggle color theme' }).click();
+      await expect(page.locator('html')).toHaveClass(new RegExp(theme));
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
+      ).toBe(false);
+      await worn.scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: resolve(
+          process.cwd(),
+          `../../docs/screenshots/per-55-compare-${testInfo.project.name}-${theme}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+    }
+  });
+
   test('records a review decision and navigates to decision history', async ({ page }) => {
     let recordedPayload: unknown = null;
     const recordedEvent = {

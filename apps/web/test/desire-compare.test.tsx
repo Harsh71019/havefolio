@@ -587,6 +587,41 @@ describe('PER-26: Compare-before-buying decision screen', () => {
     });
   });
 
+  it('discloses worn-out matches without offering them as ready to use or blocking a decision', async () => {
+    vi.mocked(getDesireMatches).mockResolvedValue({
+      items: [
+        {
+          ...sampleMatch1,
+          item: { ...sampleMatch1.item, condition: 'worn_out', isUsableAlternative: false },
+          hints: { ...sampleMatch1.hints, conditionHint: 'Condition: worn out' },
+        },
+      ],
+      nextCursor: null,
+      hasMore: false,
+      totalCount: 1,
+    });
+    vi.mocked(readItem).mockResolvedValue({ ...sampleItem1, condition: 'worn_out' });
+
+    render(<DesireCompare desireId={sampleDesire.id} />);
+    await screen.findByRole('heading', { name: sampleDesire.name });
+
+    expect(await screen.findAllByText(sampleItem1.name)).not.toHaveLength(0);
+    expect(screen.getAllByText('Worn out').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Condition: worn out')).toBeInTheDocument();
+    expect(screen.queryByText('Unavailable')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Use this item' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Repair this item/ })).toBeNull();
+
+    await userEvent.click(screen.getByLabelText(/Pass on this purchase/i));
+    await userEvent.click(screen.getByRole('button', { name: /^Record decision$/i }));
+    await waitFor(() => {
+      expect(recordReview).toHaveBeenCalledWith(
+        sampleDesire.id,
+        expect.objectContaining({ outcome: 'declined' }),
+      );
+    });
+  });
+
   it('renders gracefully when there are no connected matches and does not block decision', async () => {
     vi.mocked(getDesireMatches).mockResolvedValue({
       items: [],

@@ -305,7 +305,7 @@ export class DesireMatchesService {
             subcategoryName: r.subcategory_name,
             tags,
             cover: coverMap.get(r.item_id) ?? null,
-            isUsableAlternative: isUsableAlternative(r.item_ownership_status),
+            isUsableAlternative: isUsableAlternative(r.item_ownership_status, r.item_condition),
           },
           hints,
           createdAt: r.created_at.toISOString(),
@@ -448,7 +448,7 @@ export class DesireMatchesService {
         matchId: matchRow.id,
         relevance,
         source: 'manual',
-        isUsableAlternative: isUsableAlternative(item.ownership_status),
+        isUsableAlternative: isUsableAlternative(item.ownership_status, item.condition),
       });
 
       return {
@@ -472,7 +472,7 @@ export class DesireMatchesService {
           subcategoryName: item.subcategory_name,
           tags,
           cover: coverMap.get(item.id) ?? null,
-          isUsableAlternative: isUsableAlternative(item.ownership_status),
+          isUsableAlternative: isUsableAlternative(item.ownership_status, item.condition),
         },
         hints,
         createdAt: matchRow.created_at.toISOString(),
@@ -628,7 +628,7 @@ export class DesireMatchesService {
           subcategoryName: item.subcategory_name,
           tags,
           cover: coverMap.get(updatedRow.item_id) ?? null,
-          isUsableAlternative: isUsableAlternative(item.ownership_status),
+          isUsableAlternative: isUsableAlternative(item.ownership_status, item.condition),
         },
         hints,
         createdAt: updatedRow.created_at.toISOString(),
@@ -689,7 +689,7 @@ export class DesireMatchesService {
       const params: unknown[] = [owner, desireId, includeUnavailable, limit + 1];
       let sqlConditions = `
         WHERE i.owner_id = $1
-          AND ($3::boolean = true OR i.ownership_status = 'owned')
+          AND ($3::boolean = true OR (i.ownership_status = 'owned' AND i.condition <> 'worn_out'))
       `;
 
       if (query.categoryId) {
@@ -776,7 +776,7 @@ export class DesireMatchesService {
           subcategoryName: r.subcategory_name,
           tags,
           cover: coverMap.get(r.id) ?? null,
-          isUsableAlternative: isUsableAlternative(r.ownership_status),
+          isUsableAlternative: isUsableAlternative(r.ownership_status, r.condition),
           isAlreadyMatched: Boolean(r.is_already_matched),
           suggestedReason: deriveSuggestedReason({
             name: r.name,
