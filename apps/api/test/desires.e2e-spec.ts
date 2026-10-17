@@ -737,6 +737,106 @@ describe('desire records, waiting periods, keyset pagination and private photo l
     service.resetClock();
   });
 
+  describe('PER-25: manual owned-item matching with explainable reasons', () => {
+    const insertItem = async (
+      itemOwner: string,
+      name = 'Owned French Press',
+      status = 'owned',
+    ): Promise<string> => {
+      const id = randomUUID();
+      await run.runtime.query(
+        `INSERT INTO items(id, owner_id, name, currency, ownership_status, original_entry, original_source)
+         VALUES ($1, $2, $3, 'INR', $4, '{"name":"test"}'::jsonb, 'manual')`,
+        [id, itemOwner, name, status],
+      );
+      return id;
+    };
+
+    it('manages match lifecycle: add, duplicate check, candidate list, update feedback, and remove', async () => {
+      const desire = await createMinimal('Espresso Machine');
+      const ownedItemId = await insertItem(owner, 'Stove Espresso Pot', 'owned');
+      const unavailableItemId = await insertItem(owner, 'Old Broken Moka', 'disposed');
+      const otherOwnerItemId = await insertItem(other, 'Foreign Kettle', 'owned');
+
+      // 1. Cross-owner item matching must return 404
+      await post(`/${desire.id}/matches`, { itemId: otherOwnerItemId }).expect(404);
+
+      // 2. Add manual match to owned item
+      const created = (
+        await post(`/${desire.id}/matches`, {
+          itemId: ownedItemId,
+          reason: 'Serves daily coffee purpose without automated steaming.',
+        }).expect(201)
+      ).body;
+
+      expect(created.desireId).toBe(desire.id);
+      expect(created.itemId).toBe(ownedItemId);
+      expect(created.reason).toBe('Serves daily coffee purpose without automated steaming.');
+      expect(created.relevance).toBe('relevant');
+      expect(created.source).toBe('manual');
+      expect(created.item.name).toBe('Stove Espresso Pot');
+      expect(created.item.isUsableAlternative).toBe(true);
+
+      // 3. Duplicate match rejected with 409 Conflict
+      const dup = await post(`/${desire.id}/matches`, { itemId: ownedItemId }).expect(409);
+      expect(dup.body.message).toBe('MATCH_ALREADY_EXISTS');
+
+      // 4. List matches for desire
+      const list = (await get(`/${desire.id}/matches`).expect(200)).body;
+      expect(list.totalCount).toBe(1);
+      expect(list.items).toHaveLength(1);
+      expect(list.items[0].id).toBe(created.id);
+
+      // 5. Candidates endpoint defaults to available items only
+      const candidatesDefault = (await get(`/${desire.id}/matches/candidates`).expect(200))
+        .body as { items: Array<{ id: string; isAlreadyMatched: boolean }> };
+      const defaultIds = candidatesDefault.items.map((i) => i.id);
+      expect(defaultIds).toContain(ownedItemId);
+      expect(defaultIds).not.toContain(unavailableItemId); // Disposed excluded by default
+      const matchedCandidate = candidatesDefault.items.find((i) => i.id === ownedItemId);
+      expect(matchedCandidate?.isAlreadyMatched).toBe(true);
+
+      // 6. Candidates endpoint with includeUnavailable=true includes disposed item
+      const candidatesAll = (
+        await get(`/${desire.id}/matches/candidates?includeUnavailable=true`).expect(200)
+      ).body as { items: Array<{ id: string }> };
+      const allIds = candidatesAll.items.map((i) => i.id);
+      expect(allIds).toContain(ownedItemId);
+      expect(allIds).toContain(unavailableItemId);
+
+      // 7. Update match feedback (mark irrelevant)
+      const updated = (
+        await http()
+          .patch(`/api/v1/desires/${desire.id}/matches/${created.id}`)
+          .set('Cookie', `havefolio_session=${token}`)
+          .send({
+            relevance: 'irrelevant',
+            reason: 'Does not steam milk; not an alternative.',
+          })
+          .expect(200)
+      ).body;
+      expect(updated.relevance).toBe('irrelevant');
+      expect(updated.reason).toBe('Does not steam milk; not an alternative.');
+
+      // 8. Delete match
+      await http()
+        .delete(`/api/v1/desires/${desire.id}/matches/${created.id}`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .expect(204);
+
+      // 9. Subsequent delete returns 404
+      await http()
+        .delete(`/api/v1/desires/${desire.id}/matches/${created.id}`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .expect(404);
+
+      // 10. List matches is now empty
+      const emptyList = (await get(`/${desire.id}/matches`).expect(200)).body;
+      expect(emptyList.totalCount).toBe(0);
+      expect(emptyList.items).toHaveLength(0);
+    });
+  });
+
   it('publishes complete OpenAPI contract without exposing sensitive or avoided-spend fields', () => {
     const document = SwaggerModule.createDocument(
       app,
@@ -758,6 +858,11 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       ['/api/v1/desires/{id}/photo', 'get'],
       ['/api/v1/desires/{id}/photo', 'delete'],
       ['/api/v1/desires/{id}/photo/content/{variant}', 'get'],
+      ['/api/v1/desires/{id}/matches', 'get'],
+      ['/api/v1/desires/{id}/matches', 'post'],
+      ['/api/v1/desires/{id}/matches/candidates', 'get'],
+      ['/api/v1/desires/{id}/matches/{matchId}', 'patch'],
+      ['/api/v1/desires/{id}/matches/{matchId}', 'delete'],
     ] as const) {
       const operation = document.paths[path]?.[method];
       expect(operation).toBeDefined();
@@ -777,6 +882,11 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       'DesirePhotoDto',
       'WaitingPeriodInputDto',
       'DesireErrorDto',
+      'CreateDesireMatchDto',
+      'PatchDesireMatchDto',
+      'DesireMatchDto',
+      'DesireMatchesPageDto',
+      'MatchCandidatesPageDto',
     ]) {
       expect(schemas[name]).toBeDefined();
     }

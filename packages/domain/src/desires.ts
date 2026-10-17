@@ -23,6 +23,16 @@ export const desireEffectiveStates = [
 ] as const;
 export type DesireEffectiveState = (typeof desireEffectiveStates)[number];
 
+export const desireMatchErrorCodes = [
+  'MATCH_ALREADY_EXISTS',
+  'MATCH_NOT_FOUND',
+  'INVALID_MATCH_REASON',
+  'INVALID_MATCH_RELEVANCE',
+  'MATCH_LIMIT_EXCEEDED',
+  'MATCHES_UNAVAILABLE',
+] as const;
+export type DesireMatchErrorCode = (typeof desireMatchErrorCodes)[number];
+
 export const desireErrorCodes = [
   'INVALID_DESIRE',
   'INVALID_DESIRE_PRICE',
@@ -36,8 +46,15 @@ export const desireErrorCodes = [
   'DESIRE_PHOTO_LIMIT',
   'DESIRE_MEDIA_PENDING',
   'DESIRES_UNAVAILABLE',
+  ...desireMatchErrorCodes,
 ] as const;
 export type DesireErrorCode = (typeof desireErrorCodes)[number];
+
+export const matchRelevanceValues = ['relevant', 'irrelevant'] as const;
+export type MatchRelevance = (typeof matchRelevanceValues)[number];
+
+export const matchSources = ['manual', 'suggested'] as const;
+export type MatchSource = (typeof matchSources)[number];
 
 export class DesireDomainError extends Error {
   constructor(public readonly code: DesireErrorCode) {
@@ -175,4 +192,78 @@ export function transitionDesireWaiting(
     waitingStartedAt: started,
     reviewAt: review,
   };
+}
+
+export function validateMatchReason(reason?: string | null): string {
+  if (reason === undefined || reason === null) {
+    return 'Manually selected as a potential alternative';
+  }
+  const trimmed = reason.trim();
+  if (trimmed.length === 0) {
+    return 'Manually selected as a potential alternative';
+  }
+  if (trimmed.length > 1000) {
+    throw new DesireDomainError('INVALID_MATCH_REASON');
+  }
+  return trimmed;
+}
+
+export function validateMatchRelevance(relevance?: string | null): MatchRelevance {
+  if (relevance === undefined || relevance === null || relevance === '') {
+    return 'relevant';
+  }
+  if (relevance !== 'relevant' && relevance !== 'irrelevant') {
+    throw new DesireDomainError('INVALID_MATCH_RELEVANCE');
+  }
+  return relevance;
+}
+
+export function isUsableAlternative(ownershipStatus: string | null | undefined): boolean {
+  return ownershipStatus === 'owned';
+}
+
+export function deriveMatchHints(item: {
+  categoryName?: string | null;
+  subcategoryName?: string | null;
+  condition?: string | null;
+  useFrequency?: string | null;
+  tags?: string[] | null;
+}): {
+  categoryHint: string | null;
+  usageHint: string | null;
+  conditionHint: string | null;
+  traitHints: string[];
+} {
+  const categoryHint = item.categoryName
+    ? item.subcategoryName
+      ? `Category: ${item.categoryName} > ${item.subcategoryName}`
+      : `Category: ${item.categoryName}`
+    : null;
+
+  const conditionHint =
+    item.condition && item.condition !== 'unknown'
+      ? `Condition: ${item.condition.replace(/_/g, ' ')}`
+      : null;
+
+  const usageHint =
+    item.useFrequency && item.useFrequency !== 'unknown' ? `Frequency: ${item.useFrequency}` : null;
+
+  const traitHints = Array.isArray(item.tags) ? item.tags.filter(Boolean) : [];
+
+  return {
+    categoryHint,
+    usageHint,
+    conditionHint,
+    traitHints,
+  };
+}
+
+export function deriveSuggestedReason(item: {
+  name: string;
+  categoryName?: string | null;
+}): string {
+  if (item.categoryName) {
+    return `Selected from ${item.categoryName} as a potential alternative possession.`;
+  }
+  return `Selected as a potential alternative possession.`;
 }

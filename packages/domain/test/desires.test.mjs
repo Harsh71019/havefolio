@@ -192,3 +192,73 @@ test('resolved review states remain effective without date inference', () => {
     assert.equal(deriveDesireEffectiveState(status, null), status);
   }
 });
+
+test('match reason validation handles defaults, trimming, and bounds', async () => {
+  const { validateMatchReason } = await import('../dist/index.js');
+  assert.equal(validateMatchReason(undefined), 'Manually selected as a potential alternative');
+  assert.equal(validateMatchReason(null), 'Manually selected as a potential alternative');
+  assert.equal(validateMatchReason(''), 'Manually selected as a potential alternative');
+  assert.equal(validateMatchReason('   '), 'Manually selected as a potential alternative');
+  assert.equal(validateMatchReason('  Custom reason for matching  '), 'Custom reason for matching');
+
+  const tooLong = 'a'.repeat(1001);
+  assert.throws(
+    () => validateMatchReason(tooLong),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_MATCH_REASON',
+  );
+});
+
+test('match relevance validation accepts relevant and irrelevant, defaults to relevant', async () => {
+  const { validateMatchRelevance } = await import('../dist/index.js');
+  assert.equal(validateMatchRelevance(undefined), 'relevant');
+  assert.equal(validateMatchRelevance(null), 'relevant');
+  assert.equal(validateMatchRelevance(''), 'relevant');
+  assert.equal(validateMatchRelevance('relevant'), 'relevant');
+  assert.equal(validateMatchRelevance('irrelevant'), 'irrelevant');
+  assert.throws(
+    () => validateMatchRelevance('maybe'),
+    (err) => err instanceof DesireDomainError && err.code === 'INVALID_MATCH_RELEVANCE',
+  );
+});
+
+test('usable alternative determination checks for owned status only', async () => {
+  const { isUsableAlternative } = await import('../dist/index.js');
+  assert.equal(isUsableAlternative('owned'), true);
+  assert.equal(isUsableAlternative('sold'), false);
+  assert.equal(isUsableAlternative('donated'), false);
+  assert.equal(isUsableAlternative('disposed'), false);
+  assert.equal(isUsableAlternative('lost'), false);
+  assert.equal(isUsableAlternative('returned'), false);
+  assert.equal(isUsableAlternative(null), false);
+  assert.equal(isUsableAlternative(undefined), false);
+});
+
+test('deriveMatchHints formats hints without asserting equivalence', async () => {
+  const { deriveMatchHints, deriveSuggestedReason } = await import('../dist/index.js');
+  const hints = deriveMatchHints({
+    categoryName: 'Electronics',
+    subcategoryName: 'Headphones',
+    condition: 'working',
+    useFrequency: 'often',
+    tags: ['audio', 'wireless'],
+  });
+  assert.equal(hints.categoryHint, 'Category: Electronics > Headphones');
+  assert.equal(hints.conditionHint, 'Condition: working');
+  assert.equal(hints.usageHint, 'Frequency: often');
+  assert.deepEqual(hints.traitHints, ['audio', 'wireless']);
+
+  const emptyHints = deriveMatchHints({});
+  assert.equal(emptyHints.categoryHint, null);
+  assert.equal(emptyHints.conditionHint, null);
+  assert.equal(emptyHints.usageHint, null);
+  assert.deepEqual(emptyHints.traitHints, []);
+
+  assert.equal(
+    deriveSuggestedReason({ name: 'Headphones', categoryName: 'Electronics' }),
+    'Selected from Electronics as a potential alternative possession.',
+  );
+  assert.equal(
+    deriveSuggestedReason({ name: 'Item', categoryName: null }),
+    'Selected as a potential alternative possession.',
+  );
+});
