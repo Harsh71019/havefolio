@@ -806,10 +806,14 @@ describe('desire records, waiting periods, keyset pagination and private photo l
 
       // 7. Update match feedback (mark irrelevant)
       const updated = (
-        await patch(`/${desire.id}/matches/${created.id}`, {
-          relevance: 'irrelevant',
-          reason: 'Does not steam milk; not an alternative.',
-        }).expect(200)
+        await http()
+          .patch(`/api/v1/desires/${desire.id}/matches/${created.id}`)
+          .set('Cookie', `havefolio_session=${token}`)
+          .send({
+            relevance: 'irrelevant',
+            reason: 'Does not steam milk; not an alternative.',
+          })
+          .expect(200)
       ).body;
       expect(updated.relevance).toBe('irrelevant');
       expect(updated.reason).toBe('Does not steam milk; not an alternative.');
