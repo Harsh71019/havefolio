@@ -753,7 +753,11 @@ describe('owned item HTTP, concurrency and media recovery', () => {
       await run.runtime.query("UPDATE items SET condition='working' WHERE id=$1", [item.id]);
     });
     it('hides foreign and missing items identically when marking worn out', async () => {
-      const foreign = await service.create(other, { ...base, condition: 'working' });
+      const foreign = await service.create(other, {
+        ...base,
+        ownershipStatus: 'owned',
+        condition: 'working',
+      });
       for (const id of [foreign.id, randomUUID()])
         expect(
           (await patch(id, { revision: 1, condition: 'worn_out' }).expect(404)).body.message,

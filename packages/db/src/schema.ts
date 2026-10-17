@@ -223,7 +223,9 @@ export const items = pgTable(
     })
       .notNull()
       .default('unknown'),
-    condition: text('condition', { enum: ['working', 'needs_repair', 'broken', 'worn_out', 'unknown'] })
+    condition: text('condition', {
+      enum: ['working', 'needs_repair', 'broken', 'worn_out', 'unknown'],
+    })
       .notNull()
       .default('unknown'),
     useFrequency: text('use_frequency', {
