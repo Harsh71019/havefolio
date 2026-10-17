@@ -17,6 +17,12 @@ import type {
 } from '@havefolio/contracts';
 
 const messages: Record<string, string> = {
+  INVALID_PURCHASE_URL:
+    'Enter an absolute HTTP or HTTPS link without credentials, up to 2048 characters.',
+  MERCHANT_NOT_FOUND:
+    'This merchant is unavailable. Choose an active merchant or clear the selection.',
+  MERCHANT_RETIRED:
+    'This merchant has been retired. Choose an active merchant or clear the selection.',
   DEMO_ITEM_READ_ONLY: 'Demo items are read-only examples. Add your own item through manual entry.',
   INVALID_ITEM: 'Check the item name, price and details, then try again.',
   INVALID_ITEM_DATE: 'Check the purchase date. Enter a valid date or choose Date unknown.',

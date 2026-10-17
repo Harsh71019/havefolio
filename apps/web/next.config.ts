@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
       ...[
         'auth',
         'taxonomy',
+        'merchants',
         'items',
         'spending',
         'health',

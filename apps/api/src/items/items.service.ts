@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { PoolClient } from 'pg';
+import { isPurchaseUrl, type Merchant } from '@havefolio/contracts';
 import {
   approximateDate,
   isCurrencyCode,
@@ -27,6 +28,8 @@ import {
 import { InventoryQueryService } from './inventory-query.service.js';
 import type { ItemsQueryDto } from './inventory-query.dto.js';
 interface StoredItem {
+  merchant_id: string | null;
+  purchase_url: string | null;
   demo_dataset_id: string | null;
   id: string;
   name: string;
@@ -54,6 +57,8 @@ interface StoredItem {
   updated_at: Date;
 }
 const columns = {
+  merchantId: 'merchant_id',
+  purchaseUrl: 'purchase_url',
   name: 'name',
   currency: 'currency',
   pricePaidMinor: 'price_paid_minor',
@@ -77,6 +82,8 @@ export class ItemsService {
   ) {}
   // Item endpoints keep their established public codes; the shared domain objects decide validity.
   private validate(input: Partial<CreateItemDto>): void {
+    if (input.purchaseUrl != null && !isPurchaseUrl(input.purchaseUrl))
+      throw new BadRequestException('INVALID_PURCHASE_URL');
     if (input.currency !== undefined && !isCurrencyCode(input.currency))
       throw new BadRequestException('INVALID_ITEM');
     if (input.pricePaidMinor != null) {
@@ -136,6 +143,9 @@ export class ItemsService {
   }
   private serialize(row: StoredItem, tagIds: string[]): ItemDto {
     return {
+      merchantId: row.merchant_id ?? null,
+      merchant: null,
+      purchaseUrl: row.purchase_url ?? null,
       id: row.id,
       isDemo: Boolean(row.demo_dataset_id),
       name: row.name,
@@ -190,10 +200,20 @@ export class ItemsService {
         [owner, id],
       )
     ).rows;
-    return this.serialize(
+    const item = this.serialize(
       row,
       tags.map((t) => t.tag_id),
     );
+    if (row.merchant_id) {
+      item.merchant =
+        (
+          await c.query<Merchant>(
+            `SELECT id,display_name AS "displayName",website_host AS "websiteHost",state,created_at AS "createdAt",updated_at AS "updatedAt" FROM merchants WHERE owner_id=$1 AND id=$2`,
+            [owner, row.merchant_id],
+          )
+        ).rows[0] ?? null;
+    }
+    return item;
   }
   private async taxonomy(
     c: PoolClient,
@@ -201,6 +221,16 @@ export class ItemsService {
     input: Partial<CreateItemDto>,
     previous?: StoredItem,
   ): Promise<void> {
+    if (input.merchantId && input.merchantId !== previous?.merchant_id) {
+      const merchant = (
+        await c.query<{ state: string }>(
+          'SELECT state FROM merchants WHERE owner_id=$1 AND id=$2',
+          [owner, input.merchantId],
+        )
+      ).rows[0];
+      if (!merchant) throw new NotFoundException('MERCHANT_NOT_FOUND');
+      if (merchant.state !== 'active') throw new ConflictException('MERCHANT_RETIRED');
+    }
     const category = input.categoryId === undefined ? previous?.category_id : input.categoryId;
     const subcategory =
       input.subcategoryId === undefined ? previous?.subcategory_id : input.subcategoryId;

@@ -1,5 +1,5 @@
 const sensitive =
-  /password|passwd|cookie|authorization|token|session|apikey|api_key|dsn|secret|credential|url|filename|receipt|warranty|image|notes?|multipart|body|payload|sql|parameters?|environment|envvars|path/i;
+  /password|passwd|cookie|authorization|token|session|apikey|api_key|dsn|secret|credential|url|filename|merchant|search|receipt|warranty|image|notes?|multipart|body|payload|sql|parameters?|environment|envvars|path/i;
 const token = /^[A-Za-z][A-Za-z0-9_.-]{0,79}$/;
 const fields = new Set([
   'event',
@@ -36,7 +36,7 @@ export function redact(value: unknown, depth = 0, seen = new WeakSet<object>()):
   if (depth > 5) return '[TRUNCATED]';
   if (typeof value === 'string')
     return boundedString(value).replace(
-      /(?:https?:\/\/|\/Users\/|\/home\/|\/opt\/|\/app\/|[A-Za-z]:\\)[^\s]*/g,
+      /(?:https?:\/\/|\/Users\/|\/home\/|\/opt\/|\/app\/|[A-Za-z]:\\)[^\s]*/gi,
       '[REDACTED]',
     );
   if (value === null || typeof value === 'boolean') return value;

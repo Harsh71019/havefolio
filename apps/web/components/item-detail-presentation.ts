@@ -233,6 +233,8 @@ export function lifecycleChoices(status: ItemStatus): LifecycleChoice[] {
 // ---- History ------------------------------------------------------------------------------
 
 const fieldLabels: Record<string, string> = {
+  merchantId: 'purchase merchant',
+  purchaseUrl: 'purchase URL',
   name: 'name',
   currency: 'currency',
   pricePaidMinor: 'price paid',

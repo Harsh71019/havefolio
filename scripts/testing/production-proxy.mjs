@@ -327,6 +327,24 @@ try {
     if (body) assert(metadata.readBody, 'Mark-read JSON body preserved exactly');
   }
   console.log('PASS: notifications anonymous JSON 401, collection query and PATCH transport');
+  const anonymousMerchants = await request('/api/v1/merchants?probe=one&probe=two');
+  assert.equal(anonymousMerchants.status, 401, 'Anonymous merchants reach the API');
+  assert.equal(anonymousMerchants.headers.get('cache-control'), 'no-store');
+  assert.equal(records.at(-1).query, true);
+  for (const [method, path, body] of [
+    ['GET', '/api/v1/merchants?probe=one&probe=two'],
+    ['POST', '/api/v1/merchants', '{"displayName":"Synthetic seller"}'],
+    ['GET', '/api/v1/merchants/3fa85f64-5717-4562-b3fc-2c963f66afa6'],
+    ['PATCH', '/api/v1/merchants/3fa85f64-5717-4562-b3fc-2c963f66afa6', '{"state":"retired"}'],
+  ]) {
+    const response = await request(path, { method, headers, body });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(records.at(-1).method, method);
+    assert.equal(records.at(-1).path, path.split('?')[0]);
+    assert(records.at(-1).authenticated && records.at(-1).originMatches && records.at(-1).json);
+  }
+  console.log('PASS: merchant collection query, owner cookie, POST and PATCH production transport');
   const anonymousDesires = await request('/api/v1/desires?probe=one&probe=two');
   assert.equal(
     anonymousDesires.status,
@@ -403,6 +421,7 @@ try {
   for (const domain of [
     'auth',
     'taxonomy',
+    'merchants',
     'items',
     'spending',
     'health',

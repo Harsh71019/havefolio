@@ -116,7 +116,42 @@ export interface PurchaseDate {
   day?: number | null | undefined;
 }
 
+export interface Merchant {
+  id: string;
+  displayName: string;
+  websiteHost: string | null;
+  state: 'active' | 'retired';
+  createdAt: string;
+  updatedAt: string;
+}
+export interface MerchantsPage {
+  merchants: Merchant[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+/** Private provenance; parsed only for validation, never fetched. */
+export function isPurchaseUrl(value: string): boolean {
+  if (value.length < 1 || value.length > 2048 || /[\s\p{Cc}\p{Cf}\\]/u.test(value)) return false;
+  if (!/^https?:\/\//i.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return (
+      ['http:', 'https:'].includes(url.protocol) &&
+      Boolean(url.hostname) &&
+      !url.username &&
+      !url.password &&
+      !value
+        .slice(value.indexOf('://') + 3)
+        .split(/[/?#]/, 1)[0]
+        ?.includes('@')
+    );
+  } catch {
+    return false;
+  }
+}
 export interface CreateItemRequest {
+  merchantId?: string | null | undefined;
+  purchaseUrl?: string | null | undefined;
   name: string;
   ownershipStatus: ItemStatus;
   currency: string;
@@ -136,6 +171,9 @@ export interface CreateItemRequest {
 }
 
 export interface ItemResponse {
+  merchantId?: string | null;
+  merchant?: Merchant | null;
+  purchaseUrl?: string | null;
   /** Persisted sample identity; internal dataset IDs are never exposed. */
   isDemo: boolean;
   id: string;
@@ -172,7 +210,14 @@ export interface ItemCoverSummary {
 }
 export interface ItemListEntry extends Omit<
   ItemResponse,
-  'description' | 'notes' | 'specifications' | 'originalEntry' | 'originalSource'
+  | 'description'
+  | 'notes'
+  | 'specifications'
+  | 'originalEntry'
+  | 'originalSource'
+  | 'merchantId'
+  | 'merchant'
+  | 'purchaseUrl'
 > {
   cover: ItemCoverSummary | null;
 }

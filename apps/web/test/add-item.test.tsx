@@ -102,6 +102,8 @@ beforeEach(() => {
     if (url.includes('/api/v1/auth/me')) {
       return Promise.resolve(jsonResponse(mockOwner));
     }
+    if (url.includes('/api/v1/merchants'))
+      return Promise.resolve(jsonResponse({ merchants: [], nextCursor: null, hasMore: false }));
     if (url.includes('/api/v1/taxonomy')) {
       return Promise.resolve(jsonResponse(mockTaxonomy));
     }
@@ -394,6 +396,8 @@ describe('fast manual add-item flow component', () => {
     fetchMock.mockImplementation((input) => {
       const url = typeof input === 'string' ? input : (input as Request).url;
       if (url.includes('/api/v1/auth/me')) return Promise.resolve(jsonResponse(mockOwner));
+      if (url.includes('/api/v1/merchants'))
+        return Promise.resolve(jsonResponse({ merchants: [], nextCursor: null, hasMore: false }));
       if (url.includes('/api/v1/taxonomy')) return Promise.resolve(jsonResponse(mockTaxonomy));
       if (url.includes('/api/v1/items')) {
         return Promise.resolve(jsonResponse({ message: 'ITEMS_UNAVAILABLE' }, 503));
@@ -422,6 +426,8 @@ describe('fast manual add-item flow component', () => {
     fetchMock.mockImplementation((input) => {
       const url = typeof input === 'string' ? input : (input as Request).url;
       if (url.includes('/api/v1/auth/me')) return Promise.resolve(jsonResponse(mockOwner));
+      if (url.includes('/api/v1/merchants'))
+        return Promise.resolve(jsonResponse({ merchants: [], nextCursor: null, hasMore: false }));
       if (url.includes('/api/v1/taxonomy')) return Promise.resolve(jsonResponse(mockTaxonomy));
       if (url.includes('/api/v1/items')) {
         return Promise.resolve(jsonResponse({ message: 'AUTH_REQUIRED' }, 401));
@@ -503,6 +509,8 @@ describe('fast manual add-item flow component', () => {
     fetchMock.mockImplementation((input) => {
       const url = typeof input === 'string' ? input : (input as Request).url;
       if (url.includes('/api/v1/auth/me')) return Promise.resolve(jsonResponse(mockOwner));
+      if (url.includes('/api/v1/merchants'))
+        return Promise.resolve(jsonResponse({ merchants: [], nextCursor: null, hasMore: false }));
       if (url.includes('/api/v1/taxonomy')) return Promise.resolve(jsonResponse(mockTaxonomy));
       if (url.includes('/api/v1/items')) return itemsPromise;
       return Promise.resolve(jsonResponse({}));
