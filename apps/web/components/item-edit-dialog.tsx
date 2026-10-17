@@ -24,6 +24,8 @@ import {
   type TaxonomySnapshot,
   type UpdateItemRequest,
 } from '@havefolio/contracts';
+import { isPurchaseUrl, type Merchant } from '@havefolio/contracts';
+import { PurchaseSourceFields } from './purchase-source-fields';
 import { daysInMonth } from '@havefolio/domain';
 import { Alert, AlertDescription, AlertTitle } from '@havefolio/ui/components/alert';
 import { Button } from '@havefolio/ui/components/button';
@@ -61,6 +63,9 @@ export const sectionTitles: Record<EditSection, string> = {
 
 type SpecRow = { key: string; value: string; original?: unknown };
 export interface ItemDraft {
+  merchant: Merchant | null;
+  merchantId: string | null;
+  purchaseUrl: string;
   name: string;
   brand: string;
   model: string;
@@ -90,6 +95,9 @@ const specText = (value: unknown): string =>
 export function draftFrom(item: ItemResponse): ItemDraft {
   const d = item.purchaseDate;
   return {
+    merchant: item.merchant ?? null,
+    merchantId: item.merchantId ?? null,
+    purchaseUrl: item.purchaseUrl ?? '',
     name: item.name,
     brand: item.brand ?? '',
     model: item.model ?? '',
@@ -155,6 +163,12 @@ export function sectionChanges(
     }
   }
   if (section === 'purchase') {
+    if (draft.merchantId !== (base.merchantId ?? null)) changes.merchantId = draft.merchantId;
+    const url = draft.purchaseUrl || null;
+    if (url && !isPurchaseUrl(url))
+      errors.purchaseUrl =
+        'Enter an absolute HTTP or HTTPS link without credentials, up to 2048 characters.';
+    else if (url !== (base.purchaseUrl ?? null)) changes.purchaseUrl = url;
     let price: string | null = null;
     if (draft.priceKnown === 'known') {
       if (!draft.amount.trim())
@@ -236,7 +250,16 @@ export function sectionChanges(
 
 const fieldOrder: Record<EditSection, string[]> = {
   basics: ['name', 'brand', 'model', 'description'],
-  purchase: ['amount', 'currency', 'exactDate', 'month', 'year', 'acquisitionType'],
+  purchase: [
+    'merchantId',
+    'purchaseUrl',
+    'amount',
+    'currency',
+    'exactDate',
+    'month',
+    'year',
+    'acquisitionType',
+  ],
   state: ['condition', 'useFrequency'],
   classification: ['category', 'tags'],
   notes: ['notes', 'specs'],
@@ -262,6 +285,8 @@ function sectionDifferences(
     ] as const)
       if (base[key] !== latest[key]) out.push(`${label} is now ${text(latest[key])}.`);
   if (section === 'purchase') {
+    if (base.merchantId !== latest.merchantId) out.push('Purchase merchant was changed.');
+    if (base.purchaseUrl !== latest.purchaseUrl) out.push('Purchase URL was changed.');
     if (base.pricePaidMinor !== latest.pricePaidMinor || base.currency !== latest.currency)
       out.push(`Price paid is now ${pricePaid(latest).value}.`);
     if (!sameDate(base.purchaseDate, latest.purchaseDate))
@@ -433,7 +458,13 @@ function EditForm({
     }
     if (!Object.keys(changes).length) {
       onDraftChange(section, undefined);
-      onSaved(latest ?? item, 'No changes to save.');
+      const saved = latest ?? item;
+      onSaved(
+        section === 'purchase' && draft.merchantId === saved.merchantId
+          ? { ...saved, merchant: draft.merchant }
+          : saved,
+        'No changes to save.',
+      );
       return;
     }
     submitting.current = true;
@@ -809,6 +840,16 @@ function EditForm({
               ) : null}
             </fieldset>
 
+            <PurchaseSourceFields
+              idPrefix={id}
+              {...(errors.purchaseUrl ? { urlError: errors.purchaseUrl } : {})}
+              merchant={draft.merchant}
+              merchantId={draft.merchantId}
+              purchaseUrl={draft.purchaseUrl}
+              onMerchant={(merchant) => setDraft({ merchant, merchantId: merchant?.id ?? null })}
+              onUrl={(purchaseUrl) => setDraft({ purchaseUrl })}
+            />
+            {fieldError('purchaseUrl')}
             <div className="grid gap-2">
               <Label htmlFor={`${id}-acquisitionType`}>How you got it</Label>
               <Select

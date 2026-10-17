@@ -262,3 +262,28 @@ test('logging configuration validates bounded tokens, strict booleans and reject
   ])
     assert.throws(() => validateWorkerEnvironment(invalid));
 });
+
+test('merchant source data and complete purchase URLs never reach structured sinks', async () => {
+  const privateUrl = 'HTTPS://shop.example.test/synthetic?ref=synthetic';
+  const { logger, lines, destination } = capture();
+  logger.info(
+    {
+      event: 'merchant_update',
+      operation: 'merchant.update',
+      merchantName: 'Synthetic seller',
+      merchantSearch: 'Synthetic search',
+      purchaseUrl: privateUrl,
+      body: { purchaseUrl: privateUrl },
+    },
+    privateUrl,
+  );
+  destination.close();
+  const output = lines.join('');
+  assert.equal(output.includes(privateUrl), false);
+  assert.equal(output.includes('Synthetic seller'), false);
+  assert.equal(output.includes('Synthetic search'), false);
+  assert.deepEqual(
+    redact({ purchaseUrl: privateUrl, merchantSearch: 'Synthetic search', detail: privateUrl }),
+    { purchaseUrl: '[REDACTED]', merchantSearch: '[REDACTED]', detail: '[REDACTED]' },
+  );
+});

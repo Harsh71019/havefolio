@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional, PartialType, OmitType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { MerchantDto } from '../merchants/merchants.dto.js';
 import {
   ArrayMaxSize,
   ArrayUnique,
@@ -45,6 +46,20 @@ export class PurchaseDateDto {
   day?: number | null;
 }
 export class CreateItemDto {
+  @ApiPropertyOptional({ type: String, nullable: true, format: 'uuid' })
+  @ValidateIf((_o, v) => v !== undefined && v !== null)
+  @IsUUID()
+  merchantId?: string | null;
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    maxLength: 2048,
+    description: 'Private absolute HTTP(S) URL without credentials; never fetched. Null clears it.',
+  })
+  @ValidateIf((_o, v) => v !== undefined && v !== null)
+  @IsString()
+  @Length(1, 2048)
+  purchaseUrl?: string | null;
   @ApiProperty({ minLength: 1, maxLength: 300 })
   @IsString()
   @Length(1, 300)
@@ -199,6 +214,9 @@ export class PaginationQueryDto {
   after?: string;
 }
 export class ItemDto {
+  @ApiProperty({ type: String, nullable: true, format: 'uuid' }) merchantId!: string | null;
+  @ApiProperty({ type: MerchantDto, nullable: true }) merchant!: MerchantDto | null;
+  @ApiProperty({ type: String, nullable: true, maxLength: 2048 }) purchaseUrl!: string | null;
   @ApiProperty({ description: 'Read-only sample, excluded from real spending.' }) isDemo!: boolean;
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ minLength: 1, maxLength: 300 }) name!: string;
@@ -251,6 +269,9 @@ export class ItemListEntryDto extends OmitType(ItemDto, [
   'specifications',
   'originalEntry',
   'originalSource',
+  'merchantId',
+  'merchant',
+  'purchaseUrl',
 ] as const) {
   @ApiProperty({
     type: ItemCoverDto,

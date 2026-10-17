@@ -19,6 +19,8 @@ import {
   itemStatuses,
   popularCurrencies,
 } from '@havefolio/contracts';
+import { isPurchaseUrl, type Merchant } from '@havefolio/contracts';
+import { PurchaseSourceFields } from './purchase-source-fields';
 import { daysInMonth, formatMoney, parseMinorUnits } from '@havefolio/domain';
 import { Button } from '@havefolio/ui/components/button';
 import {
@@ -142,6 +144,8 @@ export function AddItemForm(): ReactElement {
   const [tagIds, setTagIds] = useState<string[]>([]);
 
   // Optional fields
+  const [merchant, setMerchant] = useState<Merchant | null>(null);
+  const [purchaseUrl, setPurchaseUrl] = useState('');
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [description, setDescription] = useState('');
@@ -340,6 +344,8 @@ export function AddItemForm(): ReactElement {
     setCategoryId(undefined);
     setSubcategoryId(undefined);
     setTagIds([]);
+    setMerchant(null);
+    setPurchaseUrl('');
     setBrand('');
     setModel('');
     setDescription('');
@@ -370,6 +376,8 @@ export function AddItemForm(): ReactElement {
     setCategoryId(undefined);
     setSubcategoryId(undefined);
     setTagIds([]);
+    setMerchant(null);
+    setPurchaseUrl('');
     setBrand('');
     setModel('');
     setDescription('');
@@ -473,6 +481,9 @@ export function AddItemForm(): ReactElement {
       errors.notes = 'Notes must be 10000 characters or fewer.';
     }
 
+    if (purchaseUrl && !isPurchaseUrl(purchaseUrl))
+      errors.purchaseUrl =
+        'Enter an absolute HTTP or HTTPS link without credentials (up to 2048 characters).';
     setValidationErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -480,6 +491,8 @@ export function AddItemForm(): ReactElement {
     }
 
     const payload: CreateItemRequest = {
+      merchantId: merchant?.id ?? null,
+      purchaseUrl: purchaseUrl || null,
       name: trimmedName,
       ownershipStatus,
       currency,
@@ -1145,6 +1158,15 @@ export function AddItemForm(): ReactElement {
             </Select>
           </div>
 
+          <PurchaseSourceFields
+            merchant={merchant}
+            merchantId={merchant?.id ?? null}
+            purchaseUrl={purchaseUrl}
+            onMerchant={setMerchant}
+            onUrl={setPurchaseUrl}
+            disabled={isSubmitting}
+          />
+          {validationErrors.purchaseUrl ? <p role="alert">{validationErrors.purchaseUrl}</p> : null}
           {/* 6. Expandable Optional Details */}
           <div className="rounded-lg border p-4 space-y-4">
             <button
