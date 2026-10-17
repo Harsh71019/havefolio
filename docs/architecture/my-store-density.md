@@ -84,3 +84,9 @@ restoration, candidate image selection and unchanged card bounds after delayed i
 The screenshots cover all three desktop densities in both themes, 360/768px in both themes,
 loading per mode, empty results per mode and taxonomy fallback. Real inventory/provider
 content and manual assistive-technology operation are not claimed as verified.
+
+After current main's PER-29 merge (`f93b21b`) was merged into this branch, `pnpm check`
+passed again with 273 component tests. Migration validation and the full production smoke
+suite passed again (76 browser passes, 12 intentional skips, plus real production-proxy checks).
+The image-error component assertion now awaits React's asynchronous event commit rather than
+reading the DOM immediately; CI exposed the timing assumption in the original synchronous test.

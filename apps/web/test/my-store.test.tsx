@@ -359,8 +359,9 @@ describe('My Store page', () => {
     const image = within(desk).getByRole('img', { name: 'Photo of Desk' });
     expect(within(card('Rug')).queryByRole('img')).toBeNull();
     expect(card('Rug').querySelector('img')).toHaveAttribute('alt', '');
-    fireEvent.error(image);
-    expect(within(desk).getByText('Photo could not load.')).toBeVisible();
+    // Image events can commit asynchronously under React's concurrent renderer.
+    await act(() => Promise.resolve(fireEvent.error(image)));
+    expect(await within(desk).findByText('Photo could not load.')).toBeVisible();
     expect(screen.queryByRole('alert')).toBeNull();
     // No interactive control is nested inside a card link.
     expect(within(desk).queryByRole('button')).toBeNull();
