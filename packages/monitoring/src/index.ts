@@ -77,6 +77,9 @@ export function normalizeRoute(input: unknown): string {
   if (/^\/api\/v1\/merchants(?:\/[^/]+)?$/.test(path))
     return path === '/api/v1/merchants' ? path : '/api/v1/merchants/:id';
   if (path === '/api/v1/spending') return path;
+  if (/^\/api\/v1\/goals(?:\/[^/]+(?:\/contributions)?)?$/.test(path)) {
+    return path.replace(/(\/goals)\/[^/]+/, '$1/:id');
+  }
   if (/^\/api\/v1\/onboarding(?:\/(actions|demo))?$/.test(path)) return path;
   if (/^\/api\/v1\/health(?:\/|$)/.test(path)) return '/api/v1/health';
   if (/^\/(?:login|store|wants|goals|settings\/taxonomy)?\/?$/.test(path))

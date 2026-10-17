@@ -46,6 +46,13 @@ test('known routes normalize UUIDs, queries and app-router templates without kee
     '/api/v1/items/:itemId/photos/:attachmentId',
   );
   assert.equal(normalizeRoute('/private-note/email@example.com'), '/unmatched');
+  assert.equal(normalizeRoute('/api/v1/goals?status=archived'), '/api/v1/goals');
+  assert.equal(normalizeRoute('/api/v1/goals/private-id'), '/api/v1/goals/:id');
+  assert.equal(
+    normalizeRoute('/api/v1/goals/private-id/contributions?before=3'),
+    '/api/v1/goals/:id/contributions',
+  );
+  assert.equal(normalizeRoute('/api/v1/goals/private-id/private-note'), '/unmatched');
   assert.equal(
     normalizeRoute('/api/v1/spending?categoryId=private&currency=INR'),
     '/api/v1/spending',

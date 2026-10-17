@@ -127,6 +127,13 @@
       "when": 1792260827844,
       "tag": "0017_purchase_merchants",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792262763045,
+      "tag": "0018_personal_goals",
+      "breakpoints": true
     }
   ]
 }
