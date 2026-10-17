@@ -572,6 +572,16 @@ export interface PatchDesireRequest {
   waitingPeriod?: WaitingPeriodInput | null;
 }
 
+export const desireMatchErrorCodes = [
+  'MATCH_ALREADY_EXISTS',
+  'MATCH_NOT_FOUND',
+  'INVALID_MATCH_REASON',
+  'INVALID_MATCH_RELEVANCE',
+  'MATCH_LIMIT_EXCEEDED',
+  'MATCHES_UNAVAILABLE',
+] as const;
+export type DesireMatchErrorCode = (typeof desireMatchErrorCodes)[number];
+
 export const desireErrorCodes = [
   'INVALID_DESIRE',
   'INVALID_DESIRE_PRICE',
@@ -585,6 +595,7 @@ export const desireErrorCodes = [
   'DESIRE_PHOTO_LIMIT',
   'DESIRE_MEDIA_PENDING',
   'DESIRES_UNAVAILABLE',
+  ...desireMatchErrorCodes,
 ] as const;
 export type DesireErrorCode = (typeof desireErrorCodes)[number];
 
@@ -721,13 +732,3 @@ export interface MatchCandidatesPage {
   nextCursor: string | null;
   hasMore: boolean;
 }
-
-export const desireMatchErrorCodes = [
-  'MATCH_ALREADY_EXISTS',
-  'MATCH_NOT_FOUND',
-  'INVALID_MATCH_REASON',
-  'INVALID_MATCH_RELEVANCE',
-  'MATCH_LIMIT_EXCEEDED',
-  'MATCHES_UNAVAILABLE',
-] as const;
-export type DesireMatchErrorCode = (typeof desireMatchErrorCodes)[number];
