@@ -666,6 +666,116 @@ describe('owned item HTTP, concurrency and media recovery', () => {
         .rows[0].item_id,
     ).toBeNull();
   });
+  describe('worn-out condition', () => {
+    const conditionEvents = async (id: string): Promise<Record<string, unknown>[]> =>
+      (
+        (await get(`/${id}/history`).expect(200)).body.events as {
+          eventType: string;
+          metadata: Record<string, unknown>;
+        }[]
+      )
+        .filter((e) => e.eventType === 'condition_changed')
+        .map((e) => e.metadata);
+    const money = {
+      pricePaidMinor: '249900',
+      currency: 'INR',
+      purchaseDate: { precision: 'month', year: 2019, month: 11 },
+      acquisitionType: 'bought',
+      useFrequency: 'often',
+    };
+    it('creates an owned worn-out item without a condition_changed event', async () => {
+      const item = await create({ ...money, condition: 'worn_out' });
+      expect(item).toMatchObject({ condition: 'worn_out', ownershipStatus: 'owned', revision: 1 });
+      expect(await conditionEvents(item.id)).toEqual([]);
+    });
+    it.each(['working', 'needs_repair', 'broken', 'unknown'])(
+      'changes %s to worn_out and back with one event each, keeping ownership and money',
+      async (from) => {
+        const item = await create({ ...money, condition: from });
+        const worn = (await patch(item.id, { revision: 1, condition: 'worn_out' }).expect(200))
+          .body as ItemDto;
+        expect(worn).toMatchObject({
+          condition: 'worn_out',
+          ownershipStatus: 'owned',
+          useFrequency: 'often',
+          pricePaidMinor: '249900',
+          currency: 'INR',
+          purchaseDate: item.purchaseDate,
+          acquisitionType: 'bought',
+          originalEntry: item.originalEntry,
+          revision: 2,
+        });
+        expect(await conditionEvents(item.id)).toEqual([{ source: 'user', from, to: 'worn_out' }]);
+        // A retried stale request is rejected without another event.
+        await patch(item.id, { revision: 1, condition: 'worn_out' }).expect(409);
+        // Re-saving the same condition is not a change.
+        await patch(item.id, { revision: 2, condition: 'worn_out', name: 'Renamed' }).expect(200);
+        expect(await conditionEvents(item.id)).toHaveLength(1);
+        const back = (await patch(item.id, { revision: 3, condition: from }).expect(200))
+          .body as ItemDto;
+        expect(back).toMatchObject({ condition: from, ownershipStatus: 'owned', revision: 4 });
+        expect(await conditionEvents(item.id)).toEqual([
+          { source: 'user', from, to: 'worn_out' },
+          { source: 'user', from: 'worn_out', to: from },
+        ]);
+      },
+    );
+    it('keeps a worn-out item independent of use frequency and ownership actions', async () => {
+      const item = await create({ condition: 'worn_out' });
+      const unused = (await patch(item.id, { revision: 1, useFrequency: 'never' }).expect(200))
+        .body as ItemDto;
+      expect(unused).toMatchObject({
+        condition: 'worn_out',
+        useFrequency: 'never',
+        ownershipStatus: 'owned',
+      });
+      const disposed = (
+        await post(`/${item.id}/actions`, {
+          revision: 2,
+          action: 'ownership_changed',
+          ownershipStatus: 'disposed',
+        }).expect(200)
+      ).body as ItemDto;
+      expect(disposed).toMatchObject({ condition: 'worn_out', ownershipStatus: 'disposed' });
+      expect(await conditionEvents(item.id)).toEqual([]);
+    });
+    it('rejects unsupported values in validation and the database without recording history', async () => {
+      const item = await create({ condition: 'working' });
+      for (const condition of ['worn', 'WORN_OUT', 'worn-out', '', null, 3])
+        await patch(item.id, { revision: 1, condition }).expect(400);
+      await post('', { ...base, condition: 'worn' }).expect(400);
+      expect((await get('/' + item.id).expect(200)).body.revision).toBe(1);
+      expect((await get(`/${item.id}/history`).expect(200)).body.events).toHaveLength(1);
+      await expect(
+        run.runtime.query("UPDATE items SET condition='worn' WHERE id=$1", [item.id]),
+      ).rejects.toMatchObject({ code: '23514' });
+      await run.runtime.query("UPDATE items SET condition='worn_out' WHERE id=$1", [item.id]);
+      await run.runtime.query("UPDATE items SET condition='working' WHERE id=$1", [item.id]);
+    });
+    it('hides foreign and missing items identically when marking worn out', async () => {
+      const foreign = await service.create(other, { ...base, condition: 'working' });
+      for (const id of [foreign.id, randomUUID()])
+        expect(
+          (await patch(id, { revision: 1, condition: 'worn_out' }).expect(404)).body.message,
+        ).toBe('ITEM_NOT_FOUND');
+      expect(await service.read(other, foreign.id)).toMatchObject({
+        condition: 'working',
+        revision: 1,
+      });
+    });
+    it('publishes worn_out in request and response OpenAPI enums', () => {
+      const schemas = SwaggerModule.createDocument(app, new DocumentBuilder().build()).components!
+        .schemas! as Record<string, { properties: { condition: { enum: string[] } } }>;
+      for (const name of ['CreateItemDto', 'UpdateItemDto', 'ItemDto'])
+        expect(schemas[name]!.properties.condition.enum).toEqual([
+          'working',
+          'needs_repair',
+          'broken',
+          'worn_out',
+          'unknown',
+        ]);
+    });
+  });
   it('publishes request/response, money/date, revision and all error contracts without provider fields', () => {
     const document = SwaggerModule.createDocument(
       app,

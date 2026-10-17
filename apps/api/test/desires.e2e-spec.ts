@@ -835,6 +835,56 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       expect(emptyList.totalCount).toBe(0);
       expect(emptyList.items).toHaveLength(0);
     });
+
+    it('keeps worn-out matches as history, not usable alternatives, without blocking decisions', async () => {
+      const desire = await createMinimal('Running shoes');
+      const shoesId = await insertItem(owner, 'Old trainers', 'owned');
+      const wornId = await insertItem(owner, 'Faded sneakers', 'owned');
+      await run.runtime.query("UPDATE items SET condition='worn_out' WHERE id=$1", [wornId]);
+      const foreignWornId = await insertItem(other, 'Foreign worn sandals', 'owned');
+      await run.runtime.query("UPDATE items SET condition='worn_out' WHERE id=$1", [foreignWornId]);
+
+      // An existing match keeps its history when the item later becomes worn out.
+      const created = (
+        await post(`/${desire.id}/matches`, { itemId: shoesId, reason: 'Same use.' }).expect(201)
+      ).body;
+      expect(created.item.isUsableAlternative).toBe(true);
+      await run.runtime.query("UPDATE items SET condition='worn_out' WHERE id=$1", [shoesId]);
+      const list = (await get(`/${desire.id}/matches`).expect(200)).body;
+      expect(list.items).toHaveLength(1);
+      expect(list.items[0]).toMatchObject({ id: created.id, reason: 'Same use.' });
+      expect(list.items[0].item).toMatchObject({
+        condition: 'worn_out',
+        ownershipStatus: 'owned',
+        isUsableAlternative: false,
+      });
+      expect(list.items[0].hints.conditionHint).toBe('Condition: worn out');
+
+      // Default candidates exclude worn-out items; the existing toggle allows manual review.
+      const defaultIds = (
+        (await get(`/${desire.id}/matches/candidates`).expect(200)).body as {
+          items: Array<{ id: string }>;
+        }
+      ).items.map((i) => i.id);
+      expect(defaultIds).not.toContain(wornId);
+      const all = (
+        await get(`/${desire.id}/matches/candidates?includeUnavailable=true`).expect(200)
+      ).body as { items: Array<{ id: string; isUsableAlternative: boolean }> };
+      expect(all.items.find((i) => i.id === wornId)?.isUsableAlternative).toBe(false);
+      expect(all.items.map((i) => i.id)).not.toContain(foreignWornId);
+      const manual = (await post(`/${desire.id}/matches`, { itemId: wornId }).expect(201)).body;
+      expect(manual.item.isUsableAlternative).toBe(false);
+      await post(`/${desire.id}/matches`, { itemId: foreignWornId }).expect(404);
+
+      // Only worn-out matches remain, and the owner can still record a decision.
+      const current = (await get(`/${desire.id}`).expect(200)).body as DesireDto;
+      await post(`/${current.id}/reviews`, {
+        commandId: randomUUID(),
+        revision: current.revision,
+        outcome: 'declined',
+      }).expect(201);
+      expect(((await get(`/${desire.id}`).expect(200)).body as DesireDto).status).toBe('declined');
+    });
   });
 
   it('publishes complete OpenAPI contract without exposing sensitive or avoided-spend fields', () => {
