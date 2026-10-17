@@ -1,3 +1,4 @@
+import { GoalsModule } from './goals/goals.module.js';
 import { TelemetryModule } from '@havefolio/logging';
 import { ItemsModule } from './items/items.module.js';
 import { Module } from '@nestjs/common';
@@ -27,6 +28,7 @@ import { DesiresModule } from './desires/desires.module.js';
     AuthModule,
     TaxonomyModule,
     ItemsModule,
+    GoalsModule,
     DesiresModule,
     NotificationsModule,
     OperationsModule,

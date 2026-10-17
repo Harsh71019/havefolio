@@ -1,3 +1,4 @@
+import { goalErrorCodes } from '../goals/goals.dto.js';
 import { captureFailure } from '@havefolio/monitoring/server';
 import {
   Catch,
@@ -13,6 +14,7 @@ import type { Request, Response } from 'express';
 
 const safeMessages = new Set<string>([
   ...taxonomyErrorCodes,
+  ...goalErrorCodes,
   // Fixed financial-domain tokens (PER-22); never amounts, notes or dates.
   ...financialErrorCodes,
   // Fixed desire-domain tokens (PER-23).
