@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: 'My Store' };
 // Server-rendered shell; owner data loads client-side through the same-origin session API.
 export default function StorePage(): ReactElement {
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-12 lg:px-12">
+    <main className="mx-auto w-full max-w-[112rem] px-4 py-8 sm:px-8 sm:py-12">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <PageHeading
           eyebrow="My Store"

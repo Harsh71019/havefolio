@@ -1,10 +1,17 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ItemListEntry, ItemsPage, TaxonomySnapshot } from '@havefolio/contracts';
 import { InventoryRequestError, type InventorySource } from '../components/inventory-source';
 import { acquiredFact, priceFact, useFact } from '../components/item-presentation';
 import { MyStore } from '../components/my-store';
+import {
+  densityBootstrap,
+  densityImageSizes,
+  densityKey,
+  storeDensities,
+} from '../components/store-density-config';
+import { selectDensity } from '../components/store-density';
 import { groupInventory } from '../components/store-grouping';
 
 const now = new Date(2026, 9, 2); // 2 Oct 2026, local time
@@ -94,6 +101,10 @@ const page = (items: ItemListEntry[], nextCursor: string | null = null): ItemsPa
 const card = (name: string): HTMLElement =>
   screen.getByRole('link', { name: new RegExp(`^${name}\\b`) });
 
+beforeEach(() => {
+  window.localStorage.clear();
+  delete document.documentElement.dataset.storeDensity;
+});
 afterEach(() => vi.restoreAllMocks());
 
 describe('price, date and use presentation', () => {
@@ -289,7 +300,7 @@ describe('My Store page', () => {
       `/api/v1/items/${uuid(1)}/photos/${uuid(501)}/content/thumbnail`,
     );
     expect(image.getAttribute('srcset')).toContain('content/display 1600w');
-    expect(image.getAttribute('sizes')).toContain('92vw');
+    expect(image).toHaveAttribute('sizes', densityImageSizes.comfortable);
     expect(image).toHaveAttribute('width', '1600');
     expect(image).toHaveAttribute('loading', 'eager');
     expect(card('Free sample mug')).toHaveAccessibleDescription(
@@ -450,6 +461,8 @@ describe('My Store page', () => {
     await screen.findByRole('link', { name: /^Alpha/ });
     const user = userEvent.setup();
     await user.tab();
+    expect(screen.getByRole('radio', { name: 'Comfortable' })).toHaveFocus();
+    await user.tab();
     expect(card('Alpha')).toHaveFocus();
     await user.tab();
     expect(card('Beta')).toHaveFocus();
@@ -493,4 +506,144 @@ describe('item navigation context', () => {
     await screen.findByRole('link', { name: /^Item 2\b/ });
     expect(screen.queryByText(/were deleted/)).toBeNull();
   });
+});
+
+describe('desktop density preference', () => {
+  it.each([null, 'invalid', '{broken', 'COMPACT', 'v0:compact'])(
+    'defaults safely for %s',
+    async (value) => {
+      if (value !== null) window.localStorage.setItem(densityKey, value);
+      // Execute the actual pre-paint script, not a separate test implementation.
+      window.eval(densityBootstrap);
+      render(<MyStore source={source([page([item(1)])])} now={now} />);
+      await screen.findByRole('link', { name: /^Item 1/ });
+      expect(screen.getByRole('radio', { name: 'Comfortable' })).toBeChecked();
+      expect(document.documentElement.dataset.storeDensity).toBe('comfortable');
+    },
+  );
+
+  it.each(storeDensities)(
+    'keeps grouping, facts, pagination and image hints in %s',
+    async (density) => {
+      window.localStorage.setItem(densityKey, density);
+      window.eval(densityBootstrap);
+      const fake = source([
+        page(
+          [
+            item(1, {
+              name: 'Zero',
+              categoryId: kitchen,
+              pricePaidMinor: '0',
+              purchaseDate: { precision: 'month', year: 2026, month: 4, day: null },
+              cover: {
+                photoId: uuid(501),
+                width: 1600,
+                height: 1200,
+                altText: 'Zero cover',
+                decorative: false,
+              },
+            }),
+            item(2, {
+              name: 'Unknown',
+              ownershipStatus: 'sold',
+              purchaseDate: { precision: 'year', year: 2019, month: null, day: null },
+            }),
+          ],
+          uuid(2),
+        ),
+        page([item(3, { name: 'Next' })]),
+      ]);
+      render(<MyStore source={fake} now={now} />);
+      await screen.findByRole('link', { name: /^Zero/ });
+      expect(
+        screen.getByRole('radio', { name: density[0]!.toUpperCase() + density.slice(1) }),
+      ).toBeChecked();
+      expect(screen.getByRole('img', { name: 'Zero cover' })).toHaveAttribute(
+        'sizes',
+        densityImageSizes[density],
+      );
+      expect(card('Zero')).toHaveAccessibleDescription(
+        /Paid ₹0 Acquired Apr 2026 · about 6 months ago/,
+      );
+      expect(card('Unknown')).toHaveAccessibleName('Unknown Sold, no longer owned');
+      expect(card('Unknown')).toHaveAccessibleDescription(
+        /Paid Not recorded Acquired 2019 · about 7 years ago/,
+      );
+      expect(screen.getByText(/Books. They appear/)).toBeVisible();
+      await userEvent.click(screen.getByRole('button', { name: 'Show more items' }));
+      await screen.findByRole('link', { name: /^Next/ });
+      expect(fake.loadPage).toHaveBeenCalledTimes(2);
+      expect(fake.loadTaxonomy).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('selects all modes with arrow keys and restores after remount without fetching on selection', async () => {
+    const fake = source([page([item(1)])]);
+    const view = render(<MyStore source={fake} now={now} />);
+    await screen.findByRole('link', { name: /^Item 1/ });
+    const user = userEvent.setup();
+    screen.getByRole('radio', { name: 'Comfortable' }).focus();
+    await user.keyboard('{ArrowLeft>}');
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Compact' })).toBeChecked());
+    await user.keyboard('{/ArrowLeft}{ArrowRight>}');
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Comfortable' })).toBeChecked());
+    await user.keyboard('{/ArrowRight}{ArrowRight>}');
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Large' })).toBeChecked());
+    await user.keyboard('{/ArrowRight}');
+    expect(window.localStorage.length).toBe(1);
+    expect(window.localStorage.getItem(densityKey)).toBe('large');
+    expect(fake.loadPage).toHaveBeenCalledTimes(1);
+    view.unmount();
+    render(<MyStore source={source([page([])])} now={now} />);
+    await screen.findByText('Nothing recorded yet');
+    expect(screen.getByRole('radio', { name: 'Large' })).toBeChecked();
+  });
+
+  it('survives storage read/write failures and synchronizes changes from another tab', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('Unavailable');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Full');
+    });
+    window.eval(densityBootstrap);
+    render(<MyStore source={source([page([item(1)])])} now={now} />);
+    await screen.findByRole('link', { name: /^Item 1/ });
+    await userEvent.click(screen.getByRole('radio', { name: 'Compact' }));
+    expect(screen.getByRole('radio', { name: 'Compact' })).toBeChecked();
+    await act(() =>
+      window.dispatchEvent(new StorageEvent('storage', { key: densityKey, newValue: 'large' })),
+    );
+    expect(screen.getByRole('radio', { name: 'Large' })).toBeChecked();
+    await act(() =>
+      window.dispatchEvent(new StorageEvent('storage', { key: densityKey, newValue: 'corrupt' })),
+    );
+    expect(screen.getByRole('radio', { name: 'Comfortable' })).toBeChecked();
+  });
+
+  it.each(storeDensities)(
+    'retains loading, fallback, offline and retry states with %s',
+    async (density) => {
+      act(() => selectDensity(density));
+      const fake = source([], new Error('taxonomy unavailable'));
+      const view = render(<MyStore source={fake} now={now} />);
+      expect(screen.getByTestId('store-skeleton')).toBeInTheDocument();
+      await screen.findByRole('alert');
+      fake.loadPage.mockResolvedValueOnce(page([item(1)], uuid(1)));
+      await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+      await screen.findByRole('heading', { name: 'All items' });
+      expect(screen.getByText(/Categories could not load/)).toBeVisible();
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      act(() => {
+        window.dispatchEvent(new Event('offline'));
+      });
+      expect(screen.getByRole('button', { name: 'Show more items' })).toBeDisabled();
+      view.unmount();
+      render(<MyStore source={source([page([])])} now={now} />);
+      await screen.findByText('Nothing recorded yet');
+      expect(
+        screen.getByRole('radio', { name: density[0]!.toUpperCase() + density.slice(1) }),
+      ).toBeChecked();
+    },
+  );
 });

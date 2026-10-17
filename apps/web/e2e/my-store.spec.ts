@@ -140,7 +140,10 @@ async function mock(
         .url()
         .match(/a000-0*(\d+)\/content/)?.[1] ?? 0,
     );
-    return route.fulfill({ contentType: 'image/svg+xml', body: svg(n) });
+    const body = route.request().url().endsWith('/thumbnail')
+      ? svg(n).replace('width="800" height="600"', 'width="320" height="240" viewBox="0 0 800 600"')
+      : svg(n);
+    return route.fulfill({ contentType: 'image/svg+xml', body });
   });
 }
 async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
@@ -208,6 +211,10 @@ test('populated, mixed-lifecycle store is responsive, private and keyboard navig
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Revisit welcome help' })).toBeFocused();
   await page.keyboard.press('Tab');
+  if (testInfo.project.name === 'desktop') {
+    await expect(page.getByRole('radio', { name: 'Comfortable' })).toBeFocused();
+    await page.keyboard.press('Tab');
+  }
   // Display order: Kitchen items without a subcategory, then Appliances.
   await expect(page.getByRole('link', { name: /^Cast-iron tawa Owned/ })).toBeFocused();
   await page.keyboard.press('Tab');
@@ -216,6 +223,10 @@ test('populated, mixed-lifecycle store is responsive, private and keyboard navig
   expect(ring).not.toBe('none');
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: /^Mixer grinder Owned/ })).toBeFocused();
+  if (testInfo.project.name === 'desktop') {
+    await page.getByRole('radio', { name: 'Large' }).click();
+    await page.getByRole('link', { name: /^Mixer grinder Owned/ }).focus();
+  }
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(new RegExp(`/items/${id(2)}$`));
   await expect(page.getByRole('link', { name: 'Back to My Store' }).first()).toHaveAttribute(
@@ -223,6 +234,10 @@ test('populated, mixed-lifecycle store is responsive, private and keyboard navig
     '/store',
   );
   await page.goBack();
+  if (testInfo.project.name === 'desktop') {
+    await expect(page.getByRole('radio', { name: 'Large' })).toBeChecked();
+    await page.getByRole('radio', { name: 'Comfortable' }).click();
+  }
   const sizes =
     testInfo.project.name === 'mobile'
       ? [{ width: 360, label: '360' }]
@@ -281,3 +296,299 @@ test('API failure and expired session expose recovery actions', async ({ page })
   await expect(page.locator('main').getByRole('alert')).toContainText('Please sign in again');
   await expect(page.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
 });
+
+const densityKey = 'havefolio:store-density:v1';
+const densityShot = (name: string): string => `../../docs/screenshots/per-58-${name}.png`;
+const densities = ['Compact', 'Comfortable', 'Large'] as const;
+const densityItems = Array.from({ length: 12 }, (_, n) =>
+  base(n + 1, {
+    name: n === 0 ? 'Electric kettle' : `Household item ${String(n + 1).padStart(2, '0')}`,
+    ownershipStatus: n === 1 ? 'sold' : 'owned',
+    pricePaidMinor: n === 0 ? '0' : n === 2 ? '900719925474099312' : null,
+    purchaseDate:
+      n === 0
+        ? { precision: 'month', year: 2025, month: 11, day: null }
+        : n === 1
+          ? { precision: 'year', year: 2019, month: null, day: null }
+          : { precision: 'unknown', year: null, month: null, day: null },
+    cover: cover(n + 1),
+  }),
+);
+async function columns(page: Page): Promise<number> {
+  return page
+    .locator('.store-grid')
+    .first()
+    .evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+}
+
+test('PER-58 desktop density geometry, facts, images, keyboard, persistence and themes', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'Desktop density matrix.');
+  const failures: string[] = [];
+  page.on('pageerror', (error) => failures.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') failures.push(message.text());
+  });
+  let inventoryRequests = 0;
+  page.on('request', (request) => {
+    if (/\/api\/v1\/items\?/.test(request.url())) inventoryRequests++;
+  });
+  await mock(page, densityItems);
+  await page.goto('/store?q=kettle&sort=name');
+  await expect(page.getByRole('radio', { name: 'Comfortable' })).toBeChecked();
+  await expect(page.getByRole('link', { name: /^Electric kettle Owned/ })).toBeVisible();
+  const initialRequests = inventoryRequests;
+  const expected = [
+    [3, 2, 1],
+    [4, 3, 2],
+    [4, 3, 2],
+    [6, 4, 3],
+  ];
+  for (const [index, width] of [1024, 1280, 1440, 1920].entries()) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const [modeIndex, mode] of densities.entries()) {
+      await page.getByRole('radio', { name: mode, exact: true }).click();
+      await expect(page.getByRole('radio', { name: mode, exact: true })).toBeChecked();
+      expect(await columns(page)).toBe(expected[index]![modeIndex]);
+      const first = page.getByRole('link', { name: /^Electric kettle Owned/ });
+      await expect(first).toHaveAccessibleDescription(/Paid ₹0 Acquired Nov 2025/);
+      await expect(
+        page.getByRole('link', { name: /^Household item 02 Sold/ }),
+      ).toHaveAccessibleDescription(/Paid Not recorded Acquired 2019/);
+      const image = first.locator('img');
+      expect(await image.getAttribute('sizes')).toContain('calc(');
+      expect(await page.locator('.my-store img[loading="eager"]').count()).toBe(4);
+      expect(await page.locator('.my-store img[loading="lazy"]').count()).toBe(8);
+      // Compare the browser's resolved sizes hint to the real slot, including sidebar/gaps.
+      const sizing = await image.evaluate((el) => {
+        const img = el as HTMLImageElement;
+        const hint = img.sizes
+          .split(', ')
+          .find((part) => {
+            const match = part.match(/^\(min-width: (\d+)px\)/);
+            return !match || innerWidth >= Number(match[1]);
+          })!
+          .replace(/^\(min-width: \d+px\) /, '');
+        const probe = document.createElement('div');
+        probe.style.cssText = `position:fixed;visibility:hidden;width:${hint}`;
+        document.body.append(probe);
+        const hintedWidth = probe.getBoundingClientRect().width;
+        probe.remove();
+        return {
+          width: img.getBoundingClientRect().width,
+          height: img.getBoundingClientRect().height,
+          hintedWidth,
+        };
+      });
+      expect(sizing.width).toBeGreaterThan(200);
+      expect(Math.abs(sizing.hintedWidth - sizing.width)).toBeLessThan(3);
+      expect(sizing.width / sizing.height).toBeCloseTo(mode === 'Compact' ? 16 / 9 : 4 / 3, 1);
+      if (width === 1024 && mode === 'Large') {
+        await expect
+          .poll(() => image.evaluate((el) => (el as HTMLImageElement).currentSrc))
+          .toContain('/display');
+      }
+      await expectNoOverflow(page);
+      if (width === 1440) {
+        for (const theme of ['light', 'dark'] as const) {
+          await setTheme(page, theme);
+          await page
+            .locator('.my-store')
+            .evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - 24));
+          await page.screenshot({
+            path: densityShot(`${mode.toLowerCase()}-1440-${theme}`),
+            animations: 'disabled',
+          });
+        }
+      }
+    }
+  }
+  expect(inventoryRequests).toBe(initialRequests);
+  await page.getByRole('radio', { name: 'Comfortable' }).focus();
+  await page.keyboard.down('ArrowLeft');
+  await expect(page.getByRole('radio', { name: 'Compact' })).toBeChecked();
+  await page.keyboard.up('ArrowLeft');
+  const ring = await page
+    .getByRole('radio', { name: 'Compact' })
+    .evaluate((el) => getComputedStyle(el).boxShadow);
+  expect(ring).not.toBe('none');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: /^Electric kettle Owned/ })).toBeFocused();
+  expect(await page.evaluate((key) => localStorage.getItem(key), densityKey)).toBe('compact');
+  await page.reload();
+  await expect(page.getByRole('radio', { name: 'Compact' })).toBeChecked();
+  const nav = page.getByRole('navigation', { name: 'Primary' }).filter({ visible: true });
+  await nav.getByRole('link', { name: 'Home', exact: true }).click();
+  await nav.getByRole('link', { name: 'My Store', exact: true }).click();
+  await expect(page.getByRole('radio', { name: 'Compact' })).toBeChecked();
+  await page.goBack();
+  await page.goForward();
+  await expect(page.getByRole('radio', { name: 'Compact' })).toBeChecked();
+  expect(failures).toEqual([]);
+});
+
+test('PER-58 restores before paint and mobile ignores every saved desktop density', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'One browser covers all responsive widths.');
+  await mock(page, densityItems);
+  await page.addInitScript(() => {
+    const record = (): void => {
+      const grid = document.querySelector('.store-grid');
+      if (grid && grid.getBoundingClientRect().width > 0) {
+        document.documentElement.dataset.firstStoreColumns = String(
+          getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+        );
+        document.documentElement.dataset.firstStoreDensity =
+          document.documentElement.dataset.storeDensity;
+        document.documentElement.dataset.firstStoreWidth = String(innerWidth);
+      } else requestAnimationFrame(record);
+    };
+    requestAnimationFrame(record);
+  });
+  await page.goto('/store');
+  for (const density of ['compact', 'comfortable', 'large']) {
+    await page.evaluate(({ key, value }) => localStorage.setItem(key, value), {
+      key: densityKey,
+      value: density,
+    });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route(/\/api\/v1\/items(\?.*)?$/, async (route) => {
+      await held;
+      await route.fulfill({ json: { items: densityItems, nextCursor: null, hasMore: false } });
+    });
+    await page.reload();
+    const skeleton = page.getByTestId('store-skeleton');
+    await expect(skeleton).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-store-density', density);
+    const expectedColumns = density === 'compact' ? 4 : density === 'large' ? 2 : 3;
+    expect(await columns(page)).toBe(expectedColumns);
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-first-store-columns',
+      String(expectedColumns),
+    );
+    await page.screenshot({ path: densityShot(`loading-${density}`), animations: 'disabled' });
+    release();
+    await expect(page.getByRole('link', { name: /^Electric kettle/ })).toBeVisible();
+    for (const width of [360, 768]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await expect(page.getByRole('radiogroup', { name: 'View density' })).toBeHidden();
+      expect(await columns(page)).toBe(width === 360 ? 1 : 2);
+      await expectNoOverflow(page);
+      for (const theme of ['light', 'dark'] as const) {
+        await setTheme(page, theme);
+        if (density === 'compact')
+          await page.screenshot({
+            path: densityShot(`mobile-${width}-${theme}`),
+            fullPage: true,
+            animations: 'disabled',
+          });
+      }
+    }
+    await page.unroute(/\/api\/v1\/items(\?.*)?$/);
+    await mock(page, densityItems);
+  }
+});
+
+test('PER-58 invalid and obsolete preferences fall back, resilient states align in all modes', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'Desktop resilient matrix.');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await mock(page, []);
+  await page.goto('/store');
+  for (const value of ['broken', '{"version":0,"density":"compact"}', 'COMPACT']) {
+    await page.evaluate(({ key, value }) => localStorage.setItem(key, value), {
+      key: densityKey,
+      value,
+    });
+    await page.reload();
+    await expect(page.getByRole('radio', { name: 'Comfortable' })).toBeChecked();
+  }
+  for (const mode of densities) {
+    await page.getByRole('radio', { name: mode, exact: true }).click();
+    await expect(page.getByText('Nothing recorded yet')).toBeVisible();
+    await expectNoOverflow(page);
+    await page.screenshot({
+      path: densityShot(`empty-${mode.toLowerCase()}`),
+      animations: 'disabled',
+    });
+  }
+  await page.route('**/api/v1/taxonomy**', (route) =>
+    route.fulfill({ status: 503, json: { message: 'UNAVAILABLE' } }),
+  );
+  let calls = 0;
+  await page.route(/\/api\/v1\/items(\?.*)?$/, (route) => {
+    calls++;
+    return route.fulfill({
+      json: {
+        items: calls === 1 ? densityItems.slice(0, 6) : densityItems.slice(6),
+        nextCursor: calls === 1 ? 'next-page' : null,
+        hasMore: calls === 1,
+      },
+    });
+  });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'All items', exact: true })).toBeVisible();
+  for (const mode of densities) {
+    await page.getByRole('radio', { name: mode, exact: true }).click();
+    await page.context().setOffline(true);
+    await expect(page.getByText(/You are offline/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show more items' })).toBeDisabled();
+    await expectNoOverflow(page);
+    await page.context().setOffline(false);
+    await expect(page.getByRole('button', { name: 'Show more items' })).toBeEnabled();
+  }
+  await page.getByRole('button', { name: 'Show more items' }).click();
+  await expect(
+    page.getByText('Showing 12 items. Categories could not load, so items are not grouped.'),
+  ).toBeVisible();
+  await page.screenshot({ path: densityShot('taxonomy-fallback-large'), animations: 'disabled' });
+});
+
+for (const density of ['compact', 'large'] as const) {
+  test(`PER-58 fresh ${density} image candidate and image layout stability`, async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop image sizing.');
+    await page.setViewportSize({ width: 1024, height: 1000 });
+    await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), {
+      key: densityKey,
+      value: density,
+    });
+    await mock(page, densityItems);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/api/v1/items/*/photos/*/content/*', async (route) => {
+      await held;
+      const small = route.request().url().endsWith('/thumbnail');
+      await route.fulfill({
+        contentType: 'image/svg+xml',
+        body: small
+          ? svg(1).replace(
+              'width="800" height="600"',
+              'width="320" height="240" viewBox="0 0 800 600"',
+            )
+          : svg(1),
+      });
+    });
+    await page.goto('/store', { waitUntil: 'domcontentloaded' });
+    const card = page.getByRole('link', { name: /^Electric kettle Owned/ });
+    await expect(card).toBeVisible();
+    const before = await card.boundingBox();
+    release();
+    const image = card.locator('img');
+    await expect(image).toHaveCSS('opacity', '1');
+    expect(await image.evaluate((el) => (el as HTMLImageElement).currentSrc)).toContain(
+      density === 'compact' ? '/thumbnail' : '/display',
+    );
+    expect(await card.boundingBox()).toEqual(before);
+  });
+}
