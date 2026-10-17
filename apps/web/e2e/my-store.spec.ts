@@ -592,3 +592,128 @@ for (const density of ['compact', 'large'] as const) {
     expect(await card.boundingBox()).toEqual(before);
   });
 }
+
+// PER-59: synthetic category whose every item sits in its own one-item subcategory.
+const sparseCategory = id(940);
+const sparseSubs = ['Audio', 'Cameras', 'Chargers', 'Phones', 'Tablets', 'Wearables'].map(
+  (name, n) => ({
+    id: id(950 + n),
+    categoryId: sparseCategory,
+    name,
+    position: n,
+    isDemo: false,
+    retiredAt: null,
+    itemCount: 1,
+  }),
+);
+const sparseItems = sparseSubs.map((sub, n) =>
+  base(60 + n, {
+    name: `Sample device ${n + 1}`,
+    categoryId: sparseCategory,
+    subcategoryId: sub.id,
+    cover: cover(60 + n),
+  }),
+);
+const sparseTaxonomy = {
+  ...taxonomy,
+  categories: [
+    {
+      id: sparseCategory,
+      name: 'Electronics',
+      position: 0,
+      isDemo: false,
+      retiredAt: null,
+      itemCount: sparseItems.length,
+    },
+  ],
+  subcategories: sparseSubs,
+};
+const sparseShot = (name: string): string => `../../docs/screenshots/per-59-${name}.png`;
+
+test('PER-59 sparse subcategories share one category grid at every width and density', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'One browser covers all responsive widths.');
+  const failures: string[] = [];
+  page.on('pageerror', (error) => failures.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') failures.push(message.text());
+  });
+  let inventoryRequests = 0;
+  page.on('request', (request) => {
+    if (/\/api\/v1\/items\?/.test(request.url())) inventoryRequests++;
+  });
+  await mock(page, sparseItems);
+  await page.route('**/api/v1/taxonomy**', (route) => route.fulfill({ json: sparseTaxonomy }));
+  await page.goto('/store');
+  const section = page.locator('section[aria-labelledby]', {
+    has: page.getByRole('heading', { level: 2, name: 'Electronics' }),
+  });
+  await expect(section.getByRole('link')).toHaveCount(sparseItems.length);
+  await expect(section.locator('.store-grid')).toHaveCount(1);
+  await expect(section.getByRole('heading', { level: 3 })).toHaveCount(0);
+  for (const [n, sub] of sparseSubs.entries()) {
+    const link = section.getByRole('link', { name: new RegExp(`^Sample device ${n + 1} Owned`) });
+    await expect(link).toContainText(`Electronics › ${sub.name}`);
+    await expect(link).toHaveAccessibleDescription(new RegExp(`^Electronics › ${sub.name} Paid`));
+  }
+  const initialRequests = inventoryRequests;
+  // Cards on the first row share its top edge; the row holds as many cards as the grid has columns.
+  const firstRow = (): Promise<number> =>
+    section.getByRole('link').evaluateAll((links) => {
+      const top = links[0]!.getBoundingClientRect().top;
+      return links.filter((l) => Math.abs(l.getBoundingClientRect().top - top) < 1).length;
+    });
+  const expected: Record<number, [number, number, number]> = {
+    1280: [4, 3, 2],
+    1512: [4, 3, 2],
+    1920: [6, 4, 3],
+  };
+  for (const width of [1280, 1512, 1920]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const [modeIndex, mode] of densities.entries()) {
+      await page.getByRole('radio', { name: mode, exact: true }).click();
+      await expect(page.getByRole('radio', { name: mode, exact: true })).toBeChecked();
+      expect(await columns(page)).toBe(expected[width]![modeIndex]);
+      expect(await firstRow()).toBe(expected[width]![modeIndex]);
+      await expectNoOverflow(page);
+      if (width === 1512 && mode === 'Compact') {
+        for (const theme of ['light', 'dark'] as const) {
+          await setTheme(page, theme);
+          await page
+            .locator('.my-store')
+            .evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - 24));
+          await page.screenshot({
+            path: sparseShot(`compact-1512-${theme}`),
+            animations: 'disabled',
+          });
+        }
+      }
+    }
+  }
+  expect(inventoryRequests).toBe(initialRequests);
+  // Keyboard order follows taxonomy order across the shared grid.
+  await page.getByRole('radio', { name: 'Large' }).focus();
+  for (let n = 1; n <= sparseItems.length; n++) {
+    await page.keyboard.press('Tab');
+    await expect(
+      section.getByRole('link', { name: new RegExp(`^Sample device ${n} Owned`) }),
+    ).toBeFocused();
+  }
+  await page.getByRole('radio', { name: 'Compact' }).click();
+  await page.reload();
+  await expect(page.getByRole('radio', { name: 'Compact' })).toBeChecked();
+  await expect(section.getByRole('link')).toHaveCount(sparseItems.length);
+  expect(await firstRow()).toBe(6);
+  for (const [width, perRow] of [
+    [360, 1],
+    [768, 2],
+  ] as const) {
+    await page.setViewportSize({ width, height: 1000 });
+    await expect(page.getByRole('radiogroup', { name: 'View density' })).toBeHidden();
+    expect(await columns(page)).toBe(perRow);
+    expect(await firstRow()).toBe(perRow);
+    await expectNoOverflow(page);
+  }
+  expect(failures).toEqual([]);
+});
