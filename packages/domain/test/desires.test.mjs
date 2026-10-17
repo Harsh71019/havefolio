@@ -186,3 +186,9 @@ test('waiting-period transitions cover start, revise, cancel and invalid configu
     (err) => err instanceof DesireDomainError && err.code === 'INVALID_DESIRE_WAIT',
   );
 });
+
+test('resolved review states remain effective without date inference', () => {
+  for (const status of ['bought', 'declined', 'used_owned']) {
+    assert.equal(deriveDesireEffectiveState(status, null), status);
+  }
+});

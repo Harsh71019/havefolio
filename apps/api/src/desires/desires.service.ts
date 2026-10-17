@@ -201,6 +201,7 @@ export class DesiresService {
     ownerId: string,
     desireId: string,
     scheduledFor: Date | null,
+    revision = 1,
   ): Promise<ReminderQueueChange> {
     const existing = (
       await client.query<ReminderIntentRow>(
@@ -237,7 +238,7 @@ export class DesiresService {
       };
     }
 
-    const scheduleVersion = (existing?.schedule_version ?? 0) + 1;
+    const scheduleVersion = Math.max((existing?.schedule_version ?? 0) + 1, revision);
     const result = await client.query<ReminderIntentRow>(
       `INSERT INTO desire_reminders(
          desire_id,owner_id,schedule_version,scheduled_for,state,last_enqueued_at,delivered_at
@@ -334,7 +335,7 @@ export class DesiresService {
         ],
       );
       const row = result.rows[0]!;
-      const reminder = await this.syncReminderIntent(c, owner, id, row.review_at);
+      const reminder = await this.syncReminderIntent(c, owner, id, row.review_at, row.revision);
       return { desire: this.mapDesire(row, undefined), reminder };
     });
     await this.reminders.apply(created.reminder).catch(() => undefined);
@@ -376,7 +377,10 @@ export class DesiresService {
       }
 
       if (input.effectiveState) {
-        if (input.effectiveState === 'considering') {
+        if (['bought', 'declined', 'used_owned'].includes(input.effectiveState)) {
+          values.push(input.effectiveState);
+          clauses.push(`d.status = $${values.length}`);
+        } else if (input.effectiveState === 'considering') {
           clauses.push(`d.status = 'considering'`);
         } else if (input.effectiveState === 'waiting') {
           values.push(this.clock());
@@ -534,6 +538,13 @@ export class DesiresService {
         }
       }
 
+      if (input.waitingPeriod !== undefined) {
+        const history = await c.query(
+          'SELECT id FROM desire_review_events WHERE desire_id=$1 AND owner_id=$2 LIMIT 1',
+          [id, owner],
+        );
+        if (history.rowCount) throw new ConflictException('REVIEW_EVENT_REQUIRED');
+      }
       let waitingState: ReturnType<typeof transitionDesireWaiting>;
       try {
         waitingState = transitionDesireWaiting(
@@ -581,7 +592,13 @@ export class DesiresService {
       );
 
       const updated = updatedRes.rows[0]!;
-      const reminder = await this.syncReminderIntent(c, owner, id, updated.review_at);
+      const reminder = await this.syncReminderIntent(
+        c,
+        owner,
+        id,
+        updated.review_at,
+        updated.revision,
+      );
       return { desire: this.mapDesire(updated, photoRes.rows[0]), reminder };
     });
     await this.reminders.apply(changed.reminder).catch(() => undefined);

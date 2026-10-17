@@ -128,6 +128,7 @@ export class RemindersRepository implements OnModuleDestroy {
       `UPDATE notifications
        SET ntfy_state='sending',ntfy_attempts=ntfy_attempts+1,ntfy_claimed_at=now(),updated_at=now()
        WHERE id=$1
+         AND EXISTS (SELECT 1 FROM desire_reminders r WHERE r.desire_id=notifications.desire_id AND r.schedule_version=notifications.reminder_version)
          AND ntfy_attempts < 20
          AND (ntfy_state IN ('pending','failed') OR (ntfy_state='sending' AND ntfy_claimed_at < now()-interval '10 minutes'))`,
       [notificationId],
@@ -156,7 +157,8 @@ export class RemindersRepository implements OnModuleDestroy {
   async listPendingNtfy(limit = 50): Promise<string[]> {
     const result = await this.pool.query<{ id: string }>(
       `SELECT id FROM notifications
-       WHERE ntfy_attempts < 20
+       WHERE EXISTS (SELECT 1 FROM desire_reminders r WHERE r.desire_id=notifications.desire_id AND r.schedule_version=notifications.reminder_version)
+         AND ntfy_attempts < 20
          AND (ntfy_state IN ('pending','failed') OR (ntfy_state='sending' AND ntfy_claimed_at < now()-interval '10 minutes'))
        ORDER BY created_at,id
        LIMIT $1`,

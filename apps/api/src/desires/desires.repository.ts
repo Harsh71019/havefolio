@@ -31,6 +31,7 @@ export class DesiresRepository implements OnModuleDestroy {
     try {
       client = await this.pool.connect();
       await client.query('BEGIN');
+      await client.query("SELECT set_config('havefolio.owner_id',$1,true)", [owner]);
       await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [owner]);
       const result = await operation(client);
       await client.query('COMMIT');

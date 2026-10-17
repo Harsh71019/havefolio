@@ -230,6 +230,7 @@ describe('DesiresService application rules', () => {
     };
     query
       .mockResolvedValueOnce({ rows: [rowWaiting] })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 })
       .mockResolvedValueOnce({ rows: [rowConsidering] })
       .mockResolvedValueOnce({ rows: [] });
 

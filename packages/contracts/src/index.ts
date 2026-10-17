@@ -492,10 +492,23 @@ export interface OnboardingStatus {
 export const desireClassifications = ['need', 'want', 'greed'] as const;
 export type DesireClassification = (typeof desireClassifications)[number];
 
-export const desireStatuses = ['considering', 'waiting'] as const;
+export const desireStatuses = [
+  'considering',
+  'waiting',
+  'bought',
+  'declined',
+  'used_owned',
+] as const;
 export type DesireStatus = (typeof desireStatuses)[number];
 
-export const desireEffectiveStates = ['considering', 'waiting', 'ready_for_review'] as const;
+export const desireEffectiveStates = [
+  'considering',
+  'waiting',
+  'ready_for_review',
+  'bought',
+  'declined',
+  'used_owned',
+] as const;
 export type DesireEffectiveState = (typeof desireEffectiveStates)[number];
 
 export interface WaitingPeriodInput {
@@ -601,3 +614,36 @@ export const notificationErrorCodes = [
   'NOTIFICATIONS_UNAVAILABLE',
 ] as const;
 export type NotificationErrorCode = (typeof notificationErrorCodes)[number];
+
+/** PER-28: immutable owner-private review history. Amounts are estimates, never savings. */
+export const reviewOutcomes = ['bought', 'delayed', 'declined', 'used_owned'] as const;
+export type ReviewOutcome = (typeof reviewOutcomes)[number];
+export interface CreateReviewRequest {
+  commandId: string;
+  revision: number;
+  outcome: ReviewOutcome;
+  note?: string;
+  linkedItemId?: string;
+  reviewAt?: string;
+  supersedesEventId?: string;
+}
+export interface ReviewEvent {
+  id: string;
+  sequence: number;
+  outcome: ReviewOutcome;
+  occurredAt: string;
+  note: string | null;
+  linkedItemId: string | null;
+  linkedItemName: string | null;
+  reviewAt: string | null;
+  supersedesEventId: string | null;
+  estimatedNotSpentMinor: string | null;
+  currency: string | null;
+}
+export interface ReviewHistoryPage {
+  items: ReviewEvent[];
+  nextBefore: number | null;
+  currentEventId: string | null;
+  estimatedNotSpentMinor: string | null;
+  currency: string | null;
+}

@@ -146,7 +146,10 @@ export function DesireCard({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 shrink-0 self-end sm:self-start pt-2 sm:pt-0">
+          <div className="flex flex-wrap items-center gap-1 shrink-0 self-end sm:self-start pt-2 sm:pt-0">
+            <Button asChild variant="outline" size="sm" className="min-h-11">
+              <Link href={`/wants/${desire.id}/history`}>Decision history</Link>
+            </Button>
             <Button asChild variant="ghost" size="sm" className="min-h-11 px-3">
               <Link href={`/wants/${desire.id}/edit`}>
                 <Pencil className="mr-1.5 size-3.5" aria-hidden="true" />
@@ -169,8 +172,8 @@ export function DesireCard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete desire?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently remove “{desire.name}” and its private photo from your
-                    household index. This action cannot be undone.
+                    This will permanently remove “{desire.name}” and its decision history and
+                    private photo from your household index. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 {deleteError ? <p className="text-xs text-destructive">{deleteError}</p> : null}
