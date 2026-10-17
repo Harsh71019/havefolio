@@ -126,6 +126,18 @@ describe('owner-private purchase merchants and URLs', () => {
     );
     expect((await createMerchant('Amazon India')).id).not.toBe(original.id);
   });
+  it('uses the same database Unicode lowercase mapping for creation and search', async () => {
+    const merchant = await createMerchant('İstanbul seller');
+    for (const q of ['İstanbul', 'istanbul']) {
+      const page = (
+        await http()
+          .get(`/api/v1/merchants?q=${encodeURIComponent(q)}`)
+          .set('Cookie', auth())
+          .expect(200)
+      ).body as MerchantsPageDto;
+      expect(page.merchants.map((m) => m.id)).toContain(merchant.id);
+    }
+  });
   it('hides foreign and missing merchants on reads, corrections and item assignment', async () => {
     const foreign = await createMerchant('Foreign seller', `havefolio_session=${otherToken}`);
     const item = await createItem();

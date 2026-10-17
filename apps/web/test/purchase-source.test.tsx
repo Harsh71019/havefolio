@@ -148,6 +148,26 @@ describe('private purchase source composition', () => {
       await screen.findByText('Merchant updated. Historical item links are kept.'),
     ).toBeInTheDocument();
   });
+  it('keeps the corrected selected label when an older list response has the same ID', async () => {
+    const user = userEvent.setup();
+    render(<Form initial={amazon} />);
+    await screen.findByText('1 saved merchants shown.');
+    await user.click(screen.getByRole('button', { name: 'Correct or retire merchant' }));
+    await user.clear(screen.getByLabelText('Correct merchant name'));
+    await user.type(screen.getByLabelText('Correct merchant name'), 'Corrected Seller');
+    fetchMock.mockImplementation((_input, init) =>
+      Promise.resolve(
+        init?.method === 'PATCH'
+          ? response({ ...amazon, displayName: 'Corrected Seller' })
+          : response({ merchants: [amazon], nextCursor: null, hasMore: false }),
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save merchant correction' }));
+    await screen.findByText('Merchant updated. Historical item links are kept.');
+    expect(screen.getByRole('combobox', { name: 'Purchase merchant' })).toHaveTextContent(
+      'Corrected Seller',
+    );
+  });
   it('validates edits and independently clears merchant and URL', () => {
     const base = {
       name: 'Synthetic',

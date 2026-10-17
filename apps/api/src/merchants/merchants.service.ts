@@ -87,7 +87,7 @@ export class MerchantsService {
     return this.repository.transaction(owner, (c) => this.owned(c, owner, id));
   }
   list(owner: string, input: MerchantsQueryDto): Promise<MerchantsPage> {
-    const q = input.q?.normalize('NFKC').trim().replace(/\s+/gu, ' ').toLowerCase() ?? '';
+    const q = input.q?.normalize('NFKC').trim().replace(/\s+/gu, ' ') ?? '';
     const state = input.state ?? 'active',
       limit = input.limit ?? 25;
     const scope = createHmac('sha256', this.key)
@@ -97,7 +97,7 @@ export class MerchantsService {
     return this.repository.transaction(owner, async (c) => {
       const rows = (
         await c.query<Merchant & { normalized_name: string }>(
-          `${select.replace('SELECT id,', 'SELECT normalized_name,id,')} WHERE owner_id=$1 AND ($2='all' OR state=$2) AND starts_with(normalized_name,$3) AND ($4::text IS NULL OR (normalized_name COLLATE "C",id)>($4 COLLATE "C",$5::uuid)) ORDER BY normalized_name COLLATE "C",id LIMIT $6`,
+          `${select.replace('SELECT id,', 'SELECT normalized_name,id,')} WHERE owner_id=$1 AND ($2='all' OR state=$2) AND starts_with(normalized_name,lower($3)) AND ($4::text IS NULL OR (normalized_name COLLATE "C",id)>($4 COLLATE "C",$5::uuid)) ORDER BY normalized_name COLLATE "C",id LIMIT $6`,
           [owner, state, q, cursor?.name ?? null, cursor?.id ?? null, limit + 1],
         )
       ).rows;

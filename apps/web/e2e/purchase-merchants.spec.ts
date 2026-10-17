@@ -155,6 +155,13 @@ test('purchase detail and edit remain private, responsive and keyboard accessibl
     );
     await dialog.getByLabel('Search saved merchants').fill('Local');
     await expect(dialog.getByText('1 saved merchants shown.')).toBeVisible();
+    await dialog.evaluate((el) => {
+      const source = [...el.querySelectorAll('fieldset')].find((field) =>
+        field.querySelector('legend')?.textContent?.includes('Where you purchased'),
+      );
+      if (source)
+        el.scrollTop += source.getBoundingClientRect().top - el.getBoundingClientRect().top - 24;
+    });
     await dialog.screenshot({
       path: `../../docs/screenshots/per-56-edit-${info.project.name}-${theme}.png`,
     });
@@ -187,7 +194,7 @@ test('purchase detail and edit remain private, responsive and keyboard accessibl
 });
 test('manual item entry survives merchant outage and custom merchant creation works after retry', async ({
   page,
-}) => {
+}, info) => {
   const state = await fixtures(page);
   state.failMerchant = true;
   await page.goto('/items/new');
@@ -211,6 +218,17 @@ test('manual item entry survives merchant outage and custom merchant creation wo
   await expect(page.getByLabel('Purchase URL (optional)')).toHaveValue(
     'https://shop.example.test/synthetic',
   );
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((value) => {
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(value);
+    }, theme);
+    await page
+      .getByRole('group', { name: 'Where you purchased it (optional)', exact: true })
+      .screenshot({ path: `../../docs/screenshots/per-56-add-${info.project.name}-${theme}.png` });
+  }
   await page.getByRole('button', { name: 'Save item', exact: true }).click();
-  await expect(page.getByText('Synthetic offline item', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Synthetic offline item saved to your home' }),
+  ).toBeVisible();
 });

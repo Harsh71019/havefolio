@@ -121,8 +121,8 @@ export function PurchaseSourceFields({
       if (version === generation.current) setLoading(false);
     }
   }
-  const entries = page.merchants.filter((m) => m.state === 'active');
-  if (merchant && !entries.some((m) => m.id === merchant.id)) entries.unshift(merchant);
+  const entries = page.merchants.filter((m) => m.state === 'active' && m.id !== merchant?.id);
+  if (merchant) entries.unshift(merchant);
   return (
     <fieldset disabled={disabled || busy} className="grid min-w-0 gap-3">
       <legend className="mb-2 font-medium">Where you purchased it (optional)</legend>
