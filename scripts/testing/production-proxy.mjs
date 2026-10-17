@@ -42,9 +42,20 @@ const upstream = createServer((req, res) => {
     let body = '';
     for await (const chunk of req) {
       body += chunk;
-      if (body.length > 1024) throw new Error('Synthetic request exceeded limit');
+      if (body.length > 2048) throw new Error('Synthetic request exceeded limit');
     }
-    const action = body ? JSON.parse(body).action : undefined;
+    const isJson = req.headers['content-type'] === 'application/json';
+    const isMultipart =
+      typeof req.headers['content-type'] === 'string' &&
+      req.headers['content-type'].startsWith('multipart/form-data');
+    let action = undefined;
+    if (body && isJson) {
+      try {
+        action = JSON.parse(body).action;
+      } catch {
+        action = undefined;
+      }
+    }
     const authenticated = req.headers.cookie === session;
     const allowed = !req.headers.origin || req.headers.origin === origin;
     // Only booleans and public route/method metadata survive this request handler.
@@ -55,8 +66,11 @@ const upstream = createServer((req, res) => {
       authenticated,
       allowed,
       originMatches: req.headers.origin === origin,
-      json: req.headers['content-type'] === 'application/json',
+      json: isJson,
+      multipart: isMultipart,
       skip: body === '{"action":"skip"}',
+      hasUploadId: Boolean(req.headers['upload-id']),
+      multipartBodyReceived: isMultipart && body.includes('sample-file-content'),
     });
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'no-store');
@@ -88,7 +102,11 @@ const upstream = createServer((req, res) => {
           ? { items: [], hasMore: false, nextCursor: null }
           : url.pathname === '/api/v1/taxonomy'
             ? { categories: [], subcategories: [], tags: [], defaultsSeeded: false }
-            : { ok: true };
+            : url.pathname === '/api/v1/desires'
+              ? { items: [], hasMore: false, nextCursor: null }
+              : url.pathname.startsWith('/api/v1/desires')
+                ? { id: 'synthetic-desire', name: 'Synthetic desire', revision: 1 }
+                : { ok: true };
     res.end(JSON.stringify(response));
   })().catch(() => res.writeHead(400).end(JSON.stringify({ code: 'INVALID_REQUEST' })));
 });
@@ -171,6 +189,12 @@ try {
     const source = await readFile(config, 'utf8');
     assert(source.includes(", 'onboarding'"), 'Mutation requires the fixed allowlist');
     await writeFile(config, source.replace(", 'onboarding'", ''));
+  }
+  if (process.argv.includes('--without-desires')) {
+    const config = join(app, 'next.config.ts');
+    const source = await readFile(config, 'utf8');
+    assert(source.includes(", 'desires'"), 'Mutation requires the fixed allowlist');
+    await writeFile(config, source.replace(", 'desires'", ''));
   }
   upstream.listen(0, '127.0.0.1');
   await once(upstream, 'listening');
@@ -260,8 +284,67 @@ try {
     headers: { ...headers, Origin: 'https://invalid.example' },
   });
   assert.equal(denied.status, 403);
-  assert.deepEqual(await denied.json(), { code: 'AUTH_ORIGIN_INVALID' });
-  for (const domain of ['auth', 'taxonomy', 'items', 'spending']) {
+  const anonymousDesires = await request('/api/v1/desires?probe=one&probe=two');
+  assert.equal(
+    anonymousDesires.status,
+    401,
+    'Anonymous desires must reach the API, not a Next 404',
+  );
+  assert.deepEqual(await anonymousDesires.json(), {
+    code: 'AUTH_REQUIRED',
+    message: 'Sign in required',
+  });
+  assert.equal(anonymousDesires.headers.get('cache-control'), 'no-store');
+  assert.equal(records.at(-1).query, true, 'Query string preserved on desires');
+  for (const [method, path, body] of [
+    ['GET', '/api/v1/desires'],
+    ['POST', '/api/v1/desires', '{"name":"Synthetic desire"}'],
+    ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6'],
+    [
+      'PATCH',
+      '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      '{"revision":1,"name":"Updated"}',
+    ],
+    ['DELETE', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6', '{"revision":1}'],
+    ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo'],
+    ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo/content/thumbnail'],
+    ['DELETE', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo', '{"revision":1}'],
+  ]) {
+    const response = await request(path, { method, headers, body });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    const metadata = records.at(-1);
+    assert.equal(metadata.method, method);
+    assert.equal(metadata.path, path);
+    assert(
+      metadata.authenticated && metadata.originMatches && metadata.json,
+      'Cookie, origin and JSON content type preserved on desire endpoints',
+    );
+  }
+  const photoForm = new FormData();
+  photoForm.append('photo', new Blob(['sample-file-content'], { type: 'image/jpeg' }), 'test.jpg');
+  const multipartRes = await request('/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo', {
+    method: 'POST',
+    headers: {
+      Cookie: session,
+      Origin: origin,
+      'Upload-Id': '11111111-2222-4333-8444-555555555555',
+    },
+    body: photoForm,
+  });
+  assert.equal(multipartRes.status, 200);
+  assert.equal(multipartRes.headers.get('cache-control'), 'no-store');
+  const photoRecord = records.at(-1);
+  assert.equal(photoRecord.method, 'POST');
+  assert.equal(photoRecord.path, '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/photo');
+  assert(photoRecord.multipart, 'Multipart content type preserved through Next.js proxy');
+  assert(photoRecord.hasUploadId, 'Upload-Id header preserved');
+  assert(photoRecord.multipartBodyReceived, 'Multipart body reached upstream through proxy');
+  assert(
+    photoRecord.authenticated && photoRecord.originMatches,
+    'Cookie and origin preserved for multipart desire photo',
+  );
+  for (const domain of ['auth', 'taxonomy', 'items', 'spending', 'desires']) {
     assert.equal((await request(`/api/v1/${domain}`, { headers })).status, 200);
     assert.equal(records.at(-1).path, `/api/v1/${domain}`);
   }

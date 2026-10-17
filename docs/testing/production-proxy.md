@@ -15,8 +15,8 @@ separate allocated loopback port. Neither server uses PostgreSQL, Valkey or a
 deployed API.
 
 Real HTTP requests verify the anonymous `401 AUTH_REQUIRED` JSON response,
-onboarding methods, paths, JSON body, cookie, query string, origin rejection and
-`no-store` responses. Auth, taxonomy, items and spending remain forwarded, while
+onboarding and desires methods, paths, JSON body, multipart photo uploads, cookie, query string, origin rejection and
+`no-store` responses. Auth, taxonomy, items, spending and desires remain forwarded, while
 an unknown API domain stays a web 404. Browser JavaScript is checked for the
 synthetic internal API address. Chromium then uses the existing onboarding client
 through the production origin for status, skip/revisit and demo opt-in/removal;
@@ -28,14 +28,16 @@ request bodies, cookies, child output or operator environment are saved. Cleanup
 closes the browser, process groups and listeners and deletes the temporary tree,
 including on failed assertions or termination signals.
 
-To reproduce the original defect without changing the working tree, run:
+To reproduce omission defects without changing the working tree, run:
 
 ```sh
 pnpm build:packages
 node scripts/testing/production-proxy.mjs --without-onboarding
+# or
+node scripts/testing/production-proxy.mjs --without-desires
 ```
 
-This removes onboarding only from the temporary config before building. The
+This removes onboarding or desires only from the temporary config before building. The
 anonymous request assertion must fail with actual 404 versus expected 401. Run
 `pnpm test:proxy` again for the green result.
 
