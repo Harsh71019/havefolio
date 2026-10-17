@@ -18,7 +18,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 export const statuses = ['owned', 'sold', 'donated', 'disposed', 'lost', 'returned'] as const;
-export const conditions = ['working', 'needs_repair', 'broken', 'unknown'] as const;
+export const conditions = ['working', 'needs_repair', 'broken', 'worn_out', 'unknown'] as const;
 export const frequencies = ['often', 'sometimes', 'rarely', 'never', 'unknown'] as const;
 export const acquisitions = ['bought', 'gift', 'secondhand', 'other', 'unknown'] as const;
 export class PurchaseDateDto {

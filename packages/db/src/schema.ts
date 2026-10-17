@@ -223,7 +223,7 @@ export const items = pgTable(
     })
       .notNull()
       .default('unknown'),
-    condition: text('condition', { enum: ['working', 'needs_repair', 'broken', 'unknown'] })
+    condition: text('condition', { enum: ['working', 'needs_repair', 'broken', 'worn_out', 'unknown'] })
       .notNull()
       .default('unknown'),
     useFrequency: text('use_frequency', {
@@ -287,7 +287,7 @@ export const items = pgTable(
     ),
     check(
       'item_condition_check',
-      sql`${t.condition} in ('working','needs_repair','broken','unknown')`,
+      sql`${t.condition} in ('working','needs_repair','broken','worn_out','unknown')`,
     ),
     check(
       'item_usage_check',

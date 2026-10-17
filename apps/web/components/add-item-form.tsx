@@ -85,6 +85,7 @@ const conditionLabels: Record<ItemCondition, string> = {
   working: 'Working well',
   needs_repair: 'Needs repair',
   broken: 'Broken',
+  worn_out: 'Worn out',
   unknown: 'Unknown',
 };
 
