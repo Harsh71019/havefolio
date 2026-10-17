@@ -1,3 +1,5 @@
+import { DesireMatchesController } from './desire-matches.controller.js';
+import { DesireMatchesService } from './desire-matches.service.js';
 import { ReviewsService } from './reviews.service.js';
 import { Module } from '@nestjs/common';
 import { MediaModule } from '../media/media.module.js';
@@ -9,8 +11,14 @@ import { DesiresService } from './desires.service.js';
 
 @Module({
   imports: [MediaModule, NotificationsModule],
-  controllers: [DesiresController],
-  providers: [ReviewsService, DesiresRepository, DesiresService, PhotoProcessor],
-  exports: [DesiresService, DesiresRepository],
+  controllers: [DesiresController, DesireMatchesController],
+  providers: [
+    ReviewsService,
+    DesiresRepository,
+    DesiresService,
+    DesireMatchesService,
+    PhotoProcessor,
+  ],
+  exports: [DesiresService, DesireMatchesService, DesiresRepository],
 })
 export class DesiresModule {}
