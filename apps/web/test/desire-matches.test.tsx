@@ -254,6 +254,64 @@ describe('DesireMatches component', () => {
     expect(screen.getByText('Marked irrelevant')).toBeInTheDocument();
   });
 
+  it('discloses a worn-out match as still owned, not a usable alternative', async () => {
+    const user = userEvent.setup();
+    const candidateUrls: string[] = [];
+    const wornMatch: DesireMatch = {
+      ...mockMatch1,
+      item: { ...mockMatch1.item, condition: 'worn_out', isUsableAlternative: false },
+      hints: { ...mockMatch1.hints, conditionHint: 'Condition: worn out' },
+    };
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/candidates`)) {
+        candidateUrls.push(url);
+        return Promise.resolve(
+          jsonResponse({
+            items: [mockCandidate2],
+            nextCursor: null,
+            hasMore: false,
+          } satisfies MatchCandidatesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [wornMatch],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 1,
+          } satisfies DesireMatchesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}`)) {
+        return Promise.resolve(jsonResponse(mockDesire));
+      }
+      return Promise.reject(new Error(`Unhandled fetch: ${url}`));
+    });
+
+    render(<DesireMatches desireId={mockDesire.id} />);
+
+    expect(await screen.findByText('Worn out · still owned')).toBeInTheDocument();
+    expect(screen.queryByText('Usable alternative')).toBeNull();
+    expect(screen.queryByText('Unavailable (owned)')).toBeNull();
+    expect(screen.getByText('Condition: worn out')).toBeInTheDocument();
+    // Only a worn-out match is connected; the decision paths stay open.
+    expect(screen.getByRole('link', { name: 'Compare before buying' })).toHaveAttribute(
+      'href',
+      `/wants/${mockDesire.id}/compare`,
+    );
+    expect(screen.getByRole('link', { name: 'Done / Continue' })).toHaveAttribute('href', '/wants');
+
+    const toggle = screen.getByRole('checkbox', {
+      name: 'Include unavailable or worn-out possessions (sold, donated, disposed, lost, returned, worn out)',
+    });
+    toggle.focus();
+    await user.keyboard(' ');
+    await waitFor(() =>
+      expect(candidateUrls.some((u) => u.includes('includeUnavailable=true'))).toBe(true),
+    );
+  });
+
   it('allows toggling relevance feedback (mark irrelevant and relevant)', async () => {
     const user = userEvent.setup();
     const patchCalls: Array<{ url: string; body: unknown }> = [];

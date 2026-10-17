@@ -606,6 +606,38 @@ describe('fast manual add-item flow component', () => {
     });
   });
 
+  it('creates an owned item that is already worn out', async () => {
+    const user = userEvent.setup();
+    render(<AddItemForm />);
+
+    expect(await screen.findByLabelText(/Item name/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Item name/), 'Faded denim jacket');
+    await user.click(screen.getByLabelText('Price unknown'));
+    await user.click(screen.getByLabelText('Date unknown'));
+    await user.click(screen.getByRole('button', { name: /Additional details/ }));
+
+    screen.getByRole('combobox', { name: 'Condition' }).focus();
+    await user.keyboard('{Enter}');
+    const option = await screen.findByRole('option', { name: 'Worn out' });
+    option.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('combobox', { name: 'Condition' })).toHaveTextContent('Worn out');
+
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+
+    await waitFor(() => {
+      const calls = fetchMock.mock.calls.filter(
+        (c) => typeof c[0] === 'string' && c[0].includes('/api/v1/items'),
+      );
+      const parsedBody = JSON.parse(calls[calls.length - 1]?.[1]?.body as string);
+      expect(parsedBody).toMatchObject({
+        name: 'Faded denim jacket',
+        ownershipStatus: 'owned',
+        condition: 'worn_out',
+      });
+    });
+  });
+
   it('renders pre-existing retired category as disabled when restored from draft', async () => {
     saveItemDraft(mockOwner.id, {
       name: 'Old Projector',

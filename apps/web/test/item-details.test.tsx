@@ -570,6 +570,61 @@ describe('editing', () => {
     );
   });
 
+  it('marks an item worn out with the keyboard while it stays owned', async () => {
+    const api = fakeApi();
+    const { user } = await renderDetails(api);
+    screen.getByRole('button', { name: 'Edit condition and use' }).focus();
+    await user.keyboard('{Enter}');
+    const dialog = await screen.findByRole('dialog', { name: 'Edit condition and use' });
+    within(dialog).getByRole('combobox', { name: 'Condition' }).focus();
+    await user.keyboard('{Enter}');
+    const option = await screen.findByRole('option', { name: 'Worn out' });
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Working',
+      'Needs repair',
+      'Broken',
+      'Worn out',
+      'Not recorded',
+    ]);
+    option.focus();
+    await user.keyboard('{Enter}');
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(api.updateItem).toHaveBeenCalledWith(uuid(1), { condition: 'worn_out', revision: 3 }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(fact(section('Condition and use'), 'Condition')).toBe('Worn out');
+    expect(fact(section('Condition and use'), 'How often you use it')).toBe('Often');
+    expect(screen.getByText('Status:', { exact: false }).parentElement).toHaveTextContent('Owned');
+    expect(api.recordItemAction).not.toHaveBeenCalled();
+  });
+
+  it('labels worn-out history entries in plain language', async () => {
+    const api = fakeApi(item({ condition: 'worn_out' }), {
+      readItemHistory: vi.fn<ItemDetailsApi['readItemHistory']>(() =>
+        Promise.resolve({
+          events: [
+            events[0]!,
+            {
+              ...events[3]!,
+              id: uuid(505),
+              metadata: { source: 'user', from: 'working', to: 'worn_out' },
+            },
+          ],
+          nextCursor: null,
+          hasMore: false,
+        }),
+      ),
+    });
+    await renderDetails(api);
+    expect(fact(section('Condition and use'), 'Condition')).toBe('Worn out');
+    const list = await screen.findByRole('list', { name: 'Item history, oldest first' });
+    const entries = within(list).getAllByRole('listitem');
+    expect(entries[1]).toHaveTextContent('Condition updated');
+    expect(entries[1]).toHaveTextContent('Working → Worn out');
+    expect(list.textContent).not.toContain('worn_out');
+  });
+
   it('edits use frequency alone', async () => {
     const api = fakeApi();
     const { user } = await renderDetails(api);
