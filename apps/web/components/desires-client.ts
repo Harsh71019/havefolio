@@ -1,4 +1,7 @@
 import type {
+  ConvertDesireRequest,
+  DesireConversion,
+  DesireConversionState,
   CreateDesireMatchRequest,
   CreateReviewRequest,
   DesireMatch,
@@ -58,6 +61,17 @@ export const desireMessages: Record<string, string> = {
   PHOTO_DELIVERY_BUSY: 'Image delivery is currently busy. Try again shortly.',
   PHOTO_VARIANT_INVALID: 'Invalid photo size variant requested.',
   PHOTO_FILE_SIZE: 'Choose a photo smaller than 10 MiB.',
+  INVALID_CONVERSION: 'Check the confirmed purchase details, then try again.',
+  DESIRE_NOT_BOUGHT:
+    'The current decision for this want is no longer bought. Review its decision history first.',
+  STALE_BOUGHT_OUTCOME: 'The bought decision changed elsewhere. Reload before adding this item.',
+  DESIRE_ALREADY_CONVERTED: 'This want is already in your inventory.',
+  CONVERSION_COMMAND_REUSED: 'This submission changed. Reload before trying again.',
+  CONVERSION_NOT_FOUND: 'This want has not been added to your inventory.',
+  INVALID_ITEM: 'Check the item details and amount, then try again.',
+  INVALID_ITEM_DATE: 'Check the purchase date and its precision.',
+  PHOTO_QUOTA_EXCEEDED: 'Photo storage is full. Add the item without copying the photo.',
+  MEDIA_STORAGE_UNAVAILABLE: 'Photo storage is temporarily unavailable. Try again shortly.',
 };
 
 export class DesireRequestError extends Error {
@@ -502,4 +516,23 @@ export function reviewItems(after?: string): Promise<ItemsPage> {
   const params = new URLSearchParams({ ownershipStatus: 'owned', limit: '25' });
   if (after) params.set('after', after);
   return request(`/api/v1/items?${params}`, { method: 'GET' });
+}
+
+/** PER-29: optional bought-desire conversion. */
+export function getConversion(id: string, signal?: AbortSignal): Promise<DesireConversionState> {
+  return request(`/api/v1/desires/${encodeURIComponent(id)}/conversion`, {
+    method: 'GET',
+    ...(signal ? { signal } : {}),
+  });
+}
+export function convertDesire(id: string, input: ConvertDesireRequest): Promise<DesireConversion> {
+  return request(`/api/v1/desires/${encodeURIComponent(id)}/conversion`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+export function resumeConversionPhoto(id: string): Promise<DesireConversion> {
+  return request(`/api/v1/desires/${encodeURIComponent(id)}/conversion/photo`, {
+    method: 'POST',
+  });
 }
