@@ -63,6 +63,9 @@ const upstream = createServer((req, res) => {
       method: req.method,
       path: url.pathname,
       query: url.search === '?probe=one&probe=two',
+      notificationQuery:
+        url.search === '?limit=10&unreadOnly=true&after=synthetic%2Bcursor%2Fvalue',
+      readBody: body === '{}',
       authenticated,
       allowed,
       originMatches: req.headers.origin === origin,
@@ -184,21 +187,23 @@ try {
   });
   const nextBin = join(app, 'node_modules/.bin/next');
   // Mutation mode proves the original omission fails; it only changes the disposable source copy.
-  if (process.argv.includes('--without-onboarding')) {
+  for (const domain of ['onboarding', 'desires', 'notifications']) {
+    if (!process.argv.includes(`--without-${domain}`)) continue;
     const config = join(app, 'next.config.ts');
     const source = await readFile(config, 'utf8');
-    assert(source.includes(", 'onboarding'"), 'Mutation requires the fixed allowlist');
-    await writeFile(config, source.replace(", 'onboarding'", ''));
-  }
-  if (process.argv.includes('--without-desires')) {
-    const config = join(app, 'next.config.ts');
-    const source = await readFile(config, 'utf8');
-    assert(source.includes(", 'desires'"), 'Mutation requires the fixed allowlist');
-    await writeFile(config, source.replace(", 'desires'", ''));
+    const entry = `'${domain}',`;
+    assert(source.includes(entry), 'Mutation requires the fixed allowlist');
+    await writeFile(config, source.replace(entry, ''));
   }
   upstream.listen(0, '127.0.0.1');
   await once(upstream, 'listening');
+  const serverSecrets = Object.fromEntries(
+    ['AUTH_RATE_KEY_SECRET', 'CLOUDINARY_API_SECRET', 'KAN_API_KEY', 'SENTRY_AUTH_TOKEN'].map(
+      (key) => [key, randomBytes(32).toString('hex')],
+    ),
+  );
   const env = {
+    ...serverSecrets,
     PATH: process.env.PATH,
     HOME: process.env.HOME,
     ...(process.env.PLAYWRIGHT_BROWSERS_PATH
@@ -220,15 +225,20 @@ try {
   assert.equal(code, 0, 'Disposable production build must succeed (output withheld)');
   for (const file of await readdir(join(app, '.next/static'), { recursive: true })) {
     if (file.endsWith('.js')) {
+      const source = await readFile(join(app, '.next/static', file), 'utf8');
       assert(
-        !(await readFile(join(app, '.next/static', file), 'utf8')).includes(
-          env.NEXT_PUBLIC_API_BASE_URL,
-        ),
+        !source.includes(env.NEXT_PUBLIC_API_BASE_URL),
         'Internal API address must not enter browser bundles',
+      );
+      assert(
+        Object.values(serverSecrets).every((secret) => !source.includes(secret)),
+        'Server credentials must not enter browser bundles',
       );
     }
   }
-  console.log('PASS: disposable production Next build and private upstream address');
+  console.log(
+    'PASS: disposable production Next build, private upstream address and server credentials',
+  );
   child = spawn(nextBin, ['start', '--hostname', '127.0.0.1', '--port', '0'], {
     cwd: app,
     env,
@@ -284,6 +294,39 @@ try {
     headers: { ...headers, Origin: 'https://invalid.example' },
   });
   assert.equal(denied.status, 403);
+  const notificationQuery = '?limit=10&unreadOnly=true&after=synthetic%2Bcursor%2Fvalue';
+  const anonymousNotifications = await request('/api/v1/notifications' + notificationQuery);
+  assert.equal(
+    anonymousNotifications.status,
+    401,
+    'Anonymous notifications must reach the API, not a Next 404',
+  );
+  assert.match(anonymousNotifications.headers.get('content-type') ?? '', /^application\/json\b/);
+  assert.deepEqual(await anonymousNotifications.json(), {
+    code: 'AUTH_REQUIRED',
+    message: 'Sign in required',
+  });
+  assert.equal(anonymousNotifications.headers.get('cache-control'), 'no-store');
+  assert.equal(records.at(-1).notificationQuery, true, 'Notification collection query preserved');
+  for (const [method, path, body] of [
+    ['GET', '/api/v1/notifications' + notificationQuery],
+    // The API consumes no body; a nonempty JSON payload proves transport preservation only.
+    ['PATCH', '/api/v1/notifications/3fa85f64-5717-4562-b3fc-2c963f66afa6/read', '{}'],
+  ]) {
+    const response = await request(path, { method, headers, body });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    const metadata = records.at(-1);
+    assert.equal(metadata.method, method);
+    assert.equal(metadata.path, path.split('?')[0]);
+    assert(
+      metadata.authenticated && metadata.originMatches && metadata.json,
+      'Cookie, origin and JSON content type preserved on notification endpoints',
+    );
+    if (method === 'GET') assert(metadata.notificationQuery, 'Collection query preserved');
+    if (body) assert(metadata.readBody, 'Mark-read JSON body preserved exactly');
+  }
+  console.log('PASS: notifications anonymous JSON 401, collection query and PATCH transport');
   const anonymousDesires = await request('/api/v1/desires?probe=one&probe=two');
   assert.equal(
     anonymousDesires.status,
@@ -350,7 +393,16 @@ try {
     photoRecord.authenticated && photoRecord.originMatches,
     'Cookie and origin preserved for multipart desire photo',
   );
-  for (const domain of ['auth', 'taxonomy', 'items', 'spending', 'desires']) {
+  for (const domain of [
+    'auth',
+    'taxonomy',
+    'items',
+    'spending',
+    'health',
+    'onboarding',
+    'desires',
+    'notifications',
+  ]) {
     assert.equal((await request(`/api/v1/${domain}`, { headers })).status, 200);
     assert.equal(records.at(-1).path, `/api/v1/${domain}`);
   }
