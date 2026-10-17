@@ -647,3 +647,87 @@ export interface ReviewHistoryPage {
   estimatedNotSpentMinor: string | null;
   currency: string | null;
 }
+
+/** PER-25: Manual owned-item matching with explainable reasons. */
+export const matchRelevanceValues = ['relevant', 'irrelevant'] as const;
+export type MatchRelevance = (typeof matchRelevanceValues)[number];
+
+export const matchSources = ['manual', 'suggested'] as const;
+export type MatchSource = (typeof matchSources)[number];
+
+export interface DesireMatchItemSummary {
+  id: string;
+  name: string;
+  brand: string | null;
+  model: string | null;
+  ownershipStatus: ItemStatus;
+  condition: ItemCondition;
+  useFrequency: ItemFrequency;
+  categoryId: string | null;
+  categoryName: string | null;
+  subcategoryId: string | null;
+  subcategoryName: string | null;
+  tags: string[];
+  cover: ItemCoverSummary | null;
+  isUsableAlternative: boolean;
+}
+
+export interface DesireMatchHints {
+  categoryHint: string | null;
+  usageHint: string | null;
+  conditionHint: string | null;
+  traitHints: string[];
+}
+
+export interface DesireMatch {
+  id: string;
+  desireId: string;
+  itemId: string;
+  reason: string;
+  relevance: MatchRelevance;
+  source: MatchSource;
+  item: DesireMatchItemSummary;
+  hints: DesireMatchHints;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DesireMatchesPage {
+  items: DesireMatch[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalCount: number;
+}
+
+export interface CreateDesireMatchRequest {
+  itemId: string;
+  reason?: string | undefined;
+  relevance?: MatchRelevance | undefined;
+}
+
+export interface PatchDesireMatchRequest {
+  reason?: string | undefined;
+  relevance?: MatchRelevance | undefined;
+}
+
+export interface MatchCandidateItem extends DesireMatchItemSummary {
+  isAlreadyMatched: boolean;
+  suggestedReason: string;
+  hints: DesireMatchHints;
+}
+
+export interface MatchCandidatesPage {
+  items: MatchCandidateItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+export const desireMatchErrorCodes = [
+  'MATCH_ALREADY_EXISTS',
+  'MATCH_NOT_FOUND',
+  'INVALID_MATCH_REASON',
+  'INVALID_MATCH_RELEVANCE',
+  'MATCH_LIMIT_EXCEEDED',
+  'MATCHES_UNAVAILABLE',
+] as const;
+export type DesireMatchErrorCode = (typeof desireMatchErrorCodes)[number];

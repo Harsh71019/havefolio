@@ -853,3 +853,58 @@ export const desireReviewEvents = pgTable(
     index('review_owner_desire_order_idx').on(t.ownerId, t.desireId, t.sequence),
   ],
 );
+
+/**
+ * PER-25: Manual owned-item matching with explainable reasons.
+ * Enforces owner isolation at the schema level through composite foreign keys.
+ */
+export const desireItemMatches = pgTable(
+  'desire_item_matches',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    desireId: uuid('desire_id').notNull(),
+    itemId: uuid('item_id').notNull(),
+    reason: text('reason').notNull(),
+    relevance: text('relevance', {
+      enum: ['relevant', 'irrelevant'],
+    })
+      .notNull()
+      .default('relevant'),
+    source: text('source', {
+      enum: ['manual', 'suggested'],
+    })
+      .notNull()
+      .default('manual'),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.desireId, t.ownerId],
+      foreignColumns: [desires.id, desires.ownerId],
+      name: 'desire_item_match_desire_owner_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [t.itemId, t.ownerId],
+      foreignColumns: [items.id, items.ownerId],
+      name: 'desire_item_match_item_owner_fk',
+    }).onDelete('cascade'),
+    uniqueIndex('desire_item_match_desire_item_unique').on(t.ownerId, t.desireId, t.itemId),
+    unique('desire_item_match_owner_identity_unique').on(t.id, t.ownerId),
+    check(
+      'desire_item_match_reason_check',
+      sql`length(btrim(${t.reason})) between 1 and 1000 and ${t.reason} = btrim(${t.reason})`,
+    ),
+    check('desire_item_match_relevance_check', sql`${t.relevance} in ('relevant','irrelevant')`),
+    check('desire_item_match_source_check', sql`${t.source} in ('manual','suggested')`),
+    check(
+      'desire_item_match_times_check',
+      sql`isfinite(${t.createdAt}) and isfinite(${t.updatedAt}) and ${t.createdAt} <= ${t.updatedAt}`,
+    ),
+    index('desire_item_match_owner_desire_idx').on(t.ownerId, t.desireId, t.createdAt, t.id),
+    index('desire_item_match_owner_item_idx').on(t.ownerId, t.itemId, t.createdAt, t.id),
+  ],
+);
