@@ -199,7 +199,10 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
   if (loading) return <p role="status">Loading allocation…</p>;
   return (
     <div className="space-y-6 break-words">
-      <Link className="underline" href={`/wants/${desireId}/history`}>
+      <Link
+        className="inline-flex min-h-11 items-center underline underline-offset-4"
+        href={`/wants/${desireId}/history`}
+      >
         Back to decision history
       </Link>
       <h1 className="text-2xl font-semibold">Goal allocation</h1>
@@ -223,7 +226,9 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Estimated amount not spent</CardTitle>
+              <CardTitle>
+                <h2>Estimated amount not spent</h2>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <p>
@@ -240,7 +245,9 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
           {linked ? (
             <Card>
               <CardHeader>
-                <CardTitle>Confirmed allocation</CardTitle>
+                <CardTitle>
+                  <h2>Confirmed allocation</h2>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {goal && leaf ? (
@@ -342,7 +349,9 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Choose a goal</CardTitle>
+                <CardTitle>
+                  <h2>Choose a goal</h2>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {!estimate ? (
@@ -370,7 +379,10 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
                           estimate.minor === 0n
                         }
                       />
-                      <Label htmlFor={`goal-${g.id}`} className="block leading-relaxed">
+                      <Label
+                        htmlFor={`goal-${g.id}`}
+                        className="block min-h-11 flex-1 leading-relaxed"
+                      >
                         {g.name} · {display(g.targetMinor, g.currency)}
                         <span className="block text-sm text-muted-foreground">
                           {g.status === 'archived'

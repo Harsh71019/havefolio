@@ -420,7 +420,9 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
     return (
       <Card className="mx-auto w-full max-w-xl border-destructive/30 shadow-sm" role="alert">
         <CardHeader>
-          <CardTitle className="text-destructive font-semibold">Unable to load desire</CardTitle>
+          <CardTitle className="text-destructive font-semibold">
+            <h2>Unable to load desire</h2>
+          </CardTitle>
           <CardDescription>{loadError || 'Desire not found.'}</CardDescription>
         </CardHeader>
         <CardFooter className="flex gap-3">
@@ -452,13 +454,15 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-xl sm:text-2xl font-semibold">Edit desire</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl font-semibold">
+              <h2>Edit desire</h2>
+            </CardTitle>
             <CardDescription className="text-sm">
               Reflect on your current thoughts and adjust this record as needed.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm" className="min-h-9 text-xs">
+            <Button asChild variant="outline" size="sm" className="min-h-11 text-xs">
               <Link href={`/wants/${desire.id}/matches`}>
                 <Boxes className="mr-1.5 size-3.5" aria-hidden="true" />
                 Matches
@@ -485,7 +489,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
               tabIndex={-1}
               role="alert"
               aria-live="polite"
-              className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+              className="rounded-lg border border-destructive/50 bg-card p-4 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive"
             >
               <h2 className="font-semibold leading-none">
                 Please check the following before saving:
@@ -650,7 +654,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
                   Currency
                 </Label>
                 <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger id={`${formId}-currency`} className="h-11 text-sm">
+                  <SelectTrigger id={`${formId}-currency`} className="min-h-11 text-sm">
                     <SelectValue placeholder="Currency" />
                   </SelectTrigger>
                   <SelectContent>

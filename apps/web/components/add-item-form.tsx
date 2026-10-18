@@ -713,7 +713,9 @@ export function AddItemForm(): ReactElement {
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-xl sm:text-2xl font-semibold">Add item</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl font-semibold">
+              <h2>Add item</h2>
+            </CardTitle>
             <CardDescription className="text-sm">
               Record a possession in under a minute without receipts or photos.
             </CardDescription>
@@ -727,7 +729,7 @@ export function AddItemForm(): ReactElement {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                className="min-h-11 min-w-11 px-2 text-xs text-muted-foreground hover:text-destructive"
                 onClick={handleDiscardDraft}
               >
                 <RotateCcw className="mr-1 size-3" aria-hidden="true" />
@@ -752,7 +754,7 @@ export function AddItemForm(): ReactElement {
               tabIndex={-1}
               role="alert"
               aria-live="polite"
-              className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+              className="rounded-lg border border-destructive/50 bg-card p-4 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive"
             >
               <h2 className="font-semibold leading-none">
                 Please check the following before saving:
@@ -1395,7 +1397,9 @@ function InlineSignIn({
   return (
     <Card className="max-w-md shadow-sm">
       <CardHeader>
-        <CardTitle>Sign in to your private inventory</CardTitle>
+        <CardTitle>
+          <h2>Sign in to your private inventory</h2>
+        </CardTitle>
         <CardDescription>{message}</CardDescription>
       </CardHeader>
       <CardContent>

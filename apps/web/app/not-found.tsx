@@ -15,7 +15,9 @@ export default function NotFoundPage(): ReactElement {
     <main className="grid min-h-[70svh] place-items-center px-5 py-12">
       <Card className="w-full max-w-xl">
         <CardHeader>
-          <CardTitle>That page is not in your home.</CardTitle>
+          <CardTitle>
+            <h1>That page is not in your home.</h1>
+          </CardTitle>
           <CardDescription>Check the address or return to the household index.</CardDescription>
         </CardHeader>
         <CardContent>

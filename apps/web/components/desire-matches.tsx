@@ -364,7 +364,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
       {/* Navigation & Context Card */}
       <Card className="border-muted bg-card shadow-sm">
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Button asChild variant="ghost" size="sm" className="min-h-11 px-2.5">
                 <Link href="/wants" aria-label="Back to wants list">
@@ -375,7 +375,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
               <span className="text-muted-foreground">/</span>
               <span className="text-sm font-medium text-muted-foreground">Possession matching</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button asChild variant="outline" size="sm" className="min-h-11">
                 <Link href={`/wants/${desire.id}/edit`}>
                   <Pencil className="mr-1.5 size-3.5" aria-hidden="true" />
@@ -470,7 +470,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
             <Button
               variant="outline"
               size="sm"
-              className="min-h-11 sm:min-h-9"
+              className="min-h-11"
               onClick={() => {
                 searchSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
@@ -484,13 +484,13 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
         {matchesError ? (
           <div
             role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+            className="rounded-lg border border-destructive/30 bg-card p-4 text-sm text-destructive"
           >
             <p>{matchesError}</p>
             <Button
               variant="outline"
               size="sm"
-              className="mt-2 min-h-9"
+              className="mt-2 min-h-11"
               onClick={() => {
                 setIsLoadingMatches(true);
                 loadMatchesData();
@@ -681,7 +681,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="min-h-9"
+                                      className="min-h-11"
                                       onClick={() => setEditingMatchId(null)}
                                       disabled={isSavingReason}
                                     >
@@ -689,7 +689,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                                     </Button>
                                     <Button
                                       size="sm"
-                                      className="min-h-9"
+                                      className="min-h-11"
                                       onClick={() => void handleSaveReason(match.id)}
                                       disabled={isSavingReason}
                                     >
@@ -706,7 +706,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 px-2 text-muted-foreground hover:text-foreground shrink-0"
+                                  className="min-h-11 min-w-11 px-2 text-muted-foreground hover:text-foreground shrink-0"
                                   onClick={() => handleStartEditReason(match)}
                                   aria-label={`Edit explanation for ${match.item.name}`}
                                 >
@@ -727,7 +727,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                             <Button
                               variant="outline"
                               size="sm"
-                              className="min-h-11 sm:min-h-9 text-xs text-muted-foreground hover:text-foreground"
+                              className="min-h-11 text-xs text-muted-foreground hover:text-foreground"
                               disabled={isUpdatingThis}
                               onClick={() => void handleUpdateRelevance(match.id, 'irrelevant')}
                               aria-label={`Mark ${match.item.name} as irrelevant alternative`}
@@ -739,7 +739,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                             <Button
                               variant="outline"
                               size="sm"
-                              className="min-h-11 sm:min-h-9 text-xs font-medium"
+                              className="min-h-11 text-xs font-medium"
                               disabled={isUpdatingThis}
                               onClick={() => void handleUpdateRelevance(match.id, 'relevant')}
                               aria-label={`Mark ${match.item.name} as relevant alternative`}
@@ -764,7 +764,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="min-h-11 sm:min-h-9 px-2.5 text-muted-foreground hover:text-destructive text-xs"
+                              className="min-h-11 px-2.5 text-muted-foreground hover:text-destructive text-xs"
                               onClick={() => setDeletingMatchId(match.id)}
                               aria-label={`Remove match with ${match.item.name}`}
                             >
@@ -863,7 +863,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
         {addError ? (
           <div
             role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+            className="rounded-lg border border-destructive/30 bg-card p-4 text-sm text-destructive"
           >
             {addError}
           </div>
@@ -872,13 +872,13 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
         {candidatesError ? (
           <div
             role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+            className="rounded-lg border border-destructive/30 bg-card p-4 text-sm text-destructive"
           >
             <p>{candidatesError}</p>
             <Button
               variant="outline"
               size="sm"
-              className="mt-2 min-h-9"
+              className="mt-2 min-h-11"
               onClick={() => {
                 setIsLoadingCandidates(true);
                 loadCandidatesData();
@@ -1026,7 +1026,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                         ) : (
                           <Button
                             size="sm"
-                            className="min-h-11 sm:min-h-9 px-3"
+                            className="min-h-11 px-3"
                             disabled={isAddingThis}
                             onClick={() => void handleAddMatch(candidate)}
                             aria-label={`Connect ${candidate.name} as a potential alternative`}

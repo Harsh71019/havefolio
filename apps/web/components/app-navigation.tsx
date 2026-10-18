@@ -35,11 +35,7 @@ export function AppNavigation(): ReactElement {
 
   function isItemActive(href: string): boolean {
     if (!pathname) return false;
-    return (
-      pathname === href ||
-      (href === '/settings' && pathname.startsWith('/settings')) ||
-      (href === '/goals' && pathname.startsWith('/goals/'))
-    );
+    return pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
   }
 
   return (
@@ -85,7 +81,7 @@ export function AppNavigation(): ReactElement {
         className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
       >
         {navigationItems.slice(0, 4).map((item) => {
-          const active = pathname === item.href;
+          const active = isItemActive(item.href);
           const Icon = item.icon;
 
           return (

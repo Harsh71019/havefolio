@@ -85,7 +85,7 @@ export function LoginForm(): ReactElement {
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute right-1.5 top-1.5"
+            className="absolute right-0.5 top-0.5 size-11"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
             aria-pressed={showPassword}
             disabled={pending}
