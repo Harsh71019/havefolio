@@ -107,7 +107,7 @@ describe('explicit LAN HTTP authentication alongside production HTTPS', () => {
     expect(cookie(created)).toContain('__Host-havefolio_session=');
     expect(cookie(created)).toContain('Secure');
   });
-  it('rejects foreign origins and cross-site writes before authentication', async () => {
+  it('rejects foreign origins, hostile referers, navigation modes and cross-site writes', async () => {
     for (const origin of [
       'http://192.168.0.227:3020',
       'http://192.168.0.226:3021',
@@ -116,7 +116,29 @@ describe('explicit LAN HTTP authentication alongside production HTTPS', () => {
     ])
       await login(origin).expect(403);
     await login(lan).set('Sec-Fetch-Site', 'cross-site').expect(403);
-    expect(auth.login).not.toHaveBeenCalled();
+    await login(lan).set('Sec-Fetch-Mode', 'navigate').expect(403);
+    await login(lan).set('Sec-Fetch-Mode', 'nested-navigate').expect(403);
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .set('Referer', 'https://hostile.example/path')
+      .send({ email: owner.email, password: 'synthetic fixture only' })
+      .expect(403);
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .set('Referer', 'not-a-valid-url')
+      .send({ email: owner.email, password: 'synthetic fixture only' })
+      .expect(403);
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .set('Referer', `${https}/items`)
+      .send({ email: owner.email, password: 'synthetic fixture only' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .set('Referer', `${lan}/items`)
+      .send({ email: owner.email, password: 'synthetic fixture only' })
+      .expect(200);
+    expect(auth.login).toHaveBeenCalled();
   });
   it('keeps LAN disabled by default and rejects ambiguous or malformed cookies', async () => {
     delete settings.AUTH_LAN_HTTP_ORIGIN;

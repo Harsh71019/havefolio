@@ -28,6 +28,7 @@ import {
   ApiPayloadTooLargeResponse,
   ApiServiceUnavailableResponse,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
   ApiProperty,
   ApiProduces,
@@ -36,6 +37,7 @@ import type { Request } from 'express';
 import { CurrentOwner, type OwnerContext } from '../auth/auth.context.js';
 import { RevisionDto, ItemErrorDto } from '../items/items.dto.js';
 import { ItemPhotosService } from './item-photos.service.js';
+import { UploadRateService } from './upload-rate.service.js';
 import {
   PhotoDescriptionDto,
   PhotoOrderDto,
@@ -73,7 +75,10 @@ class PhotoAccessDto {
 export class ItemPhotosController {
   private active = 0;
   private delivering = 0;
-  constructor(private readonly photos: ItemPhotosService) {}
+  constructor(
+    private readonly photos: ItemPhotosService,
+    private readonly uploadRate: UploadRateService,
+  ) {}
   @Get()
   @Header('Cache-Control', 'no-store')
   @ApiOkResponse({ type: PhotoSnapshotDto })
@@ -107,6 +112,7 @@ export class ItemPhotosController {
     },
   })
   @ApiCreatedResponse({ type: PhotoUploadDto })
+  @ApiTooManyRequestsResponse({ description: 'Upload attempt limit exceeded.' })
   async upload(
     @CurrentOwner() owner: OwnerContext,
     @Param('itemId', ParseUUIDPipe) item: string,
@@ -118,6 +124,8 @@ export class ItemPhotosController {
     )
       throw new BadRequestException('PHOTO_UPLOAD_ID_REQUIRED');
     await this.photos.authorize(owner.id, item);
+    const source = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    await this.uploadRate.check(owner.id, source);
     if (this.active >= 1) throw new ServiceUnavailableException('PHOTO_PROCESSING_BUSY');
     this.active++;
     try {

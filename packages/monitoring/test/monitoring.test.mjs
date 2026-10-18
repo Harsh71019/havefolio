@@ -68,6 +68,44 @@ test('known routes normalize UUIDs, queries and app-router templates without kee
   );
   assert.equal(normalizeRoute('/api/v1/home?private=1'), '/api/v1/home');
   assert.equal(normalizeRoute('/api/v1/home/private-id'), '/unmatched');
+  assert.equal(normalizeRoute('/api/v1/settings'), '/api/v1/settings');
+  assert.equal(normalizeRoute('/api/v1/settings/preferences'), '/api/v1/settings/preferences');
+  assert.equal(normalizeRoute('/api/v1/settings/sessions'), '/api/v1/settings/sessions');
+  assert.equal(
+    normalizeRoute('/api/v1/settings/sessions/11111111-1111-4111-8111-111111111111'),
+    '/api/v1/settings/sessions/:id',
+  );
+  assert.equal(normalizeRoute('/api/v1/notifications'), '/api/v1/notifications');
+  assert.equal(
+    normalizeRoute('/api/v1/notifications/unread-count'),
+    '/api/v1/notifications/unread-count',
+  );
+  assert.equal(
+    normalizeRoute('/api/v1/notifications/11111111-1111-4111-8111-111111111111/read'),
+    '/api/v1/notifications/:id/read',
+  );
+  assert.equal(
+    normalizeRoute('/api/v1/desires/11111111-1111-4111-8111-111111111111'),
+    '/api/v1/desires/:id',
+  );
+  assert.equal(
+    normalizeRoute('/api/v1/desires/11111111-1111-4111-8111-111111111111/photo'),
+    '/api/v1/desires/:id/photo',
+  );
+  assert.equal(
+    normalizeRoute('/api/v1/desires/11111111-1111-4111-8111-111111111111/photo/content/thumbnail'),
+    '/api/v1/desires/:id/photo/content/:variant',
+  );
+  assert.equal(
+    normalizeRoute(
+      '/api/v1/items/11111111-1111-4111-8111-111111111111/refunds/22222222-2222-4222-8222-222222222222',
+    ),
+    '/api/v1/items/:itemId/refunds/:refundId',
+  );
+  assert.equal(
+    normalizeRoute('/api/v1/items/11111111-1111-4111-8111-111111111111/lifecycle'),
+    '/api/v1/items/:itemId/lifecycle',
+  );
   assert.equal(traceRate('/api/v1/health?secret=x', 0.01), 0);
   assert.equal(traceRate('/_next/static/chunk.js', 0.01), 0);
   assert.equal(traceRate('/store', 0.01), 0.01);

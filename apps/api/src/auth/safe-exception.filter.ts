@@ -28,6 +28,7 @@ const safeMessages = new Set<string>([
   ...desireErrorCodes,
   ...notificationErrorCodes,
   ...settingsErrorCodes,
+  'UPLOAD_RATE_LIMITED',
   'PHOTO_UPLOAD_ID_REQUIRED',
   'PHOTO_PROCESSING_BUSY',
   'PHOTO_DELIVERY_BUSY',

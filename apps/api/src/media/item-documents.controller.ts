@@ -28,6 +28,7 @@ import {
   ApiPayloadTooLargeResponse,
   ApiServiceUnavailableResponse,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
   ApiProduces,
 } from '@nestjs/swagger';
@@ -37,6 +38,7 @@ import { RevisionDto, ItemErrorDto } from '../items/items.dto.js';
 import { ItemDocumentsService } from './item-documents.service.js';
 import { DocumentDto, DocumentSnapshotDto } from './item-documents.dto.js';
 import { readDocument } from './document-multipart.js';
+import { UploadRateService } from './upload-rate.service.js';
 @ApiTags('item-documents')
 @ApiCookieAuth('ownerSession')
 @ApiBadRequestResponse({
@@ -65,7 +67,10 @@ import { readDocument } from './document-multipart.js';
 @Controller({ path: 'items/:itemId/documents', version: '1' })
 export class ItemDocumentsController {
   private active = 0;
-  constructor(private readonly documents: ItemDocumentsService) {}
+  constructor(
+    private readonly documents: ItemDocumentsService,
+    private readonly uploadRate: UploadRateService,
+  ) {}
   @Get()
   @Header('Cache-Control', 'no-store')
   @ApiOperation({
@@ -98,6 +103,7 @@ export class ItemDocumentsController {
     },
   })
   @ApiCreatedResponse({ type: DocumentDto })
+  @ApiTooManyRequestsResponse({ description: 'Upload attempt limit exceeded.' })
   async upload(
     @CurrentOwner() owner: OwnerContext,
     @Param('itemId', ParseUUIDPipe) item: string,
@@ -107,6 +113,8 @@ export class ItemDocumentsController {
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id ?? ''))
       throw new BadRequestException('DOCUMENT_UPLOAD_ID_REQUIRED');
     await this.documents.authorize(owner.id, item);
+    const source = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    await this.uploadRate.check(owner.id, source);
     if (this.active >= 1) throw new ServiceUnavailableException('DOCUMENT_PROCESSING_BUSY');
     this.active++;
     try {
