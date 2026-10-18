@@ -221,9 +221,9 @@ describe('PER-34 owner settings and privacy integration', () => {
     expect(updatedOther.notifyNtfy).toBe(false);
     expect(updatedOther.revision).toBe(2);
 
-    // Initial owner preferences remain EUR / revision 2 from earlier tests
+    // Initial owner preferences remain USD / revision 2 from earlier tests
     const ownerPrefs = await settingsService.getPreferences(ownerId);
-    expect(ownerPrefs.defaultCurrency).toBe('EUR');
+    expect(ownerPrefs.defaultCurrency).toBe('USD');
     expect(ownerPrefs.revision).toBe(2);
 
     // Database RLS isolates rows when current_setting('havefolio.owner_id') is set
