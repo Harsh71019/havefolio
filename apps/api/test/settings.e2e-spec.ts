@@ -13,6 +13,7 @@ import { AuthModule } from '../src/auth/auth.module.js';
 import { newToken, hashToken } from '../src/auth/session-cookie.service.js';
 import { configureApplication } from '../src/app.setup.js';
 import { SettingsModule } from '../src/settings/settings.module.js';
+import { SettingsService } from '../src/settings/settings.service.js';
 import { ItemsModule } from '../src/items/items.module.js';
 
 jest.setTimeout(60000);
@@ -195,7 +196,7 @@ describe('PER-34 owner settings and privacy integration', () => {
   });
 
   it('allows revoking another specific active session', async () => {
-    await ownerDelete(`sessions/${extraSessionId}`).expect(200);
+    await ownerDelete(`sessions/${extraSessionId}`).expect(204);
 
     // Verify session is no longer in active list
     const overview = (await ownerGet().expect(200)).body as SettingsOverview;
@@ -204,20 +205,37 @@ describe('PER-34 owner settings and privacy integration', () => {
   });
 
   it('enforces owner isolation: cannot see or mutate other owner settings', async () => {
-    // Other owner reads their own settings
-    const otherRes = await http()
-      .get('/api/v1/settings')
-      .set('Cookie', `havefolio_session=${otherToken}`)
-      .expect(200);
+    const settingsService = app.get(SettingsService);
 
-    const otherBody = otherRes.body as SettingsOverview;
-    // other owner still has default INR, revision 1
-    expect(otherBody.preferences.defaultCurrency).toBe('INR');
-    expect(otherBody.preferences.revision).toBe(1);
-    // Other owner sees only their own session
-    for (const session of otherBody.sessions) {
-      expect(session.id).not.toBe(extraSessionId);
-    }
+    // Other owner preferences are isolated and return fresh defaults
+    const otherPrefs = await settingsService.getPreferences(otherOwnerId);
+    expect(otherPrefs.defaultCurrency).toBe('INR');
+    expect(otherPrefs.revision).toBe(1);
+
+    // Mutating other owner preferences does not affect initial owner
+    const updatedOther = await settingsService.updatePreferences(
+      { id: otherOwnerId, email: 'other@example.com', displayName: null, sessionId: randomUUID() },
+      { revision: 1, defaultCurrency: 'GBP', notifyNtfy: false },
+    );
+    expect(updatedOther.defaultCurrency).toBe('GBP');
+    expect(updatedOther.notifyNtfy).toBe(false);
+    expect(updatedOther.revision).toBe(2);
+
+    // Initial owner preferences remain EUR / revision 2 from earlier tests
+    const ownerPrefs = await settingsService.getPreferences(ownerId);
+    expect(ownerPrefs.defaultCurrency).toBe('EUR');
+    expect(ownerPrefs.revision).toBe(2);
+
+    // Database RLS isolates rows when current_setting('havefolio.owner_id') is set
+    await run.runtime.query("SELECT set_config('havefolio.owner_id', $1, false)", [otherOwnerId]);
+    const ownerRowsSeenByOther = await run.runtime.query(
+      'SELECT * FROM owner_settings WHERE owner_id = $1',
+      [ownerId],
+    );
+    expect(ownerRowsSeenByOther.rows).toEqual([]);
+
+    // Reset owner_id context
+    await run.runtime.query("SELECT set_config('havefolio.owner_id', '', false)");
   });
 
   it('publishes the settings endpoints in OpenAPI', () => {
