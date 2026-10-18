@@ -14,7 +14,12 @@ import {
   WifiOffIcon,
   type LucideIcon,
 } from 'lucide-react';
-import type { ItemListEntry, ItemStatus, TaxonomySnapshot } from '@havefolio/contracts';
+import type {
+  InventoryFacets,
+  ItemListEntry,
+  ItemStatus,
+  TaxonomySnapshot,
+} from '@havefolio/contracts';
 import { Button } from '@havefolio/ui/components/button';
 import { Card, CardContent } from '@havefolio/ui/components/card';
 import {
@@ -47,7 +52,6 @@ import {
 } from './inventory-source';
 import {
   changeInventoryQuery,
-  inventoryQueryParams,
   readInventoryQuery,
   type InventoryPatch,
 } from './inventory-query-state';
@@ -65,6 +69,7 @@ import { groupInventory } from './store-grouping';
 import { StoreFilters, countActiveFilters } from './store-filters';
 import { StoreToolbar } from './store-toolbar';
 import { StoreActiveChips } from './store-active-chips';
+import { saveStoreLocation, subscribeStoreLocation } from './store-location';
 
 const statusIcons: Record<ItemStatus, LucideIcon> = {
   owned: CircleCheckIcon,
@@ -75,23 +80,6 @@ const statusIcons: Record<ItemStatus, LucideIcon> = {
   returned: Undo2Icon,
 };
 const gridClass = 'store-grid grid grid-cols-1 gap-4 min-[520px]:grid-cols-2';
-
-function subscribeLocation(callback: () => void): () => void {
-  window.addEventListener('popstate', callback);
-  window.addEventListener('havefolio-store-query', callback);
-  return () => {
-    window.removeEventListener('popstate', callback);
-    window.removeEventListener('havefolio-store-query', callback);
-  };
-}
-
-function saveStoreLocation(query: InventoryQuery, replace = false): void {
-  const params = inventoryQueryParams(query).toString();
-  const url = params ? `/store?${params}` : '/store';
-  if (window.location.pathname + window.location.search === url) return;
-  window.history[replace ? 'replaceState' : 'pushState'](null, '', url);
-  window.dispatchEvent(new Event('havefolio-store-query'));
-}
 
 /** The deleted item's name left by the item page; read once, then cleared. */
 function takeDeletedFlash(): string | undefined {
@@ -120,6 +108,7 @@ type Load =
       kind: 'ready';
       items: ItemListEntry[];
       taxonomy: TaxonomySnapshot | undefined;
+      facets: InventoryFacets | undefined;
       nextCursor: string | null;
     };
 
@@ -160,7 +149,7 @@ export function MyStore({
 
   // Synchronize location search params with local query state
   const search = useSyncExternalStore(
-    subscribeLocation,
+    subscribeStoreLocation,
     () => window.location.search,
     () => '',
   );
@@ -177,8 +166,17 @@ export function MyStore({
     saveStoreLocation(next);
   };
 
+  // Clearing filters keeps the chosen order (and the currency price order needs).
   const handleReset = (): void => {
-    saveStoreLocation({});
+    saveStoreLocation(
+      query.sort
+        ? {
+            sort: query.sort,
+            ...(query.direction ? { direction: query.direction } : {}),
+            ...(query.sort === 'price' && query.currency ? { currency: query.currency } : {}),
+          }
+        : {},
+    );
   };
 
   const fetchFirst = useCallback(async (): Promise<Load> => {
@@ -186,12 +184,14 @@ export function MyStore({
       const isClean = Object.keys(query).length === 0;
       const cleanQuery: InventoryQuery = { ...query };
       delete (cleanQuery as { cursor?: unknown }).cursor;
-      // Taxonomy only names groups; a failure keeps every item visible in one neutral group.
-      const [page, taxonomy] = await Promise.all([
+      // Taxonomy only names groups and facets only add counts; a failure of either keeps every
+      // item browsable.
+      const [page, taxonomy, facets] = await Promise.all([
         source.loadPage(isClean ? { cursor: null } : cleanQuery),
         source.loadTaxonomy().catch(() => undefined),
+        source.loadFacets?.(cleanQuery).catch(() => undefined),
       ]);
-      return { kind: 'ready', items: page.items, taxonomy, nextCursor: page.nextCursor };
+      return { kind: 'ready', items: page.items, taxonomy, facets, nextCursor: page.nextCursor };
     } catch (error) {
       return { kind: 'failed', error: asRequestError(error) };
     }
@@ -236,6 +236,19 @@ export function MyStore({
     }
   }
 
+  const taxonomy = load.kind === 'ready' ? load.taxonomy : undefined;
+  const facets = load.kind === 'ready' ? load.facets : undefined;
+  const summary =
+    load.kind === 'loading'
+      ? 'Loading your items…'
+      : load.kind === 'failed'
+        ? 'Items unavailable'
+        : `${
+            facets && facets.total > load.items.length
+              ? `Showing ${load.items.length} of ${facets.total} items`
+              : `Showing ${load.items.length} item${load.items.length === 1 ? '' : 's'}${load.nextCursor ? ' so far' : ''}`
+          }.${load.taxonomy ? '' : ' Categories could not load, so items are not grouped.'}`;
+
   return (
     <section aria-label="Your items" className="my-store mt-8 space-y-6">
       <p role="status" aria-live="polite" className="sr-only">
@@ -256,33 +269,16 @@ export function MyStore({
         </div>
       ) : null}
 
-      {/* Top Search & Sorting Toolbar */}
-      <StoreToolbar
-        query={query}
-        onQueryChange={handleQueryChange}
-        onOpenMobileFilters={() => setMobileFiltersOpen(true)}
-      />
-
-      {/* Active Filter Chips */}
-      <StoreActiveChips
-        query={query}
-        taxonomy={load.kind === 'ready' ? load.taxonomy : undefined}
-        onQueryChange={handleQueryChange}
-        onReset={handleReset}
-      />
-
-      {/* Mobile Filters Modal */}
       <Dialog open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+        <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Filters</DialogTitle>
-            <DialogDescription>
-              Filter your home inventory by category, status, frequency, and price.
-            </DialogDescription>
+            <DialogDescription>Narrow what you see. Counts update as you choose.</DialogDescription>
           </DialogHeader>
           <StoreFilters
             query={query}
-            taxonomy={load.kind === 'ready' ? load.taxonomy : undefined}
+            taxonomy={taxonomy}
+            facets={facets}
             onQueryChange={handleQueryChange}
             onReset={handleReset}
             isMobileModal
@@ -291,28 +287,34 @@ export function MyStore({
         </DialogContent>
       </Dialog>
 
-      {/* E-Commerce Catalog Layout: Sidebar + Grid */}
-      <div className="flex flex-col lg:flex-row gap-8 items-start pt-2">
-        {/* Sticky Desktop Filters Sidebar */}
-        <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start rounded-xl border bg-card p-4 shadow-xs">
+      {/* Catalog: filters beside the results where there is room, in a dialog otherwise. */}
+      <div className="xl:grid xl:grid-cols-[15rem_minmax(0,1fr)] xl:items-start xl:gap-8">
+        <aside
+          aria-label="Filters"
+          className="sticky top-4 hidden max-h-[calc(100svh-2rem)] overflow-y-auto pr-2 xl:block"
+        >
           <StoreFilters
             query={query}
-            taxonomy={load.kind === 'ready' ? load.taxonomy : undefined}
+            taxonomy={taxonomy}
+            facets={facets}
             onQueryChange={handleQueryChange}
             onReset={handleReset}
           />
         </aside>
 
-        {/* Main Content Area */}
-        <div className="flex-1 min-w-0 w-full space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              {load.kind === 'ready'
-                ? `Showing ${load.items.length} item${load.items.length === 1 ? '' : 's'}${load.nextCursor ? ' so far' : ''}.${load.taxonomy ? '' : ' Categories could not load, so items are not grouped.'}`
-                : load.kind === 'loading'
-                  ? 'Loading your items…'
-                  : 'Items unavailable'}
-            </p>
+        <div className="min-w-0 space-y-6">
+          <StoreActiveChips
+            query={query}
+            taxonomy={taxonomy}
+            onQueryChange={handleQueryChange}
+            onReset={handleReset}
+          />
+          <StoreToolbar
+            query={query}
+            onQueryChange={handleQueryChange}
+            onOpenMobileFilters={() => setMobileFiltersOpen(true)}
+            summary={summary}
+          >
             <div className="hidden items-center gap-3 lg:flex">
               <span id="store-density-label" className="text-sm font-medium">
                 View density
@@ -335,7 +337,7 @@ export function MyStore({
                 ))}
               </RadioGroup>
             </div>
-          </div>
+          </StoreToolbar>
 
           {load.kind === 'loading' ? <StoreSkeleton /> : null}
           {load.kind === 'failed' ? <LoadFailure error={load.error} onRetry={retry} /> : null}

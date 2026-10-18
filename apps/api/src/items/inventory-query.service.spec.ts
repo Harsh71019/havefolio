@@ -5,7 +5,12 @@ import type { PoolClient } from 'pg';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { ItemsRepository } from './items.repository.js';
-import { InventoryQueryService, inventorySql, normalizeQuery } from './inventory-query.service.js';
+import {
+  InventoryQueryService,
+  inventoryFacetSql,
+  inventorySql,
+  normalizeQuery,
+} from './inventory-query.service.js';
 import { ItemsQueryDto } from './inventory-query.dto.js';
 describe('inventory query rules', () => {
   const query = jest.fn<PoolClient['query']>();
@@ -101,6 +106,8 @@ describe('inventory query rules', () => {
     { priceMin: '-1' },
     { dateKnown: 'bad' },
     { after: 'x'.repeat(2049) },
+    { brand: '   ' },
+    { brand: 'b'.repeat(301) },
   ])('rejects invalid DTO input %j', async (input) => {
     expect((await validate(plainToInstance(ItemsQueryDto, input))).length).toBeGreaterThan(0);
   });
@@ -109,5 +116,57 @@ describe('inventory query rules', () => {
       'INVALID_ITEM_CURSOR',
     );
     expect(query).not.toHaveBeenCalled();
+  });
+  it('binds a trimmed, case-insensitive brand and never puts it in SQL', () => {
+    const sql = inventorySql('owner', normalizeQuery({ brand: ' Prestige ' }));
+    expect(sql.text).toContain('lower(btrim(i.brand))=$2');
+    expect(sql.text).not.toContain('prestige');
+    expect(sql.values).toEqual(['owner', 'prestige', 26]);
+  });
+  it('drops each facet dimension own filter but keeps every other filter', () => {
+    const q = normalizeQuery({
+      ownershipStatus: 'owned',
+      useFrequency: 'often',
+      brand: 'Acme',
+      priceMin: '100',
+      currency: 'INR',
+    });
+    const status = inventoryFacetSql('owner', q, 'status');
+    expect(status.text).not.toContain('i.ownership_status=');
+    expect(status.values).toEqual(expect.arrayContaining(['often', 'acme', '100', 'INR']));
+    const brand = inventoryFacetSql('owner', q, 'brand');
+    expect(brand.values).not.toContain('acme');
+    expect(brand.text).toContain('LIMIT 101');
+    const price = inventoryFacetSql('owner', q, 'price');
+    expect(price.values).not.toContain('100');
+    expect(price.values).not.toContain('INR');
+    expect(price.text).not.toContain('IS NULL)');
+    const total = inventoryFacetSql('owner', q, 'total');
+    expect(total.values).toEqual(expect.arrayContaining(['owned', 'often', 'acme', '100']));
+  });
+  it('maps facet rows and caps brands with a truncation flag', async () => {
+    const brands = Array.from({ length: 101 }, (_, n) => ({ value: `Brand ${n}`, count: 1 }));
+    query
+      .mockResolvedValueOnce({ rows: [{ value: null, count: 7 }] } as never)
+      .mockResolvedValueOnce({ rows: [{ value: 'owned', count: 6 }] } as never)
+      .mockResolvedValueOnce({ rows: [{ value: 'often', count: 2 }] } as never)
+      .mockResolvedValueOnce({ rows: [{ value: null, count: 3 }] } as never)
+      .mockResolvedValueOnce({ rows: [{ value: 'sub', category_id: 'cat', count: 1 }] } as never)
+      .mockResolvedValueOnce({ rows: brands } as never)
+      .mockResolvedValueOnce({
+        rows: [{ value: 'INR', min_minor: '100', max_minor: '900', count: 4 }],
+      } as never);
+    const facets = await service.facets('owner', {});
+    expect(query).toHaveBeenCalledTimes(7);
+    expect(facets).toMatchObject({
+      total: 7,
+      ownershipStatus: [{ value: 'owned', count: 6 }],
+      useFrequency: [{ value: 'often', count: 2 }],
+      categories: [{ value: null, count: 3 }],
+      subcategories: [{ value: 'sub', categoryId: 'cat', count: 1 }],
+      brandsTruncated: true,
+      prices: [{ currency: 'INR', minMinor: '100', maxMinor: '900', count: 4 }],
+    });
+    expect(facets.brands).toHaveLength(100);
   });
 });

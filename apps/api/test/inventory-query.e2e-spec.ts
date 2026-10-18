@@ -19,6 +19,7 @@ import {
 } from '../src/items/inventory-query.service.js';
 import type { ItemsQueryDto } from '../src/items/inventory-query.dto.js';
 import type { ItemListEntryDto, ItemsPageDto } from '../src/items/items.dto.js';
+import type { InventoryFacets } from '@havefolio/contracts';
 
 describe('complete owner inventory querying', () => {
   const run = new IntegrationRun(integrationConfiguration()),
@@ -147,6 +148,45 @@ describe('complete owner inventory querying', () => {
     await get({ tagId: foreignTag }).expect(400);
     await get({ categoryId: randomUUID() }).expect(400);
     await get({ subcategoryId: child }).expect(400);
+  });
+  it('filters an exact, trimmed, case-insensitive brand without crossing owners', async () => {
+    expect(await names({ brand: ' acme ' })).toEqual(['Item 00']);
+    expect(await names({ brand: 'Acm' })).toEqual([]);
+    await get({ brand: '   ' }).expect(400);
+  });
+  it('counts each facet with every other filter applied and its own ignored', async () => {
+    const facets = (
+      await request(app.getHttpServer())
+        .get('/api/v1/items/facets')
+        .set('Cookie', `havefolio_session=${token}`)
+        .query({ ownershipStatus: 'owned', sort: 'name' })
+        .expect(200)
+        .expect('Cache-Control', 'no-store')
+    ).body as InventoryFacets;
+    expect(facets.total).toBe(6);
+    expect(facets.ownershipStatus).toEqual(
+      expect.arrayContaining([
+        { value: 'owned', count: 6 },
+        { value: 'sold', count: 6 },
+      ]),
+    );
+    expect(facets.useFrequency).toEqual([{ value: 'often', count: 6 }]);
+    expect(facets.categories).toEqual(
+      expect.arrayContaining([
+        { value: category, count: 3 },
+        { value: null, count: 3 },
+      ]),
+    );
+    expect(facets.subcategories).toEqual([{ value: child, categoryId: category, count: 2 }]);
+    expect(facets.brands).toEqual([{ value: 'Acme', count: 1 }]);
+    expect(facets.brandsTruncated).toBe(false);
+    expect(facets.prices).toEqual([{ currency: 'INR', minMinor: '0', maxMinor: '200', count: 6 }]);
+    await request(app.getHttpServer())
+      .get('/api/v1/items/facets')
+      .set('Cookie', `havefolio_session=${token}`)
+      .query({ categoryId: randomUUID() })
+      .expect(400);
+    await request(app.getHttpServer()).get('/api/v1/items/facets').expect(401);
   });
   it('preserves zero versus unknown and scopes price comparisons to currency', async () => {
     const zero = await list({

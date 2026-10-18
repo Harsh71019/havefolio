@@ -1,4 +1,5 @@
 import type {
+  InventoryFacets,
   InventoryQuery as ContractInventoryQuery,
   ItemsPage,
   TaxonomySnapshot,
@@ -16,6 +17,8 @@ export type InventoryQuery = ContractInventoryQuery & {
 export interface InventorySource {
   loadPage(query: InventoryQuery): Promise<ItemsPage>;
   loadTaxonomy(): Promise<TaxonomySnapshot>;
+  /** Per-option counts for the filters; optional so sources without facets still browse. */
+  loadFacets?(query: InventoryQuery): Promise<InventoryFacets>;
 }
 
 export class InventoryRequestError extends Error {
@@ -67,4 +70,18 @@ export const apiInventorySource: InventorySource = {
     return (await response.json()) as ItemsPage;
   },
   loadTaxonomy: () => taxonomyRequest(),
+  async loadFacets(query) {
+    const clean: ContractInventoryQuery = { ...query };
+    // Counts ignore ordering and pagination.
+    for (const key of ['cursor', 'after', 'sort', 'direction', 'limit'] as const)
+      delete (clean as Record<string, unknown>)[key];
+    const params = inventoryQueryParams(clean).toString();
+    const response = await fetch(`/api/v1/items/facets${params ? `?${params}` : ''}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+    if (!response.ok)
+      throw new InventoryRequestError(response.status, 'Filter counts unavailable.');
+    return (await response.json()) as InventoryFacets;
+  },
 };

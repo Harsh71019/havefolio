@@ -325,6 +325,8 @@ export interface InventoryQuery {
   categoryId?: string;
   subcategoryId?: string;
   tagId?: string;
+  /** Exact brand, compared trimmed and case-insensitively. */
+  brand?: string;
   ownershipStatus?: ItemStatus;
   useFrequency?: ItemFrequency;
   priceKnown?: (typeof unknownModes)[number];
@@ -339,6 +341,28 @@ export interface InventoryQuery {
   after?: string;
 }
 export type ItemCard = ItemListEntry;
+export interface InventoryFacetCount<T> {
+  value: T;
+  count: number;
+}
+/**
+ * `GET /api/v1/items/facets`: counts for the same query as `GET /api/v1/items`. Each dimension
+ * ignores its own filter so every option shows how many items selecting it would return.
+ */
+export interface InventoryFacets {
+  total: number;
+  ownershipStatus: InventoryFacetCount<ItemStatus>[];
+  useFrequency: InventoryFacetCount<ItemFrequency>[];
+  /** `null` counts items without a category. */
+  categories: InventoryFacetCount<string | null>[];
+  subcategories: (InventoryFacetCount<string> & { categoryId: string })[];
+  /** Most common first, at most `inventoryFacetBrandLimit`; `brandsTruncated` marks the rest. */
+  brands: InventoryFacetCount<string>[];
+  brandsTruncated: boolean;
+  /** Recorded price bounds per currency, in integer minor units. */
+  prices: { currency: string; minMinor: string; maxMinor: string; count: number }[];
+}
+export const inventoryFacetBrandLimit = 100;
 export interface InventoryPage {
   items: ItemCard[];
   nextCursor: string | null;
@@ -360,6 +384,7 @@ export const inventoryQueryKeys = [
   'categoryId',
   'subcategoryId',
   'tagId',
+  'brand',
   'ownershipStatus',
   'useFrequency',
   'priceKnown',

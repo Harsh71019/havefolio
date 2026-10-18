@@ -541,7 +541,10 @@ describe('My Store page', () => {
     await screen.findByRole('link', { name: /^Alpha/ });
     const user = userEvent.setup();
     await user.tab();
-    expect(screen.getByRole('searchbox', { name: 'Search your items' })).toHaveFocus();
+    // Filters come first, then sorting, then the cards.
+    expect(screen.getAllByTestId('store-filters')[0]).toContainElement(
+      document.activeElement as HTMLElement,
+    );
     card('Alpha').focus();
     expect(card('Alpha')).toHaveFocus();
     await user.tab();

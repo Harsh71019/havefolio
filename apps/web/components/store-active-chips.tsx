@@ -1,5 +1,6 @@
 'use client';
 import type { TaxonomySnapshot } from '@havefolio/contracts';
+import { formatMoney, parseMinorUnits } from '@havefolio/domain';
 import { Button } from '@havefolio/ui/components/button';
 import { XIcon } from 'lucide-react';
 import type { InventoryQuery } from './inventory-source';
@@ -13,16 +14,14 @@ export interface StoreActiveChipsProps {
   onReset: () => void;
 }
 
-const sortNames: Record<string, string> = {
-  'id:asc': 'Default',
-  'newest:desc': 'Newest',
-  'oldest:asc': 'Oldest',
-  'price:asc': 'Price: Low to High',
-  'price:desc': 'Price: High to Low',
-  'name:asc': 'Name: A–Z',
-  'name:desc': 'Name: Z–A',
-  'updated:desc': 'Recently updated',
-};
+function priceLabel(query: InventoryQuery): string {
+  const currency = query.currency ?? 'INR';
+  const format = (minor: string): string => formatMoney(parseMinorUnits(minor, currency));
+  if (query.priceMin !== undefined && query.priceMax !== undefined)
+    return `${format(query.priceMin)} – ${format(query.priceMax)}`;
+  if (query.priceMin !== undefined) return `${format(query.priceMin)} and above`;
+  return `Up to ${format(query.priceMax!)}`;
+}
 
 export function StoreActiveChips({
   query,
@@ -32,107 +31,89 @@ export function StoreActiveChips({
 }: StoreActiveChipsProps): React.JSX.Element | null {
   const chips: { key: string; label: string; onRemove: () => void }[] = [];
 
-  if (query.q) {
+  if (query.q)
     chips.push({
       key: 'q',
       label: `“${query.q}”`,
       onRemove: () => onQueryChange({ q: undefined }),
     });
-  }
 
-  if (query.categoryId && taxonomy) {
-    const cat = taxonomy.categories.find((c) => c.id === query.categoryId);
-    if (cat) {
-      chips.push({
-        key: 'category',
-        label: `Category: ${cat.name}`,
-        onRemove: () => onQueryChange({ categoryId: undefined, subcategoryId: undefined }),
-      });
-    }
-  }
+  const category = taxonomy?.categories.find((c) => c.id === query.categoryId);
+  if (query.categoryId)
+    chips.push({
+      key: 'category',
+      label: category?.name ?? 'Chosen category',
+      onRemove: () => onQueryChange({ categoryId: undefined, subcategoryId: undefined }),
+    });
 
-  if (query.subcategoryId && taxonomy) {
-    const sub = taxonomy.subcategories.find((s) => s.id === query.subcategoryId);
-    if (sub) {
-      chips.push({
-        key: 'subcategory',
-        label: `Subcategory: ${sub.name}`,
-        onRemove: () => onQueryChange({ subcategoryId: undefined }),
-      });
-    }
-  }
+  const subcategory = taxonomy?.subcategories.find((s) => s.id === query.subcategoryId);
+  if (query.subcategoryId)
+    chips.push({
+      key: 'subcategory',
+      label: subcategory?.name ?? 'Chosen subcategory',
+      onRemove: () => onQueryChange({ subcategoryId: undefined }),
+    });
 
-  if (query.ownershipStatus) {
+  if (query.brand)
+    chips.push({
+      key: 'brand',
+      label: query.brand,
+      onRemove: () => onQueryChange({ brand: undefined }),
+    });
+
+  if (query.ownershipStatus)
     chips.push({
       key: 'status',
-      label: `Status: ${statusLabel(query.ownershipStatus)}`,
+      label: statusLabel(query.ownershipStatus),
       onRemove: () => onQueryChange({ ownershipStatus: undefined }),
     });
-  }
 
-  if (query.useFrequency) {
+  if (query.useFrequency)
     chips.push({
       key: 'frequency',
-      label: `Frequency: ${frequencyLabel(query.useFrequency)}`,
+      label: `Used ${frequencyLabel(query.useFrequency).toLowerCase()}`,
       onRemove: () => onQueryChange({ useFrequency: undefined }),
     });
-  }
 
-  if (query.priceMin !== undefined || query.priceMax !== undefined) {
-    const min = query.priceMin ? `₹${Math.floor(Number(query.priceMin) / 100)}` : '₹0';
-    const max = query.priceMax ? `₹${Math.floor(Number(query.priceMax) / 100)}` : 'Any';
+  if (query.priceMin !== undefined || query.priceMax !== undefined)
     chips.push({
       key: 'price',
-      label: `Price: ${min} – ${max}`,
+      label: priceLabel(query),
       onRemove: () =>
         onQueryChange({
           priceMin: undefined,
           priceMax: undefined,
+          priceKnown: undefined,
           currency: query.sort === 'price' ? query.currency : undefined,
         }),
     });
-  }
-
-  if (query.sort && query.sort !== 'id') {
-    const sortKey = `${query.sort}:${query.direction ?? (['newest', 'updated'].includes(query.sort) ? 'desc' : 'asc')}`;
-    chips.push({
-      key: 'sort',
-      label: `Sort: ${sortNames[sortKey] || query.sort}`,
-      onRemove: () => onQueryChange({ sort: undefined, direction: undefined }),
-    });
-  }
 
   if (chips.length === 0) return null;
 
   return (
     <div
+      role="group"
       aria-label="Active filters"
-      className="flex flex-wrap items-center gap-2 pt-1"
+      className="flex flex-wrap items-center gap-2"
       data-testid="store-active-chips"
     >
-      <span className="text-xs text-muted-foreground mr-1">Active filters:</span>
       {chips.map((chip) => (
-        <span
+        <button
           key={chip.key}
-          className="inline-flex items-center gap-1.5 rounded-full bg-secondary/80 hover:bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-colors"
+          type="button"
+          onClick={chip.onRemove}
+          aria-label={`Remove filter: ${chip.label}`}
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border bg-secondary/60 px-3 text-xs font-medium outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/50 xl:min-h-8"
         >
-          <span>{chip.label}</span>
-          <button
-            type="button"
-            onClick={chip.onRemove}
-            aria-label={`Remove filter: ${chip.label}`}
-            className="rounded-full p-0.5 hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground"
-          >
-            <XIcon aria-hidden="true" className="size-3" />
-          </button>
-        </span>
+          <span className="max-w-60 truncate">{chip.label}</span>
+          <XIcon aria-hidden="true" className="size-3.5 text-muted-foreground" />
+        </button>
       ))}
       <Button
         type="button"
         variant="ghost"
-        size="sm"
         onClick={onReset}
-        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+        className="h-11 px-2 text-xs text-muted-foreground hover:text-foreground xl:h-8"
       >
         Clear all
       </Button>

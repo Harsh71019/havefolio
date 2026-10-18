@@ -36,6 +36,7 @@ import {
   PaginationQueryDto,
   ItemDto,
   ItemsPageDto,
+  ItemFacetsDto,
   EventsPageDto,
   ItemErrorDto,
 } from './items.dto.js';
@@ -95,6 +96,19 @@ export class ItemsController {
   @ApiOkResponse({ type: ItemsPageDto })
   list(@CurrentOwner() owner: OwnerContext, @Query() input: ItemsQueryDto): Promise<ItemsPageDto> {
     return this.items.list(owner.id, input);
+  }
+  @Get('facets')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary:
+      'Count the private inventory per filter option for the same query as the list. Each dimension ignores its own filter; sort, limit and cursor are ignored. Brands are capped at 100.',
+  })
+  @ApiOkResponse({ type: ItemFacetsDto })
+  facets(
+    @CurrentOwner() owner: OwnerContext,
+    @Query() input: ItemsQueryDto,
+  ): Promise<ItemFacetsDto> {
+    return this.items.facets(owner.id, input);
   }
   @Get(':id')
   @Header('Cache-Control', 'no-store')

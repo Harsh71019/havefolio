@@ -44,6 +44,11 @@ export function readInventoryQuery(params: URLSearchParams): InventoryQuery {
       if (uuid.test(value)) query[key] = value;
       continue;
     }
+    if (key === 'brand') {
+      const brand = value.trim();
+      if (brand && brand.length <= 300) query[key] = brand;
+      continue;
+    }
     if (key === 'currency') {
       if (/^[A-Z]{3}$/.test(value)) query[key] = value;
       continue;

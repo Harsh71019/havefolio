@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ItemListEntry, TaxonomySnapshot } from '@havefolio/contracts';
+import type { InventoryFacets, ItemListEntry, TaxonomySnapshot } from '@havefolio/contracts';
 import type { InventorySource } from '../components/inventory-source';
 import { MyStore } from '../components/my-store';
 
@@ -66,12 +66,39 @@ const taxonomy: TaxonomySnapshot = {
   defaultsSeeded: true,
 };
 
+const facets: InventoryFacets = {
+  total: 6,
+  ownershipStatus: [
+    { value: 'owned', count: 5 },
+    { value: 'sold', count: 1 },
+  ],
+  useFrequency: [
+    { value: 'often', count: 4 },
+    { value: 'unknown', count: 2 },
+  ],
+  categories: [
+    { value: kitchen, count: 5 },
+    { value: null, count: 1 },
+  ],
+  subcategories: [
+    { value: appliances, categoryId: kitchen, count: 2 },
+    { value: cookware, categoryId: kitchen, count: 1 },
+  ],
+  brands: [
+    { value: 'Prestige', count: 3 },
+    ...Array.from({ length: 9 }, (_, n) => ({ value: `Maker ${n + 1}`, count: 1 })),
+  ],
+  brandsTruncated: false,
+  prices: [{ currency: 'INR', minMinor: '10000', maxMinor: '1000000', count: 4 }],
+};
+
 type FakeSource = {
   loadPage: ReturnType<typeof vi.fn<InventorySource['loadPage']>>;
   loadTaxonomy: ReturnType<typeof vi.fn<InventorySource['loadTaxonomy']>>;
+  loadFacets?: ReturnType<typeof vi.fn<NonNullable<InventorySource['loadFacets']>>>;
 };
 
-function createSource(items: ItemListEntry[] = []): FakeSource {
+function createSource(items: ItemListEntry[] = [], withFacets = true): FakeSource {
   const loadPage = vi.fn<InventorySource['loadPage']>(() =>
     Promise.resolve({
       items,
@@ -80,8 +107,14 @@ function createSource(items: ItemListEntry[] = []): FakeSource {
     }),
   );
   const loadTaxonomy = vi.fn<InventorySource['loadTaxonomy']>(() => Promise.resolve(taxonomy));
-  return { loadPage, loadTaxonomy };
+  if (!withFacets) return { loadPage, loadTaxonomy };
+  const loadFacets = vi.fn<NonNullable<InventorySource['loadFacets']>>(() =>
+    Promise.resolve(facets),
+  );
+  return { loadPage, loadTaxonomy, loadFacets };
 }
+
+const filters = (): HTMLElement => screen.getAllByTestId('store-filters')[0]!;
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/store');
@@ -91,189 +124,196 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('My Store e-commerce catalog experience', () => {
-  it('renders the top toolbar and desktop sidebar filters', async () => {
+describe('My Store catalog', () => {
+  it('shows filters with counts beside a sortable result summary', async () => {
     const fake = createSource([item(1, { name: 'Espresso Maker', categoryId: kitchen })]);
     render(<MyStore source={fake} now={now} />);
 
-    expect(await screen.findByRole('searchbox', { name: 'Search your items' })).toBeVisible();
-    expect(screen.getByTestId('store-toolbar')).toBeVisible();
-    expect(screen.getByTestId('store-filters')).toBeVisible();
-    expect(screen.getByText('Espresso Maker')).toBeVisible();
-  });
-
-  it('filters items by search query when submitted', async () => {
-    const fake = createSource([item(1, { name: 'Toaster' })]);
-    render(<MyStore source={fake} now={now} />);
-
-    const searchInput = await screen.findByRole('searchbox', { name: 'Search your items' });
-    const user = userEvent.setup();
-
-    await user.type(searchInput, 'Toaster{enter}');
-
-    expect(fake.loadPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        q: 'toaster',
-      }),
+    expect(await screen.findByText('Espresso Maker')).toBeVisible();
+    expect(screen.getByText('Showing 1 of 6 items.')).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent(
+      'Grouped by category',
     );
-    expect(window.location.search).toContain('q=toaster');
+    const panel = filters();
+    expect(within(panel).getByRole('radio', { name: 'Kitchen (5)' })).toBeVisible();
+    // Options that would return nothing are not offered.
+    expect(within(panel).queryByRole('radio', { name: /^Garden/ })).toBeNull();
+    expect(within(panel).getByRole('radio', { name: 'Owned (5)' })).toBeVisible();
+    expect(within(panel).queryByRole('radio', { name: /^Donated/ })).toBeNull();
+    expect(within(panel).getByRole('radio', { name: 'Often (4)' })).toBeVisible();
+    expect(fake.loadFacets).toHaveBeenCalledWith({});
   });
 
-  it('filters items by category and subcategory from the sidebar', async () => {
+  it('keeps every option without counts when facets are unavailable', async () => {
+    const fake = createSource([item(1, { name: 'Tent' })], false);
+    render(<MyStore source={fake} now={now} />);
+    await screen.findByText('Tent');
+    const panel = filters();
+    expect(within(panel).getByRole('radio', { name: 'Kitchen (5)' })).toBeVisible();
+    expect(within(panel).getByRole('radio', { name: 'Donated' })).toBeVisible();
+    expect(within(panel).queryByText('Brand')).toBeNull();
+    expect(screen.getByText('Showing 1 item.')).toBeVisible();
+  });
+
+  it('filters by category, then subcategory, and back to all', async () => {
     const fake = createSource([
       item(1, { name: 'Blender', categoryId: kitchen, subcategoryId: appliances }),
     ]);
     render(<MyStore source={fake} now={now} />);
-
     await screen.findByText('Blender');
     const user = userEvent.setup();
 
-    // Click Kitchen category in sidebar
-    const kitchenBtn = screen.getByRole('button', { name: /Kitchen/i });
-    await user.click(kitchenBtn);
-
+    await user.click(within(filters()).getByRole('radio', { name: 'Kitchen (5)' }));
     expect(fake.loadPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        categoryId: kitchen,
-      }),
+      expect.objectContaining({ categoryId: kitchen }),
     );
-    expect(window.location.search).toContain(`categoryId=${kitchen}`);
+    expect(fake.loadFacets).toHaveBeenLastCalledWith({ categoryId: kitchen });
+    expect(window.location.search).toBe(`?categoryId=${kitchen}`);
 
-    // Subcategories should now be visible
-    const appliancesBtn = await screen.findByRole('button', { name: /Appliances/i });
-    await user.click(appliancesBtn);
-
+    await user.click(await within(filters()).findByRole('radio', { name: 'Appliances (2)' }));
     expect(fake.loadPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        categoryId: kitchen,
-        subcategoryId: appliances,
-      }),
+      expect.objectContaining({ categoryId: kitchen, subcategoryId: appliances }),
     );
-    expect(window.location.search).toContain(`subcategoryId=${appliances}`);
+    expect(within(filters()).getByRole('radio', { name: 'All Kitchen (5)' })).not.toBeChecked();
+
+    await user.click(within(filters()).getByRole('radio', { name: 'All categories' }));
+    expect(window.location.search).toBe('');
   });
 
-  it('filters by ownership status and use frequency', async () => {
-    const fake = createSource([item(1, { name: 'Tent', ownershipStatus: 'owned' })]);
+  it('filters by ownership and how often things are used', async () => {
+    const fake = createSource([item(1, { name: 'Tent' })]);
     render(<MyStore source={fake} now={now} />);
-
     await screen.findByText('Tent');
     const user = userEvent.setup();
 
-    // Filter by Currently owned
-    const ownedBtn = screen.getByRole('button', { name: /^Owned$/i });
-    await user.click(ownedBtn);
-
+    await user.click(within(filters()).getByRole('radio', { name: 'Sold (1)' }));
+    await user.click(within(filters()).getByRole('radio', { name: 'Often (4)' }));
     expect(fake.loadPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        ownershipStatus: 'owned',
-      }),
+      expect.objectContaining({ ownershipStatus: 'sold', useFrequency: 'often' }),
     );
-
-    // Filter by Often frequency
-    const oftenBtn = screen.getByRole('button', { name: /^Often$/i });
-    await user.click(oftenBtn);
-
-    expect(fake.loadPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        ownershipStatus: 'owned',
-        useFrequency: 'often',
-      }),
-    );
+    await user.click(within(filters()).getByRole('radio', { name: 'Any status' }));
+    expect(fake.loadPage.mock.lastCall?.[0]?.ownershipStatus).toBeUndefined();
   });
 
-  it('filters by price range and price presets', async () => {
+  it('previews common brands, finds the rest by search and filters by one', async () => {
+    const fake = createSource([item(1, { name: 'Cooker', brand: 'Prestige' })]);
+    render(<MyStore source={fake} now={now} />);
+    await screen.findByText('Cooker');
+    const user = userEvent.setup();
+    const panel = filters();
+
+    expect(within(panel).getByRole('radio', { name: 'Prestige (3)' })).toBeVisible();
+    expect(within(panel).queryByRole('radio', { name: /^Maker 9/ })).toBeNull();
+    await user.click(within(panel).getByRole('button', { name: '+ 2 more' }));
+    expect(within(panel).getByRole('radio', { name: 'Maker 9 (1)' })).toBeVisible();
+
+    await user.click(within(panel).getByRole('button', { name: 'Search brands' }));
+    const brandSearch = within(panel).getByRole('searchbox', { name: 'Search brands' });
+    await user.type(brandSearch, 'zzz');
+    expect(within(panel).getByText('No brand matches “zzz”.')).toBeVisible();
+    await user.clear(brandSearch);
+    await user.type(brandSearch, 'maker 8');
+    expect(within(panel).getAllByRole('radio', { name: /^Maker/ })).toHaveLength(1);
+    await user.click(within(panel).getByRole('radio', { name: 'Maker 8 (1)' }));
+    expect(fake.loadPage).toHaveBeenLastCalledWith(expect.objectContaining({ brand: 'Maker 8' }));
+    expect(window.location.search).toBe('?brand=Maker+8');
+  });
+
+  it('narrows to a known price range with the slider and resets to any price', async () => {
     const fake = createSource([item(1, { name: 'Chair', pricePaidMinor: '150000' })]);
     render(<MyStore source={fake} now={now} />);
-
     await screen.findByText('Chair');
     const user = userEvent.setup();
+    const panel = filters();
 
-    // Click Under ₹500 preset
-    const presetUnder500 = screen.getByRole('button', { name: 'Under ₹500' });
-    await user.click(presetUnder500);
-
+    // ₹100 – ₹10,000 recorded; 100 steps of ₹100.
+    expect(within(panel).getByText('₹100 – ₹10,000+')).toBeVisible();
+    within(panel).getByRole('slider', { name: 'Highest price' }).focus();
+    await user.keyboard('{PageDown}');
     expect(fake.loadPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        priceMax: '50000',
-        currency: 'INR',
-      }),
+      expect.objectContaining({ priceMax: '900000', currency: 'INR', priceKnown: 'exclude' }),
     );
-    expect(window.location.search).toContain('priceMax=50000');
+    expect(fake.loadPage.mock.lastCall?.[0]?.priceMin).toBeUndefined();
+    const chip = await screen.findByRole('button', { name: 'Remove filter: Up to ₹9,000' });
+    expect(chip).toBeVisible();
+
+    await user.click(within(filters()).getByRole('button', { name: 'Any price' }));
+    const last = fake.loadPage.mock.lastCall?.[0];
+    expect([last?.priceMax, last?.priceKnown, last?.currency]).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 
-  it('updates sorting order and includes currency when sorting by price', async () => {
+  it('sorts by price in one currency and keeps the order when filters are cleared', async () => {
+    window.history.replaceState(null, '', '/store?ownershipStatus=owned');
     const fake = createSource([item(1, { name: 'Desk' })]);
     render(<MyStore source={fake} now={now} />);
-
     await screen.findByText('Desk');
     const user = userEvent.setup();
 
-    // Select Price: Low to High
-    const sortTrigger = screen.getByRole('combobox');
-    await user.click(sortTrigger);
-
-    const priceAscOption = await screen.findByRole('option', { name: 'Price: Low to High' });
-    await user.click(priceAscOption);
-
+    await user.click(screen.getByRole('combobox', { name: 'Sort by' }));
+    await user.click(await screen.findByRole('option', { name: 'Price: low to high' }));
     expect(fake.loadPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        sort: 'price',
-        direction: 'asc',
-        currency: 'INR',
-      }),
+      expect.objectContaining({ sort: 'price', direction: 'asc', currency: 'INR' }),
     );
-    expect(window.location.search).toContain('sort=price');
-    expect(window.location.search).toContain('currency=INR');
+    // Facets ignore ordering.
+    expect(fake.loadFacets).toHaveBeenLastCalledWith({
+      ownershipStatus: 'owned',
+      sort: 'price',
+      direction: 'asc',
+      currency: 'INR',
+    });
+    expect(screen.getByRole('button', { name: /^Filters, 1 active/ })).toBeVisible();
+
+    await user.click(
+      within(screen.getByTestId('store-active-chips')).getByRole('button', { name: 'Clear all' }),
+    );
+    expect(window.location.search).toBe('?sort=price&direction=asc&currency=INR');
   });
 
-  it('renders active filter chips and allows removing individual filters or clearing all', async () => {
-    window.history.replaceState(null, '', `/store?q=kettle&categoryId=${kitchen}`);
+  it('shows removable chips for each active filter', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      `/store?q=kettle&categoryId=${kitchen}&brand=Prestige&useFrequency=often`,
+    );
     const fake = createSource([item(1, { name: 'Steel Kettle', categoryId: kitchen })]);
     render(<MyStore source={fake} now={now} />);
-
     await screen.findByText('Steel Kettle');
     const user = userEvent.setup();
+    const chips = screen.getByTestId('store-active-chips');
 
-    // Active chips container should be visible with chips
-    const activeChips = screen.getByTestId('store-active-chips');
-    expect(within(activeChips).getByText('“kettle”')).toBeVisible();
-    expect(within(activeChips).getByText('Category: Kitchen')).toBeVisible();
-
-    // Remove category filter chip
-    const removeCatBtn = within(activeChips).getByRole('button', {
-      name: 'Remove filter: Category: Kitchen',
-    });
-    await user.click(removeCatBtn);
-
-    expect(fake.loadPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        q: 'kettle',
-      }),
-    );
+    expect(
+      within(chips)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label') ?? b.textContent),
+    ).toEqual([
+      'Remove filter: “kettle”',
+      'Remove filter: Kitchen',
+      'Remove filter: Prestige',
+      'Remove filter: Used often',
+      'Clear all',
+    ]);
+    await user.click(within(chips).getByRole('button', { name: 'Remove filter: Kitchen' }));
     expect(fake.loadPage.mock.lastCall?.[0]?.categoryId).toBeUndefined();
+    expect(fake.loadPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ q: 'kettle', brand: 'Prestige' }),
+    );
 
-    // Clear all filters
-    const clearAllBtn = within(activeChips).getByRole('button', { name: 'Clear all' });
-    await user.click(clearAllBtn);
-
+    await user.click(within(chips).getByRole('button', { name: 'Clear all' }));
     expect(fake.loadPage).toHaveBeenLastCalledWith({ cursor: null });
     expect(window.location.search).toBe('');
   });
 
-  it('displays empty state with clear filters CTA when search/filters yield zero results', async () => {
+  it('offers to clear filters when nothing matches', async () => {
     window.history.replaceState(null, '', '/store?q=nonexistent');
     const fake = createSource([]);
     render(<MyStore source={fake} now={now} />);
 
     expect(await screen.findByText('No items match your filters')).toBeVisible();
-    expect(
-      screen.getByText(/We couldn’t find anything in your home matching your search/i),
-    ).toBeVisible();
-
-    const clearBtn = screen.getByRole('button', { name: 'Clear all filters' });
-    const user = userEvent.setup();
-    await user.click(clearBtn);
-
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Clear all filters' }));
     expect(fake.loadPage).toHaveBeenLastCalledWith({ cursor: null });
     expect(window.location.search).toBe('');
   });
