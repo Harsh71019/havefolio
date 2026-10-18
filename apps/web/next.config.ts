@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
         'desires',
         'notifications',
         'home',
+        'settings',
       ].map((domain) => ({
         source: `/api/v1/${domain}/:path*`,
         destination: `${base}/${domain}/:path*`,

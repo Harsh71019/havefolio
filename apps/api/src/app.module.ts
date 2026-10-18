@@ -14,6 +14,7 @@ import { OperationsModule } from './operations/operations.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 
 import { DesiresModule } from './desires/desires.module.js';
+import { SettingsModule } from './settings/settings.module.js';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { DesiresModule } from './desires/desires.module.js';
     NotificationsModule,
     OperationsModule,
     MediaModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

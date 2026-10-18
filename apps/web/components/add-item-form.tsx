@@ -65,6 +65,7 @@ import {
   ItemRequestError,
   type ItemDraft,
 } from './items-client';
+import { fetchOwnerPreferences } from './settings-client';
 
 const statusLabels: Record<ItemStatus, string> = {
   owned: 'Currently owned',
@@ -128,6 +129,7 @@ export function AddItemForm(): ReactElement {
   const [name, setName] = useState('');
   const [ownershipStatus, setOwnershipStatus] = useState<ItemStatus>('owned');
   const [currency, setCurrency] = useState('INR');
+  const defaultCurrencyRef = useRef('INR');
   const [priceUnknown, setPriceUnknown] = useState(false);
   const [priceDisplay, setPriceDisplay] = useState('');
 
@@ -178,12 +180,22 @@ export function AddItemForm(): ReactElement {
         setOwner(currentOwner);
 
         if (currentOwner) {
+          // Check owner preferences for default currency
+          void fetchOwnerPreferences()
+            .then((prefs) => {
+              if (prefs?.defaultCurrency && active) {
+                defaultCurrencyRef.current = prefs.defaultCurrency;
+                setCurrency((current) => (current === 'INR' ? prefs.defaultCurrency : current));
+              }
+            })
+            .catch(() => undefined);
+
           // Check for saved draft
           const draft = loadItemDraft(currentOwner.id);
           if (draft && active) {
             setName(draft.name || '');
             setOwnershipStatus(draft.ownershipStatus || 'owned');
-            setCurrency(draft.currency || 'INR');
+            setCurrency(draft.currency || defaultCurrencyRef.current);
             setPriceUnknown(draft.priceMode === 'unknown');
             setPriceDisplay(draft.priceDisplay || '');
 
@@ -333,7 +345,7 @@ export function AddItemForm(): ReactElement {
     }
     setName('');
     setOwnershipStatus('owned');
-    setCurrency('INR');
+    setCurrency(defaultCurrencyRef.current);
     setPriceUnknown(false);
     setPriceDisplay('');
     setDateUnknown(false);
@@ -365,7 +377,7 @@ export function AddItemForm(): ReactElement {
     }
     setName('');
     setOwnershipStatus('owned');
-    setCurrency('INR');
+    setCurrency(defaultCurrencyRef.current);
     setPriceUnknown(false);
     setPriceDisplay('');
     setDateUnknown(false);

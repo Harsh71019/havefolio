@@ -918,3 +918,64 @@ export interface HomeSummary {
   goals: { activeCount: number; items: HomeGoalEntry[] };
   rediscovery: { eligibleCount: number; item: HomeRediscoveryItem | null };
 }
+
+export interface OwnerPreferences {
+  defaultCurrency: string;
+  notifyInApp: boolean;
+  notifyNtfy: boolean;
+  revision: number;
+  updatedAt: string;
+}
+
+export interface UpdateOwnerPreferencesInput {
+  revision: number;
+  defaultCurrency?: string;
+  notifyInApp?: boolean;
+  notifyNtfy?: boolean;
+}
+
+export interface AuthSessionSummary {
+  id: string;
+  createdAt: string;
+  lastUsedAt: string;
+  idleExpiresAt: string;
+  isCurrent: boolean;
+}
+
+export interface PrivacyExplanation {
+  storageType: 'authenticated_cloudinary';
+  storageDescription: string;
+  accessType: 'authenticated_proxy';
+  accessDescription: string;
+  publicSharing: false;
+  sharingDescription: string;
+  registrationLock: {
+    locked: boolean;
+    reason: string;
+  };
+}
+
+export interface SettingsDemoStatus {
+  demoItemCount: number;
+  genuineItemCount: number;
+  triedDemo: boolean;
+  removedDemo: boolean;
+}
+
+export interface SettingsOverview {
+  preferences: OwnerPreferences;
+  sessions: AuthSessionSummary[];
+  privacy: PrivacyExplanation;
+  demoStatus: SettingsDemoStatus;
+}
+
+export const settingsErrorCodes = [
+  'INVALID_SETTINGS_CURRENCY',
+  'INVALID_SETTINGS_REVISION',
+  'STALE_SETTINGS_REVISION',
+  'SETTINGS_UNAVAILABLE',
+  'SESSION_NOT_FOUND',
+  'CANNOT_REVOKE_CURRENT_SESSION',
+] as const;
+
+export type SettingsErrorCode = (typeof settingsErrorCodes)[number];

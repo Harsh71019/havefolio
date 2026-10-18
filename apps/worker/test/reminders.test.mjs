@@ -45,6 +45,33 @@ test('reminder processor delivers a valid bounded payload without creating domai
   assert.deepEqual(delivered, ['a0000000-0000-4000-8000-000000000001']);
 });
 
+test('reminder processor suppresses ntfy delivery when notification was opted out at delivery time', async () => {
+  const repository = {
+    deliver: async () => ({ status: 'delivered' }), // No notificationId returned when opted out
+  };
+  const delivered = [];
+  const processor = new RemindersProcessor(
+    repository,
+    { deliver: async (id) => delivered.push(id) },
+    silentLogger(),
+  );
+  const data = {
+    desireId: 'd0000000-0000-4000-8000-000000000002',
+    scheduleVersion: 1,
+    scheduledFor: '2026-10-23T10:00:00.000Z',
+  };
+
+  await processor.process({
+    id: 'desire-reminder-d0000000-0000-4000-8000-000000000002-1',
+    name: 'desire.wait-ended',
+    data,
+    attemptsMade: 0,
+    opts: { attempts: 5 },
+  });
+
+  assert.equal(delivered.length, 0);
+});
+
 test('ntfy delivery uses fixed copy and never includes identifiers or private desire content', async () => {
   const originalFetch = globalThis.fetch;
   const requests = [];

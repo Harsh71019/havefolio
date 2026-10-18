@@ -1,4 +1,12 @@
-import { ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import type { AuthSessionSummary } from '@havefolio/contracts';
 import { ConfigService } from '@nestjs/config';
 import { AuthRepository } from './auth.repository.js';
 import { PasswordService } from './password.service.js';
@@ -70,5 +78,26 @@ export class AuthService {
   async logout(owner: OwnerContext, all: boolean): Promise<void> {
     await this.repository.logout(owner, all);
     this.event(all ? 'all_sessions_revoked' : 'session_revoked');
+  }
+  async listSessions(owner: OwnerContext): Promise<AuthSessionSummary[]> {
+    return this.repository.listSessions(owner.id, owner.sessionId);
+  }
+  async revokeSession(owner: OwnerContext, sessionId: string): Promise<void> {
+    if (sessionId === owner.sessionId) {
+      throw new BadRequestException('CANNOT_REVOKE_CURRENT_SESSION');
+    }
+    const revoked = await this.repository.revokeSession(owner.id, sessionId);
+    if (!revoked) {
+      throw new NotFoundException('SESSION_NOT_FOUND');
+    }
+    this.event('session_revoked');
+  }
+  async revokeOtherSessions(owner: OwnerContext): Promise<{ revokedCount: number }> {
+    const revokedCount = await this.repository.revokeOtherSessions(owner.id, owner.sessionId);
+    this.event('other_sessions_revoked');
+    return { revokedCount };
+  }
+  async getRegistrationLockStatus(): Promise<{ locked: boolean; reason: string }> {
+    return this.repository.isRegistrationLocked();
   }
 }

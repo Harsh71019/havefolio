@@ -83,8 +83,8 @@ export class RemindersRepository implements OnModuleDestroy {
   async deliver(intent: ReminderIntent, now = new Date()): Promise<ReminderDelivery> {
     return this.transaction(async (client) => {
       const reminder = (
-        await client.query<ReminderRow>(
-          `SELECT desire_id,schedule_version,scheduled_for,state
+        await client.query<ReminderRow & { owner_id: string }>(
+          `SELECT desire_id,owner_id,schedule_version,scheduled_for,state
            FROM desire_reminders
            WHERE desire_id=$1
            FOR UPDATE`,
@@ -100,6 +100,28 @@ export class RemindersRepository implements OnModuleDestroy {
       }
       if (reminder.scheduled_for.getTime() > now.getTime()) return { status: 'early' };
 
+      // Delivery-time preference check (PER-34)
+      const settings = (
+        await client.query<{ notify_in_app: boolean; notify_ntfy: boolean }>(
+          `SELECT notify_in_app, notify_ntfy FROM owner_settings WHERE owner_id=$1`,
+          [reminder.owner_id],
+        )
+      ).rows[0];
+      const notifyInApp = settings?.notify_in_app ?? true;
+      const notifyNtfy = settings?.notify_ntfy ?? true;
+
+      await client.query(
+        `UPDATE desire_reminders
+         SET state='delivered',delivered_at=coalesce(delivered_at,$3),updated_at=now()
+         WHERE desire_id=$1 AND schedule_version=$2`,
+        [intent.desireId, intent.scheduleVersion, now],
+      );
+
+      // If owner opted out of in-app reminders, suppress in-app notification insertion
+      if (!notifyInApp) {
+        return { status: 'delivered' };
+      }
+
       const notification = await client.query<{ id: string }>(
         `INSERT INTO notifications(owner_id,desire_id,type,reminder_version,occurred_at)
          SELECT owner_id,desire_id,'desire_wait_ended',$2,scheduled_for
@@ -113,12 +135,11 @@ export class RemindersRepository implements OnModuleDestroy {
       const notificationId = notification.rows[0]?.id;
       if (!notificationId) throw new Error('REMINDER_DELIVERY_UNAVAILABLE');
 
-      await client.query(
-        `UPDATE desire_reminders
-         SET state='delivered',delivered_at=coalesce(delivered_at,$3),updated_at=now()
-         WHERE desire_id=$1 AND schedule_version=$2`,
-        [intent.desireId, intent.scheduleVersion, now],
-      );
+      // If owner opted out of external push (ntfy), suppress external delivery
+      if (!notifyNtfy) {
+        return { status: 'delivered' };
+      }
+
       return { status: 'delivered', notificationId };
     });
   }
@@ -129,6 +150,7 @@ export class RemindersRepository implements OnModuleDestroy {
        SET ntfy_state='sending',ntfy_attempts=ntfy_attempts+1,ntfy_claimed_at=now(),updated_at=now()
        WHERE id=$1
          AND EXISTS (SELECT 1 FROM desire_reminders r WHERE r.desire_id=notifications.desire_id AND r.schedule_version=notifications.reminder_version)
+         AND NOT EXISTS (SELECT 1 FROM owner_settings s WHERE s.owner_id=notifications.owner_id AND s.notify_ntfy=false)
          AND ntfy_attempts < 20
          AND (ntfy_state IN ('pending','failed') OR (ntfy_state='sending' AND ntfy_claimed_at < now()-interval '10 minutes'))`,
       [notificationId],
@@ -158,6 +180,7 @@ export class RemindersRepository implements OnModuleDestroy {
     const result = await this.pool.query<{ id: string }>(
       `SELECT id FROM notifications
        WHERE EXISTS (SELECT 1 FROM desire_reminders r WHERE r.desire_id=notifications.desire_id AND r.schedule_version=notifications.reminder_version)
+         AND NOT EXISTS (SELECT 1 FROM owner_settings s WHERE s.owner_id=notifications.owner_id AND s.notify_ntfy=false)
          AND ntfy_attempts < 20
          AND (ntfy_state IN ('pending','failed') OR (ntfy_state='sending' AND ntfy_claimed_at < now()-interval '10 minutes'))
        ORDER BY created_at,id
