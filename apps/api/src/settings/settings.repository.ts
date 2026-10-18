@@ -41,22 +41,18 @@ export class SettingsRepository implements OnModuleDestroy {
     }
   }
 
-  private async run<T>(
-    ownerId: string,
-    operation: (client: PoolClient) => Promise<T>,
-    transaction = false,
-  ): Promise<T> {
+  private async run<T>(ownerId: string, operation: (client: PoolClient) => Promise<T>): Promise<T> {
     if (!this.pool) throw new ServiceUnavailableException('SETTINGS_UNAVAILABLE');
     let client: PoolClient | undefined;
     try {
       client = await this.pool.connect();
-      if (transaction) await client.query('BEGIN');
+      await client.query('BEGIN');
       await client.query("SELECT set_config('havefolio.owner_id', $1, true)", [ownerId]);
       const result = await operation(client);
-      if (transaction) await client.query('COMMIT');
+      await client.query('COMMIT');
       return result;
     } catch (error) {
-      if (transaction && client) await client.query('ROLLBACK').catch(() => undefined);
+      if (client) await client.query('ROLLBACK').catch(() => undefined);
       if (error instanceof HttpException) throw error;
       throw new ServiceUnavailableException('SETTINGS_UNAVAILABLE');
     } finally {
@@ -101,49 +97,47 @@ export class SettingsRepository implements OnModuleDestroy {
       notifyNtfy?: boolean | undefined;
     },
   ): Promise<{ preferences: OwnerPreferencesDto; changedInApp: boolean }> {
-    return this.run(
-      ownerId,
-      async (client) => {
-        // Lock user row to serialize concurrent preference updates
-        await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [ownerId]);
+    return this.run(ownerId, async (client) => {
+      // Lock user row to serialize concurrent preference updates
+      await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [ownerId]);
 
-        const existing = (
-          await client.query<SettingsRow>(
-            `SELECT default_currency, notify_in_app, notify_ntfy, revision, updated_at
+      const existing = (
+        await client.query<SettingsRow>(
+          `SELECT default_currency, notify_in_app, notify_ntfy, revision, updated_at
            FROM owner_settings
            WHERE owner_id = $1
            FOR UPDATE`,
-            [ownerId],
-          )
-        ).rows[0];
+          [ownerId],
+        )
+      ).rows[0];
 
-        let row: SettingsRow;
-        let previousInApp = true;
+      let row: SettingsRow;
+      let previousInApp = true;
 
-        if (!existing) {
-          if (revision !== 1) {
-            throw new ConflictException('STALE_SETTINGS_REVISION');
-          }
-          const insert = await client.query<SettingsRow>(
-            `INSERT INTO owner_settings (owner_id, default_currency, notify_in_app, notify_ntfy, revision, updated_at)
+      if (!existing) {
+        if (revision !== 1) {
+          throw new ConflictException('STALE_SETTINGS_REVISION');
+        }
+        const insert = await client.query<SettingsRow>(
+          `INSERT INTO owner_settings (owner_id, default_currency, notify_in_app, notify_ntfy, revision, updated_at)
            VALUES ($1, coalesce($2, 'INR'), coalesce($3, true), coalesce($4, true), 2, now())
            RETURNING default_currency, notify_in_app, notify_ntfy, revision, updated_at`,
-            [
-              ownerId,
-              updates.defaultCurrency ?? null,
-              updates.notifyInApp ?? null,
-              updates.notifyNtfy ?? null,
-            ],
-          );
-          row = insert.rows[0]!;
-        } else {
-          if (existing.revision !== revision) {
-            throw new ConflictException('STALE_SETTINGS_REVISION');
-          }
-          previousInApp = existing.notify_in_app;
+          [
+            ownerId,
+            updates.defaultCurrency ?? null,
+            updates.notifyInApp ?? null,
+            updates.notifyNtfy ?? null,
+          ],
+        );
+        row = insert.rows[0]!;
+      } else {
+        if (existing.revision !== revision) {
+          throw new ConflictException('STALE_SETTINGS_REVISION');
+        }
+        previousInApp = existing.notify_in_app;
 
-          const update = await client.query<SettingsRow>(
-            `UPDATE owner_settings
+        const update = await client.query<SettingsRow>(
+          `UPDATE owner_settings
            SET default_currency = coalesce($2, default_currency),
                notify_in_app = coalesce($3, notify_in_app),
                notify_ntfy = coalesce($4, notify_ntfy),
@@ -151,33 +145,31 @@ export class SettingsRepository implements OnModuleDestroy {
                updated_at = now()
            WHERE owner_id = $1 AND revision = $5
            RETURNING default_currency, notify_in_app, notify_ntfy, revision, updated_at`,
-            [
-              ownerId,
-              updates.defaultCurrency ?? null,
-              updates.notifyInApp ?? null,
-              updates.notifyNtfy ?? null,
-              revision,
-            ],
-          );
-          if (update.rowCount !== 1) {
-            throw new ConflictException('STALE_SETTINGS_REVISION');
-          }
-          row = update.rows[0]!;
+          [
+            ownerId,
+            updates.defaultCurrency ?? null,
+            updates.notifyInApp ?? null,
+            updates.notifyNtfy ?? null,
+            revision,
+          ],
+        );
+        if (update.rowCount !== 1) {
+          throw new ConflictException('STALE_SETTINGS_REVISION');
         }
+        row = update.rows[0]!;
+      }
 
-        return {
-          preferences: {
-            defaultCurrency: row.default_currency,
-            notifyInApp: row.notify_in_app,
-            notifyNtfy: row.notify_ntfy,
-            revision: row.revision,
-            updatedAt: row.updated_at.toISOString(),
-          },
-          changedInApp: previousInApp !== row.notify_in_app,
-        };
-      },
-      true,
-    );
+      return {
+        preferences: {
+          defaultCurrency: row.default_currency,
+          notifyInApp: row.notify_in_app,
+          notifyNtfy: row.notify_ntfy,
+          revision: row.revision,
+          updatedAt: row.updated_at.toISOString(),
+        },
+        changedInApp: previousInApp !== row.notify_in_app,
+      };
+    });
   }
 
   async listActiveReminders(ownerId: string): Promise<StoredActiveReminder[]> {
