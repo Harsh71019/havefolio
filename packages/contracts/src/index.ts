@@ -871,3 +871,58 @@ export interface ConvertDesireRequest {
   copyPhoto: boolean;
   item: ConvertDesireItemRequest;
 }
+
+/** PER-31: confirmation is an owner record, never evidence of a transfer. */
+export interface AllocationGoal {
+  id: string;
+  name: string;
+  targetMinor: string;
+  progressMinor: string;
+  currency: string;
+  status: string;
+  revision: number;
+}
+export interface AllocationContribution {
+  id: string;
+  sequence: number;
+  kind: string;
+  amountMinor: string;
+  currency: string;
+  supersedesId: string | null;
+  note: string | null;
+  createdAt: string;
+}
+export interface DesireAllocationState {
+  currentReviewEventId: string | null;
+  estimatedNotSpentMinor: string | null;
+  currency: string | null;
+  allocation: {
+    sourceReviewEventId: string;
+    sourceChanged: boolean;
+    /** Explicit goal deletion removes its details and ledger; never retain snapshots. */
+    goal: AllocationGoal | null;
+    rootContributionId: string | null;
+    currentContribution: AllocationContribution | null;
+  } | null;
+}
+export interface ConfirmDesireAllocationRequest {
+  commandId: string;
+  reviewEventId: string;
+  goalId: string;
+  goalRevision: number;
+  confirmed: true;
+}
+export interface CorrectAllocationRequest {
+  commandId: string;
+  revision: number;
+  kind: 'correction' | 'reversal';
+  amountMinor: string;
+  currency: string;
+  supersedesId: string;
+}
+export const allocationErrorCodes = [
+  'ALLOCATION_ALREADY_EXISTS',
+  'ALLOCATION_COMMAND_REUSED',
+  'STALE_DECLINED_OUTCOME',
+  'ALLOCATION_ESTIMATE_REQUIRED',
+] as const;

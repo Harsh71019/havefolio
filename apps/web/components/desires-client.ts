@@ -27,6 +27,17 @@ import type { PrivatePhotoSource } from '@havefolio/ui/components/havefolio/priv
 
 // Fixed public API codes only. Never echo server text, provider details or private input.
 export const desireMessages: Record<string, string> = {
+  ALLOCATION_ALREADY_EXISTS: 'This desire already has an allocation. Reload to view its history.',
+  ALLOCATION_COMMAND_REUSED: 'This confirmation changed. Reload before trying again.',
+  STALE_DECLINED_OUTCOME: 'The declined decision changed. Reload before allocating.',
+  ALLOCATION_ESTIMATE_REQUIRED: 'A known positive estimate is needed to allocate.',
+  GOAL_NOT_FOUND: 'This goal is unavailable. It may have been deleted.',
+  STALE_GOAL_REVISION: 'The goal changed. Reload and confirm its latest details.',
+  GOAL_ARCHIVED: 'This goal is archived. Restore it before changing allocations.',
+  GOAL_CURRENCY_MISMATCH: 'The estimate and goal must use the same currency.',
+  CONTRIBUTION_ALREADY_CORRECTED: 'This entry was corrected elsewhere. Reload its history.',
+  CONTRIBUTION_COMMAND_REUSED: 'This correction changed. Reload before trying again.',
+  GOALS_UNAVAILABLE: 'Goals are temporarily unavailable. Try again shortly.',
   REVIEW_EVENT_REQUIRED:
     'Change the waiting period through Decision history to preserve the recorded decisions.',
   REVIEW_COMMAND_REUSED: 'This submission changed. Reload history before trying again.',
@@ -109,7 +120,7 @@ function fallbackMessage(status: number): string {
   return 'Something went wrong. Try again.';
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;
   try {
     response = await fetch(path, {

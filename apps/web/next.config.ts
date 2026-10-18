@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
         'health',
         'onboarding',
         'desires',
+        'goals',
         'notifications',
       ].map((domain) => ({
         source: `/api/v1/${domain}/:path*`,

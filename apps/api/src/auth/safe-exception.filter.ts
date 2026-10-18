@@ -7,7 +7,12 @@ import {
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
-import { taxonomyErrorCodes, desireErrorCodes, notificationErrorCodes } from '@havefolio/contracts';
+import {
+  taxonomyErrorCodes,
+  desireErrorCodes,
+  notificationErrorCodes,
+  allocationErrorCodes,
+} from '@havefolio/contracts';
 import { financialErrorCodes } from '@havefolio/domain';
 import { STATUS_CODES } from 'node:http';
 import type { Request, Response } from 'express';
@@ -15,6 +20,7 @@ import type { Request, Response } from 'express';
 const safeMessages = new Set<string>([
   ...taxonomyErrorCodes,
   ...goalErrorCodes,
+  ...allocationErrorCodes,
   // Fixed financial-domain tokens (PER-22); never amounts, notes or dates.
   ...financialErrorCodes,
   // Fixed desire-domain tokens (PER-23).

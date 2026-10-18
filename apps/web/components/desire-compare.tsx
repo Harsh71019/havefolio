@@ -816,6 +816,11 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
                 )}
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
+                {recordedEvent.outcome === 'declined' ? (
+                  <Button asChild variant="outline" size="sm" className="min-h-11">
+                    <Link href={`/wants/${desire.id}/allocate`}>Allocate to a goal (optional)</Link>
+                  </Button>
+                ) : null}
                 <Button asChild variant="outline" size="sm" className="min-h-11">
                   <Link href={`/wants/${desire.id}/history`}>View decision history</Link>
                 </Button>

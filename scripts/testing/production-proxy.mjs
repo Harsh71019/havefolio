@@ -187,7 +187,7 @@ try {
   });
   const nextBin = join(app, 'node_modules/.bin/next');
   // Mutation mode proves the original omission fails; it only changes the disposable source copy.
-  for (const domain of ['onboarding', 'desires', 'notifications']) {
+  for (const domain of ['onboarding', 'desires', 'notifications', 'goals']) {
     if (!process.argv.includes(`--without-${domain}`)) continue;
     const config = join(app, 'next.config.ts');
     const source = await readFile(config, 'utf8');
@@ -294,6 +294,9 @@ try {
     headers: { ...headers, Origin: 'https://invalid.example' },
   });
   assert.equal(denied.status, 403);
+  const anonymousGoals = await request('/api/v1/goals?limit=25');
+  assert.equal(anonymousGoals.status, 401, 'Anonymous goals must reach the API, not a Next 404');
+  assert.match(anonymousGoals.headers.get('content-type') ?? '', /^application\/json\b/);
   const notificationQuery = '?limit=10&unreadOnly=true&after=synthetic%2Bcursor%2Fvalue';
   const anonymousNotifications = await request('/api/v1/notifications' + notificationQuery);
   assert.equal(
@@ -358,6 +361,12 @@ try {
   assert.equal(anonymousDesires.headers.get('cache-control'), 'no-store');
   assert.equal(records.at(-1).query, true, 'Query string preserved on desires');
   for (const [method, path, body] of [
+    ['GET', '/api/v1/goals'],
+    ['GET', '/api/v1/goals/3fa85f64-5717-4562-b3fc-2c963f66afa6/contributions'],
+    ['POST', '/api/v1/goals/3fa85f64-5717-4562-b3fc-2c963f66afa6/contributions', '{}'],
+    ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/allocation'],
+    ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/allocation/history'],
+    ['POST', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6/allocation', '{}'],
     ['GET', '/api/v1/desires'],
     ['POST', '/api/v1/desires', '{"name":"Synthetic desire"}'],
     ['GET', '/api/v1/desires/3fa85f64-5717-4562-b3fc-2c963f66afa6'],
@@ -428,6 +437,7 @@ try {
     'onboarding',
     'desires',
     'notifications',
+    'goals',
   ]) {
     assert.equal((await request(`/api/v1/${domain}`, { headers })).status, 200);
     assert.equal(records.at(-1).path, `/api/v1/${domain}`);

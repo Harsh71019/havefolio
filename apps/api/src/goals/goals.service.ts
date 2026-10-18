@@ -126,6 +126,15 @@ export class GoalsService {
     this.emit('create');
     return result;
   }
+  async getIn(c: PoolClient, owner: string, id: string): Promise<GoalDto | null> {
+    const row = (
+      await c.query<GoalRow>(`${goalSelect} WHERE g.id=$1 AND g.owner_id=$2 FOR UPDATE OF g`, [
+        id,
+        owner,
+      ])
+    ).rows[0];
+    return row ? goalMap(row) : null;
+  }
   async get(owner: string, id: string): Promise<GoalDto> {
     return this.repo.transaction(owner, async (c) => goalMap(await this.find(c, owner, id)));
   }
