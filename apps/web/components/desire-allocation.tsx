@@ -24,6 +24,7 @@ import { RadioGroup, RadioGroupItem } from '@havefolio/ui/components/radio-group
 import {
   AlertDialog,
   AlertDialogContent,
+  AlertDialogCancel,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogDescription,
@@ -61,6 +62,11 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
   const [before, setBefore] = useState<number | null>(null);
   const pending = useRef<Pending | null>(null);
   const sending = useRef(false);
+  const opener = useRef<HTMLElement | null>(null);
+  const openDialog = (kind: 'allocate' | 'correction' | 'reversal'): void => {
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setDialog(kind);
+  };
   const notice = useRef<HTMLParagraphElement>(null);
   const reload = useCallback(
     async (signal?: AbortSignal): Promise<void> => {
@@ -202,6 +208,7 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
       </p>
       {!uncertain ? (
         <Button
+          className="min-h-11"
           variant="outline"
           disabled={busy}
           onClick={() => {
@@ -264,22 +271,24 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
                     ) : (
                       <div className="flex flex-wrap gap-3">
                         <Button
+                          className="min-h-11"
                           variant="outline"
                           disabled={busy}
                           onClick={() => {
                             setReplacement(
                               toDecimalString(parseMinorUnits(leaf.amountMinor, leaf.currency)),
                             );
-                            setDialog('correction');
+                            openDialog('correction');
                           }}
                         >
                           Correct amount
                         </Button>
                         {leaf.kind !== 'reversal' ? (
                           <Button
+                            className="min-h-11"
                             variant="outline"
                             disabled={busy}
-                            onClick={() => setDialog('reversal')}
+                            onClick={() => openDialog('reversal')}
                           >
                             Reverse allocation
                           </Button>
@@ -293,7 +302,12 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
                     unavailable. This desire cannot be allocated again.
                   </p>
                 )}
-                <Button variant="outline" disabled={busy} onClick={() => void loadHistory()}>
+                <Button
+                  className="min-h-11"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => void loadHistory()}
+                >
                   View allocation history
                 </Button>
                 {history.length ? (
@@ -315,6 +329,7 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
                 ) : null}
                 {before ? (
                   <Button
+                    className="min-h-11"
                     variant="outline"
                     disabled={busy}
                     onClick={() => void loadHistory(before)}
@@ -360,9 +375,11 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
                         <span className="block text-sm text-muted-foreground">
                           {g.status === 'archived'
                             ? 'Archived'
-                            : g.currency !== state.currency
-                              ? 'Currency mismatch; no conversion'
-                              : `Confirmed progress: ${display(g.progressMinor, g.currency)}`}
+                            : !estimate
+                              ? 'Estimate unavailable'
+                              : g.currency !== state.currency
+                                ? 'Currency mismatch; no conversion'
+                                : `Confirmed progress: ${display(g.progressMinor, g.currency)}`}
                         </span>
                       </Label>
                     </div>
@@ -370,6 +387,7 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
                 </RadioGroup>
                 {after ? (
                   <Button
+                    className="min-h-11"
                     variant="outline"
                     disabled={busy}
                     onClick={() => {
@@ -397,8 +415,9 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
                   </p>
                 ) : null}
                 <Button
+                  className="min-h-11"
                   disabled={!chosen || !estimate || estimate.minor === 0n || busy}
-                  onClick={() => setDialog('allocate')}
+                  onClick={() => openDialog('allocate')}
                 >
                   Allocate
                 </Button>
@@ -413,7 +432,13 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
           if (!open && !busy && !uncertain) setDialog(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            if (opener.current?.isConnected) opener.current.focus();
+            else notice.current?.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>
               {dialog === 'allocate'
@@ -450,10 +475,10 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
             </p>
           ) : null}
           <AlertDialogFooter>
-            <Button variant="outline" disabled={busy || uncertain} onClick={() => setDialog(null)}>
+            <AlertDialogCancel className="min-h-11" disabled={busy || uncertain}>
               Cancel
-            </Button>
-            <Button disabled={busy} onClick={() => void send()}>
+            </AlertDialogCancel>
+            <Button className="min-h-11" disabled={busy} onClick={() => void send()}>
               {busy
                 ? 'Saving…'
                 : uncertain

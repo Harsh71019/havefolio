@@ -107,9 +107,11 @@ test('explicit allocation: keyboard, retry, mobile/desktop light/dark, reversal 
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(
       false,
     );
+    await expect(dialog).toHaveCSS('opacity', '1');
     await page.screenshot({
       path: resolve(out, `per-31-confirm-${info.project.name}-${theme}.png`),
       fullPage: true,
+      animations: 'disabled',
     });
   }
   await dialog.getByRole('button', { name: 'Confirm allocation', exact: true }).focus();
