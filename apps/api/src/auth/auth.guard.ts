@@ -27,7 +27,8 @@ export class AuthGuard implements CanActivate {
         request.headers['sec-fetch-site'] === 'cross-site' ||
         (request.headers.origin &&
           request.headers.origin !==
-            new URL(this.config.getOrThrow<string>('API_CORS_ORIGIN')).origin)
+            new URL(this.config.getOrThrow<string>('API_CORS_ORIGIN')).origin &&
+          request.headers.origin !== this.config.get<string>('AUTH_LAN_HTTP_ORIGIN'))
       )
         throw new ForbiddenException('REQUEST_ORIGIN_REJECTED');
     }

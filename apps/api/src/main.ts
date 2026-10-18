@@ -24,7 +24,9 @@ async function bootstrap(): Promise<void> {
   const corsOrigin = config.getOrThrow<string>('API_CORS_ORIGIN');
   app.enableCors({
     credentials: true,
-    origin: corsOrigin,
+    origin: [corsOrigin, config.get<string>('AUTH_LAN_HTTP_ORIGIN')].filter(
+      (origin): origin is string => Boolean(origin),
+    ),
   });
 
   if (config.getOrThrow<boolean>('API_DOCS_ENABLED')) {

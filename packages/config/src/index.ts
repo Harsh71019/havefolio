@@ -81,6 +81,7 @@ export const apiEnvironmentSchema = z
       z.array(z.union([z.ipv4(), z.ipv6()])).max(16),
     ),
     API_CORS_ORIGIN: z.string().url().default('http://localhost:3000'),
+    AUTH_LAN_HTTP_ORIGIN: optionalEnvironmentString,
     API_DOCS_ENABLED: booleanFromEnvironment.default(true),
     MEDIA_STORAGE_ENABLED: z.preprocess(
       (value) => (value === undefined ? false : value),
@@ -158,6 +159,30 @@ export const apiEnvironmentSchema = z
         path: ['VALKEY_USERNAME'],
         message: 'API requires its dedicated ACL identity',
       });
+    if (config.AUTH_LAN_HTTP_ORIGIN) {
+      try {
+        const url = new URL(config.AUTH_LAN_HTTP_ORIGIN);
+        const parts = url.hostname.split('.').map(Number);
+        const privateAddress =
+          parts.length === 4 &&
+          parts.every((part) => Number.isInteger(part) && part >= 0 && part <= 255) &&
+          (parts[0] === 10 ||
+            (parts[0] === 172 && parts[1]! >= 16 && parts[1]! <= 31) ||
+            (parts[0] === 192 && parts[1] === 168));
+        if (
+          url.protocol !== 'http:' ||
+          url.origin !== config.AUTH_LAN_HTTP_ORIGIN ||
+          !privateAddress
+        )
+          throw new Error();
+      } catch {
+        context.addIssue({
+          code: 'custom',
+          path: ['AUTH_LAN_HTTP_ORIGIN'],
+          message: 'LAN HTTP requires an exact private IPv4 origin without path or credentials',
+        });
+      }
+    }
     if (config.NODE_ENV === 'production') {
       for (const key of [
         'DATABASE_URL',

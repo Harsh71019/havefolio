@@ -46,7 +46,7 @@ export class AuthController {
       input,
       request.ip ?? request.socket.remoteAddress ?? 'unknown',
     );
-    this.cookies.write(response, result.token);
+    this.cookies.write(response, result.token, request);
     response.setHeader('Cache-Control', 'no-store');
     return this.auth.publicOwner(result.owner);
   }
@@ -68,7 +68,7 @@ export class AuthController {
       request.ip ?? request.socket.remoteAddress ?? 'unknown',
       this.cookies.read(request),
     );
-    this.cookies.write(response, result.token);
+    this.cookies.write(response, result.token, request);
     response.setHeader('Cache-Control', 'no-store');
     return this.auth.publicOwner(result.owner);
   }
@@ -92,10 +92,11 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Missing, expired or revoked session.' })
   async logout(
     @CurrentOwner() owner: OwnerContext,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     await this.auth.logout(owner, false);
-    this.cookies.clear(response);
+    this.cookies.clear(response, request);
   }
   @Post('logout-all')
   @HttpCode(204)
@@ -107,9 +108,10 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Missing, expired or revoked session.' })
   async logoutAll(
     @CurrentOwner() owner: OwnerContext,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     await this.auth.logout(owner, true);
-    this.cookies.clear(response);
+    this.cookies.clear(response, request);
   }
 }
