@@ -97,7 +97,9 @@ export function DesireGoalComparison({ desireId }: Readonly<{ desireId: string }
     <div className="space-y-6 break-words">
       <Card>
         <CardHeader>
-          <CardTitle>{desire.name}</CardTitle>
+          <CardTitle>
+            <h2>{desire.name}</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <p className="text-lg tabular-nums">
@@ -117,7 +119,9 @@ export function DesireGoalComparison({ desireId }: Readonly<{ desireId: string }
 
       <Card>
         <CardHeader>
-          <CardTitle>Choose a goal to compare</CardTitle>
+          <CardTitle>
+            <h2>Choose a goal to compare</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {goals.length === 0 ? (
@@ -141,7 +145,10 @@ export function DesireGoalComparison({ desireId }: Readonly<{ desireId: string }
                       value={g.id}
                       disabled={disabled}
                     />
-                    <Label htmlFor={`compare-goal-${g.id}`} className="block leading-relaxed">
+                    <Label
+                      htmlFor={`compare-goal-${g.id}`}
+                      className="block min-h-11 flex-1 leading-relaxed"
+                    >
                       {g.name} ·{' '}
                       {g.targetMinor === '0'
                         ? 'no target amount'
@@ -197,7 +204,9 @@ export function DesireGoalComparison({ desireId }: Readonly<{ desireId: string }
 
       <Card>
         <CardHeader>
-          <CardTitle>Counting it toward a goal</CardTitle>
+          <CardTitle>
+            <h2>Counting it toward a goal</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {desire.effectiveState === 'declined' ? (

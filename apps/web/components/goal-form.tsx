@@ -1,5 +1,13 @@
 'use client';
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactElement } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactElement,
+} from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -23,6 +31,7 @@ import { DesireRequestError } from './desires-client';
 import { createGoal, getGoal, goalContributions, updateGoal } from './goals-client';
 import { goalMoney, isCalendarDate } from './goal-presentation';
 import { goalMessage } from './goals-list';
+import { PageLoadFailure } from './page-load-failure';
 import { amountEntryToMinor, minorToAmountEntry } from './money-entry';
 import { fetchOwnerPreferences } from './settings-client';
 
@@ -106,6 +115,21 @@ export function GoalForm({ goalId }: Readonly<{ goalId?: string }>): ReactElemen
       active = false;
     };
   }, [goalId]);
+  // Retry after a failed initial read; the effect below performs the first read.
+  const load = useCallback(
+    async (signal?: AbortSignal): Promise<void> => {
+      if (!goalId) return;
+      const [g, history] = await Promise.all([
+        getGoal(goalId, signal),
+        goalContributions(goalId, { limit: 1 }, signal),
+      ]);
+      if (signal?.aborted) return;
+      setSaved(g);
+      setDraft(fromGoal(g));
+      setCurrencyLocked(history.items.length > 0);
+    },
+    [goalId],
+  );
   useEffect(() => {
     if (!goalId) return;
     const c = new AbortController();
@@ -188,12 +212,17 @@ export function GoalForm({ goalId }: Readonly<{ goalId?: string }>): ReactElemen
   if (loading) return <p role="status">Loading goal…</p>;
   if (loadError)
     return (
-      <div role="alert" className="space-y-3">
-        <p>{loadError}</p>
-        <Link className="underline" href="/goals">
-          Back to Goals
-        </Link>
-      </div>
+      <PageLoadFailure
+        message={loadError}
+        onRetry={() =>
+          load().then(
+            () => setLoadError(''),
+            (e: unknown) => setLoadError(goalMessage(e)),
+          )
+        }
+        backHref="/goals"
+        backLabel="Back to Goals"
+      />
     );
   const currencies = popularCurrencies.some((c) => c.code === draft.currency)
     ? popularCurrencies

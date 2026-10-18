@@ -388,7 +388,7 @@ export function AddDesireForm(): ReactElement {
           {photoUploadError ? (
             <div
               role="alert"
-              className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive"
+              className="rounded-lg border border-destructive/50 bg-card p-4 text-sm text-destructive"
             >
               <div className="flex items-start gap-2">
                 <AlertCircle className="size-5 shrink-0 mt-0.5" aria-hidden="true" />
@@ -441,7 +441,9 @@ export function AddDesireForm(): ReactElement {
   return (
     <Card className="mx-auto w-full max-w-xl shadow-sm">
       <CardHeader>
-        <CardTitle className="text-xl sm:text-2xl font-semibold">Record a desire</CardTitle>
+        <CardTitle className="text-xl sm:text-2xl font-semibold">
+          <h2>Record a desire</h2>
+        </CardTitle>
         <CardDescription className="text-sm">
           Give yourself time to consider what you want without judgment. Manual entry requires only
           a name.
@@ -461,7 +463,7 @@ export function AddDesireForm(): ReactElement {
               tabIndex={-1}
               role="alert"
               aria-live="polite"
-              className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+              className="rounded-lg border border-destructive/50 bg-card p-4 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive"
             >
               <h2 className="font-semibold leading-none">
                 Please check the following before saving:
@@ -647,7 +649,7 @@ export function AddDesireForm(): ReactElement {
                       Currency
                     </Label>
                     <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger id={`${formId}-currency`} className="h-11 text-sm">
+                      <SelectTrigger id={`${formId}-currency`} className="min-h-11 text-sm">
                         <SelectValue placeholder="Currency" />
                       </SelectTrigger>
                       <SelectContent>

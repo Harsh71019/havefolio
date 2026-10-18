@@ -286,7 +286,9 @@ export function TaxonomyManagement(): ReactElement {
     return (
       <div className="space-y-3">
         <p role="alert">{error}</p>
-        <Button onClick={() => void reload()}>Retry loading</Button>
+        <Button className="min-h-11" onClick={() => void reload()}>
+          Retry loading
+        </Button>
       </div>
     );
   const children =
@@ -317,7 +319,12 @@ export function TaxonomyManagement(): ReactElement {
         <p className="text-sm text-muted-foreground">
           Only your authenticated account can manage these entries.
         </p>
-        <Button variant="outline" disabled={busy || loading} onClick={() => void reload()}>
+        <Button
+          className="min-h-11"
+          variant="outline"
+          disabled={busy || loading}
+          onClick={() => void reload()}
+        >
           Reload
         </Button>
       </div>
@@ -331,13 +338,16 @@ export function TaxonomyManagement(): ReactElement {
       </p>
       <Card>
         <CardHeader>
-          <CardTitle>Categories & subcategories</CardTitle>
+          <CardTitle>
+            <h2>Categories & subcategories</h2>
+          </CardTitle>
           <CardDescription>
             Retirement keeps existing classifications readable and removes them from new choices.
             Names are reserved while retired.
           </CardDescription>
           <div className="flex flex-wrap gap-2 pt-2">
             <Button
+              className="min-h-11"
               ref={fallback}
               disabled={busy || loading}
               onClick={(event) => open({ type: 'create', kind: 'categories' }, event)}
@@ -346,6 +356,7 @@ export function TaxonomyManagement(): ReactElement {
             </Button>
             {!data.defaultsSeeded ? (
               <Button
+                className="min-h-11"
                 variant="outline"
                 disabled={busy || loading}
                 onClick={() =>
@@ -380,7 +391,7 @@ export function TaxonomyManagement(): ReactElement {
                 >
                   <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 space-y-2">
-                      <h2 className="break-words font-medium">{category.name}</h2>
+                      <h3 className="break-words font-medium">{category.name}</h3>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">
                           {category.isDemo ? 'Demo/default' : 'Custom'}
@@ -444,12 +455,15 @@ export function TaxonomyManagement(): ReactElement {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Reusable tags</CardTitle>
+          <CardTitle>
+            <h2>Reusable tags</h2>
+          </CardTitle>
           <CardDescription>
             Use multiple tags on an item. Removing a tag keeps the items themselves.
           </CardDescription>
           <div className="pt-2">
             <Button
+              className="min-h-11"
               disabled={busy || loading}
               onClick={(event) => open({ type: 'create', kind: 'tags' }, event)}
             >
@@ -547,7 +561,7 @@ export function TaxonomyManagement(): ReactElement {
                 >
                   <SelectTrigger
                     id="taxonomy-replacement"
-                    className="w-full min-w-0 [&>span]:truncate"
+                    className="min-h-11 w-full min-w-0 [&>span]:truncate"
                   >
                     <SelectValue placeholder="Choose an active replacement" />
                   </SelectTrigger>
@@ -578,6 +592,7 @@ export function TaxonomyManagement(): ReactElement {
             ) : null}
             <DialogFooter>
               <Button
+                className="min-h-11"
                 type="button"
                 variant="outline"
                 disabled={busy || loading}
@@ -586,6 +601,7 @@ export function TaxonomyManagement(): ReactElement {
                 Cancel
               </Button>
               <Button
+                className="min-h-11"
                 type="submit"
                 variant={action?.type === 'delete' ? 'destructive' : 'default'}
                 disabled={
@@ -655,7 +671,9 @@ function SignIn({
   return (
     <Card className="max-w-md">
       <CardHeader>
-        <CardTitle>Sign in to your private inventory</CardTitle>
+        <CardTitle>
+          <h2>Sign in to your private inventory</h2>
+        </CardTitle>
         <CardDescription>{message}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -686,7 +704,7 @@ function SignIn({
             />
           </div>
           {error ? <p role="alert">{error}</p> : null}
-          <Button type="submit" disabled={busy}>
+          <Button className="min-h-11" type="submit" disabled={busy}>
             {busy ? 'Signing in…' : 'Sign in'}
           </Button>
           <p className="text-sm text-muted-foreground">

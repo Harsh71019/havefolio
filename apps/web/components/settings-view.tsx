@@ -308,7 +308,7 @@ export function SettingsView(): ReactElement {
           <AlertTitle>Unable to load settings</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-        <Button onClick={() => void handleReload()} variant="outline">
+        <Button className="min-h-11" onClick={() => void handleReload()} variant="outline">
           <RefreshCw aria-hidden="true" className="mr-2 size-4" />
           Try again
         </Button>
@@ -348,7 +348,9 @@ export function SettingsView(): ReactElement {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Coins className="size-5 text-muted-foreground" aria-hidden="true" />
-            <CardTitle>Defaults & Reminders</CardTitle>
+            <CardTitle>
+              <h2>Defaults & Reminders</h2>
+            </CardTitle>
           </div>
           <CardDescription>
             Configure your preferred currency and waiting-period notification channels.
@@ -364,7 +366,11 @@ export function SettingsView(): ReactElement {
             </p>
             <div className="max-w-xs">
               <Select value={selectedCurrency} onValueChange={(val) => setSelectedCurrency(val)}>
-                <SelectTrigger id="currency-select" aria-label="Default entry and display currency">
+                <SelectTrigger
+                  className="min-h-11"
+                  id="currency-select"
+                  aria-label="Default entry and display currency"
+                >
                   <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
@@ -415,6 +421,7 @@ export function SettingsView(): ReactElement {
               </div>
               <Switch
                 id="in-app-switch"
+                className="relative after:absolute after:-inset-3 after:content-['']"
                 checked={inAppEnabled}
                 onCheckedChange={setInAppEnabled}
                 aria-label="Toggle in-app review reminders"
@@ -434,6 +441,7 @@ export function SettingsView(): ReactElement {
               </div>
               <Switch
                 id="ntfy-switch"
+                className="relative after:absolute after:-inset-3 after:content-['']"
                 checked={ntfyEnabled}
                 onCheckedChange={setNtfyEnabled}
                 aria-label="Toggle push notifications"
@@ -446,6 +454,7 @@ export function SettingsView(): ReactElement {
             Revision {preferences?.revision ?? 1} &bull; Concurrency protected
           </p>
           <Button
+            className="min-h-11"
             onClick={() => void handleSavePreferences()}
             disabled={!hasPreferenceChanges || saving}
           >
@@ -457,15 +466,22 @@ export function SettingsView(): ReactElement {
       {/* 2. ACTIVE SESSIONS */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Laptop className="size-5 text-muted-foreground" aria-hidden="true" />
-              <CardTitle>Active Sessions</CardTitle>
+              <CardTitle>
+                <h2>Active Sessions</h2>
+              </CardTitle>
             </div>
             {otherSessionsCount > 0 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={revokeAllLoading}>
+                  <Button
+                    className="min-h-11"
+                    variant="outline"
+                    size="sm"
+                    disabled={revokeAllLoading}
+                  >
                     <LogOut aria-hidden="true" className="mr-1.5 size-3.5" />
                     Sign out other sessions ({otherSessionsCount})
                   </Button>
@@ -532,7 +548,7 @@ export function SettingsView(): ReactElement {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-muted-foreground hover:text-destructive"
+                      className="min-h-11 min-w-11 text-muted-foreground hover:text-destructive"
                       disabled={sessionActionLoading === session.id}
                     >
                       <Trash2 aria-hidden="true" className="size-4" />
@@ -574,7 +590,9 @@ export function SettingsView(): ReactElement {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Archive className="size-5 text-muted-foreground" aria-hidden="true" />
-            <CardTitle>Demo Inventory</CardTitle>
+            <CardTitle>
+              <h2>Demo Inventory</h2>
+            </CardTitle>
           </div>
           <CardDescription>
             Explore sample fictional items or clean them up anytime. Genuine items are never
@@ -597,7 +615,12 @@ export function SettingsView(): ReactElement {
             {demoStatus && demoStatus.demoItemCount > 0 ? (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={demoActionLoading}>
+                  <Button
+                    className="min-h-11"
+                    variant="outline"
+                    size="sm"
+                    disabled={demoActionLoading}
+                  >
                     <Trash2 aria-hidden="true" className="mr-1.5 size-3.5 text-destructive" />
                     Remove demo items
                   </Button>
@@ -623,6 +646,7 @@ export function SettingsView(): ReactElement {
               </AlertDialog>
             ) : (
               <Button
+                className="min-h-11"
                 variant="outline"
                 size="sm"
                 onClick={() => void handleSeedDemo()}
@@ -640,7 +664,9 @@ export function SettingsView(): ReactElement {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Shield className="size-5 text-muted-foreground" aria-hidden="true" />
-            <CardTitle>Privacy & Security</CardTitle>
+            <CardTitle>
+              <h2>Privacy & Security</h2>
+            </CardTitle>
           </div>
           <CardDescription>
             How Havefolio isolates your data, media storage, and deployment.
@@ -652,7 +678,7 @@ export function SettingsView(): ReactElement {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Lock className="size-4 text-primary" aria-hidden="true" />
-                <h4 className="text-sm font-medium">Registration lock</h4>
+                <h3 className="text-sm font-medium">Registration lock</h3>
               </div>
               <Badge
                 variant="outline"
@@ -669,7 +695,7 @@ export function SettingsView(): ReactElement {
 
           {/* Media Storage Explanation */}
           <div className="rounded-lg border p-4 space-y-1.5">
-            <h4 className="text-sm font-medium">Private media storage</h4>
+            <h3 className="text-sm font-medium">Private media storage</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {privacy?.storageDescription ??
                 'Item photos, receipts, and warranties are securely stored in private authenticated storage folders. Files are not accessible through public Cloudinary URLs or public CDN links.'}
@@ -678,7 +704,7 @@ export function SettingsView(): ReactElement {
 
           {/* Authenticated Proxy Access */}
           <div className="rounded-lg border p-4 space-y-1.5">
-            <h4 className="text-sm font-medium">Authenticated session delivery</h4>
+            <h3 className="text-sm font-medium">Authenticated session delivery</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {privacy?.accessDescription ??
                 'Media is served only through authenticated Havefolio API proxy routes with short-lived session access. Uploads are stripped of unneeded metadata and restricted to your authenticated owner session.'}
@@ -687,7 +713,7 @@ export function SettingsView(): ReactElement {
 
           {/* Zero Public Sharing */}
           <div className="rounded-lg border p-4 space-y-1.5">
-            <h4 className="text-sm font-medium">Zero public sharing & no trackers</h4>
+            <h3 className="text-sm font-medium">Zero public sharing & no trackers</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {privacy?.sharingDescription ??
                 'Havefolio is a personal inventory and decision aid. It has no marketplace, public storefront, public links, discovery feeds, or third-party tracking.'}
@@ -702,9 +728,11 @@ export function SettingsView(): ReactElement {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Tag className="size-5 text-muted-foreground" aria-hidden="true" />
-              <CardTitle>Categories & Tags</CardTitle>
+              <CardTitle>
+                <h2>Categories & Tags</h2>
+              </CardTitle>
             </div>
-            <Button asChild variant="ghost" size="sm">
+            <Button className="min-h-11" asChild variant="ghost" size="sm">
               <Link href="/settings/taxonomy" className="flex items-center gap-1">
                 Manage
                 <ArrowRight className="size-4" aria-hidden="true" />

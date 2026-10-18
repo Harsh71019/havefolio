@@ -402,7 +402,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
       <div className="space-y-4">
         <div
           role="alert"
-          className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive"
+          className="rounded-lg border border-destructive/50 bg-card p-4 text-destructive"
         >
           <div className="flex items-center gap-2">
             <AlertCircle className="size-5 shrink-0" aria-hidden="true" />
@@ -544,9 +544,9 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
 
               {/* Stated Reason */}
               <div className="space-y-1">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Why you wanted this
-                </h4>
+                </h3>
                 <p className="text-muted-foreground break-words">
                   {desire.reason ?? 'No reflection reason was recorded.'}
                 </p>
@@ -844,7 +844,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
           {submitError ? (
             <div
               role="alert"
-              className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive space-y-2 mb-4"
+              className="rounded-lg border border-destructive/50 bg-card p-4 text-destructive space-y-2 mb-4"
             >
               <div className="flex items-center gap-2">
                 <AlertCircle className="size-5 shrink-0" aria-hidden="true" />
@@ -909,7 +909,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
                     htmlFor={`${componentId}-action-${action.type}`}
                     className={`flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors ${
                       isSelected
-                        ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                        ? 'border-primary bg-card ring-1 ring-primary/20'
                         : 'border-border bg-card hover:bg-muted/30'
                     }`}
                   >
@@ -951,7 +951,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
                         onClick={() => setSelectedItemId(m.id)}
                         className={`text-left rounded-md border p-3 min-h-11 text-xs transition-colors ${
                           selectedItemId === m.id
-                            ? 'border-primary bg-primary/10 font-medium'
+                            ? 'border-primary bg-card ring-1 ring-primary/20 font-medium'
                             : 'border-border bg-card hover:bg-muted/50'
                         }`}
                         aria-pressed={selectedItemId === m.id}

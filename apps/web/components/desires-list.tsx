@@ -124,7 +124,8 @@ export function DesiresList(): ReactElement {
 
       {/* Filter Tabs / Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-        <nav
+        <div
+          role="group"
           className="flex flex-wrap items-center gap-1.5"
           aria-label="Filter desires by effective state"
         >
@@ -132,7 +133,8 @@ export function DesiresList(): ReactElement {
             type="button"
             variant={filter === 'all' ? 'secondary' : 'ghost'}
             size="sm"
-            className="min-h-11 px-3 text-xs sm:text-sm font-medium"
+            className="min-h-11 min-w-11 px-3 text-xs sm:text-sm font-medium"
+            aria-pressed={filter === 'all'}
             onClick={() => handleFilterChange('all')}
           >
             All
@@ -154,14 +156,15 @@ export function DesiresList(): ReactElement {
                 type="button"
                 variant={isSelected ? 'secondary' : 'ghost'}
                 size="sm"
-                className="min-h-11 px-3 text-xs sm:text-sm font-medium"
+                className="min-h-11 min-w-11 px-3 text-xs sm:text-sm font-medium"
+                aria-pressed={isSelected}
                 onClick={() => handleFilterChange(key)}
               >
                 {effectiveStateInfo[key].label}
               </Button>
             );
           })}
-        </nav>
+        </div>
 
         <Button asChild size="sm" className="min-h-11">
           <Link href="/wants/new">
@@ -261,11 +264,13 @@ export function DesiresList(): ReactElement {
         )
       ) : (
         <div className="space-y-4">
-          <div className="grid gap-3 sm:gap-4" role="feed" aria-label="Desires list">
+          <ul className="grid gap-3 sm:gap-4" aria-label="Desires list">
             {items.map((desire) => (
-              <DesireCard key={desire.id} desire={desire} onDeleted={handleItemDeleted} />
+              <li key={desire.id}>
+                <DesireCard desire={desire} onDeleted={handleItemDeleted} />
+              </li>
             ))}
-          </div>
+          </ul>
 
           {/* Pagination Controls */}
           {hasMore ? (

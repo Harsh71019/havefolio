@@ -76,3 +76,16 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* PER-36: honour reduced motion for registry animations, skeleton pulses and spinners.
+   Near-zero durations (not `none`) keep Radix presence/animationend sequencing intact. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

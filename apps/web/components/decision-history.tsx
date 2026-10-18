@@ -30,6 +30,7 @@ import {
   formatReviewDateTime,
   getEffectiveStateLabel,
 } from './desire-presentation';
+import { PageLoadFailure } from './page-load-failure';
 const labels: Record<ReviewOutcome, string> = {
   bought: 'Bought',
   delayed: 'Delayed',
@@ -193,23 +194,26 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
     );
   if (!desire || !page)
     return (
-      <div>
-        <p role="alert">{error}</p>
-        <Button
-          onClick={() => {
-            setError('');
-            void reload().catch((e) => setError(errorMessage(e)));
-          }}
-        >
-          Retry loading
-        </Button>
-        <Link href="/wants">Back to Wants</Link>
-      </div>
+      <PageLoadFailure
+        heading="Decision history"
+        message={error}
+        onRetry={() =>
+          reload().then(
+            () => setError(''),
+            (e: unknown) => setError(errorMessage(e)),
+          )
+        }
+        backHref="/wants"
+        backLabel="Back to Wants"
+      />
     );
   const resolved = ['bought', 'declined', 'used_owned'].includes(desire.status);
   return (
     <div className="space-y-6">
-      <Link href="/wants" className="underline underline-offset-4">
+      <Link
+        href="/wants"
+        className="inline-flex min-h-11 items-center underline underline-offset-4"
+      >
         Back to Wants
       </Link>
       <header className="space-y-2">
@@ -230,7 +234,9 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
       </p>
       <Card>
         <CardHeader>
-          <CardTitle>Current estimate</CardTitle>
+          <CardTitle>
+            <h2>Current estimate</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <p>
@@ -251,7 +257,9 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
       {conversion || desire.status === 'bought' ? (
         <Card>
           <CardHeader>
-            <CardTitle>Inventory</CardTitle>
+            <CardTitle>
+              <h2>Inventory</h2>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm break-words">
             {conversion ? (
@@ -290,7 +298,9 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
       {!resolved || correction ? (
         <Card>
           <CardHeader>
-            <CardTitle>{correction ? 'Correct latest decision' : 'Record a decision'}</CardTitle>
+            <CardTitle>
+              <h2>{correction ? 'Correct latest decision' : 'Record a decision'}</h2>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={(e) => void submit(e)} className="space-y-4">
@@ -314,7 +324,9 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
                   {(Object.keys(labels) as ReviewOutcome[]).map((o) => (
                     <div key={o} className="flex items-center gap-3 min-h-11">
                       <RadioGroupItem value={o} id={`outcome-${o}`} />
-                      <Label htmlFor={`outcome-${o}`}>{labels[o]}</Label>
+                      <Label htmlFor={`outcome-${o}`} className="min-h-11 flex-1">
+                        {labels[o]}
+                      </Label>
                     </div>
                   ))}
                 </RadioGroup>
@@ -323,6 +335,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
                     <Label htmlFor="review-time">Next review (local date and time)</Label>
                     <Input
                       id="review-time"
+                      className="min-h-11"
                       type="datetime-local"
                       value={reviewAt}
                       onChange={(e) => setReviewAt(e.target.value)}
@@ -355,12 +368,14 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
                       >
                         <div className="flex gap-3 min-h-11 items-center">
                           <RadioGroupItem id="item-none" value="" />
-                          <Label htmlFor="item-none">No linked item</Label>
+                          <Label htmlFor="item-none" className="min-h-11 flex-1">
+                            No linked item
+                          </Label>
                         </div>
                         {items.map((i) => (
                           <div key={i.id} className="flex gap-3 min-h-11 items-center">
                             <RadioGroupItem id={`item-${i.id}`} value={i.id} />
-                            <Label htmlFor={`item-${i.id}`} className="break-words">
+                            <Label htmlFor={`item-${i.id}`} className="min-h-11 flex-1 break-words">
                               {i.name}
                             </Label>
                           </div>
@@ -407,6 +422,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
                 </Button>
                 {correction && !uncertain ? (
                   <Button
+                    className="min-h-11"
                     type="button"
                     variant="outline"
                     disabled={busy}
@@ -416,6 +432,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
                   </Button>
                 ) : null}
                 <Button
+                  className="min-h-11"
                   type="button"
                   variant="outline"
                   disabled={busy || uncertain}
@@ -447,8 +464,10 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">
-                      {labels[e.outcome]}
-                      {e.id === page.currentEventId ? ' · Current decision' : ''}
+                      <h3>
+                        {labels[e.outcome]}
+                        {e.id === page.currentEventId ? ' · Current decision' : ''}
+                      </h3>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
                       <time dateTime={e.occurredAt}>
