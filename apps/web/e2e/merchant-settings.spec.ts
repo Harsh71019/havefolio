@@ -108,7 +108,9 @@ test('settings saves custom merchants, preserves failed input, and exposes Categ
   await page.getByLabel('Merchant name', { exact: true }).fill('Myntra');
   await page.getByLabel('Website host (optional)').fill('https://myntra.com/path');
   await page.getByRole('button', { name: 'Add merchant', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Check the merchant name');
+  await expect(page.getByRole('region', { name: 'Add merchant' }).getByRole('alert')).toContainText(
+    'Check the merchant name',
+  );
   await expect(page.getByLabel('Merchant name', { exact: true })).toHaveValue('Myntra');
   await page.getByLabel('Website host (optional)').fill('myntra.com');
   await page.getByRole('button', { name: 'Add merchant', exact: true }).click();
