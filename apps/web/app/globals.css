@@ -3,16 +3,18 @@
 /* PER-66: the desktop navigation's saved width is set on <html> before first paint. */
 @custom-variant sidebar-collapsed (html[data-sidebar='collapsed'] &);
 
-/* PER-58: geometry is scoped to My Store; mobile/tablet ignores desktop preferences. */
+/* PER-58: geometry is scoped to My Store; mobile/tablet ignores desktop preferences.
+   PER-66: columns fill the space the navigation and filters leave, so a collapsed sidebar or a
+   wider screen adds cards instead of stretching them. */
 @media (min-width: 1024px) {
   .my-store .store-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
   }
   html[data-store-density='compact'] .my-store .store-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
   }
   html[data-store-density='large'] .my-store .store-grid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
   }
   html[data-store-density='compact']
     .my-store
@@ -40,6 +42,7 @@
   }
   html[data-store-density='compact'] .my-store .store-card dd {
     text-align: left;
+    overflow-wrap: anywhere;
   }
   html[data-store-density='compact'] .my-store .store-card [data-slot='owned-item-footer'] {
     padding: 0.5rem 0.75rem;
@@ -57,20 +60,6 @@
     padding-block: 0.75rem;
   }
 }
-/* PER-65: from 1280px the 15rem filter column takes the room of one extra card column, so the
-   1024px column counts hold until 1920px. */
-@media (min-width: 1920px) {
-  .my-store .store-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  html[data-store-density='compact'] .my-store .store-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-  html[data-store-density='large'] .my-store .store-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 /* PER-36: honour reduced motion for registry animations, skeleton pulses and spinners.
    Near-zero durations (not `none`) keep Radix presence/animationend sequencing intact. */
 @media (prefers-reduced-motion: reduce) {

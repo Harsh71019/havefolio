@@ -417,6 +417,19 @@ function LoadFailure({
   );
 }
 
+function EmptyCategories({ names }: { names: string[] }): React.JSX.Element {
+  return (
+    <section aria-labelledby="empty-categories" className="rounded-xl border border-dashed p-4">
+      <h2 id="empty-categories" className="text-base font-medium">
+        Categories with nothing yet
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {names.join(', ')}. They appear here once something you own is filed in them.
+      </p>
+    </section>
+  );
+}
+
 function resolveItemContext(
   item: ItemListEntry,
   taxonomy: TaxonomySnapshot | undefined,
@@ -502,14 +515,18 @@ function StoreContent({
     );
   }
 
-  // When custom sorting is applied, display items in their explicit sorted order
-  if (query.sort && query.sort !== 'id') {
-    const eagerIds = new Set(load.items.slice(0, 4).map((i) => i.id));
+  // PER-66: across all categories, show one catalog grid. Explicit sorts keep the API order;
+  // the default keeps taxonomy order, with each card naming its category instead of a heading.
+  const sorted = Boolean(query.sort && query.sort !== 'id');
+  if (sorted || !query.categoryId) {
+    const grouped = sorted ? undefined : groupInventory(load.items, load.taxonomy);
+    const items = grouped?.groups.flatMap((g) => g.subgroups.flatMap((s) => s.items)) ?? load.items;
+    const eagerIds = new Set(items.slice(0, 4).map((i) => i.id));
     return (
       <>
-        <section aria-label="Sorted items" className="space-y-4">
+        <section aria-labelledby="store-items-heading" className="space-y-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <h2 className="text-xl font-semibold tracking-tight">
+            <h2 id="store-items-heading" className="text-xl font-semibold tracking-tight">
               {query.q ? `Search results for “${query.q}”` : 'All items'}
             </h2>
             <span className="text-sm text-muted-foreground">
@@ -519,7 +536,7 @@ function StoreContent({
             </span>
           </div>
           <ul className={gridClass}>
-            {load.items.map((item) => (
+            {items.map((item) => (
               <li key={item.id}>
                 <StoreCard
                   density={density}
@@ -533,6 +550,9 @@ function StoreContent({
             ))}
           </ul>
         </section>
+        {grouped?.emptyCategories.length ? (
+          <EmptyCategories names={grouped.emptyCategories} />
+        ) : null}
         {load.nextCursor ? (
           <div className="flex flex-col items-start gap-2">
             <Button
@@ -558,7 +578,7 @@ function StoreContent({
     );
   }
 
-  // Default browsing: group by category in taxonomy order
+  // A single selected category keeps its heading and per-category count.
   const { groups, emptyCategories } = groupInventory(load.items, load.taxonomy);
   // The first few cards in display order load eagerly; the rest wait until near the viewport.
   const eagerIds = new Set(
@@ -606,16 +626,7 @@ function StoreContent({
           </ul>
         </section>
       ))}
-      {emptyCategories.length ? (
-        <section aria-labelledby="empty-categories" className="rounded-xl border border-dashed p-4">
-          <h2 id="empty-categories" className="text-base font-medium">
-            Categories with nothing yet
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {emptyCategories.join(', ')}. They appear here once something you own is filed in them.
-          </p>
-        </section>
-      ) : null}
+      {emptyCategories.length ? <EmptyCategories names={emptyCategories} /> : null}
       {load.nextCursor ? (
         <div className="flex flex-col items-start gap-2">
           <Button
