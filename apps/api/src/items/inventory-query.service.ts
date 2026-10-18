@@ -4,10 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { isCurrencyCode, parseCalendarDay, parseMinorUnitAmount } from '@havefolio/domain';
-import { normalizeInventorySearch } from '@havefolio/contracts';
+import { inventoryFacetBrandLimit, normalizeInventorySearch } from '@havefolio/contracts';
 import { ItemsRepository } from './items.repository.js';
 import type { ItemsQueryDto } from './inventory-query.dto.js';
-import type { ItemsPageDto, ItemListEntryDto } from './items.dto.js';
+import type { ItemFacetsDto, ItemsPageDto, ItemListEntryDto } from './items.dto.js';
 
 export const inventoryDocument =
   "to_tsvector('simple', normalize(coalesce(i.name,'') || ' ' || coalesce(i.brand,'') || ' ' || coalesce(i.model,''),NFKC))";
@@ -123,17 +123,19 @@ export function normalizeQuery(input: ItemsQueryDto): ItemsQueryDto {
   if (q.dateKnown === 'exclude' && q.datePrecision === 'unknown') invalid();
   return q;
 }
-/** Only allowlisted SQL fragments are composed. Every external value is a pg bind parameter. */
-export function inventorySql(
-  owner: string,
-  q: ItemsQueryDto,
-  cursor?: Cursor,
-): { text: string; values: unknown[] } {
+type Bind = (value: unknown) => string;
+function binder(owner: string): { values: unknown[]; bind: Bind } {
   const values: unknown[] = [owner];
-  const bind = (value: unknown): string => {
-    values.push(value);
-    return `$${values.length}`;
+  return {
+    values,
+    bind: (value) => {
+      values.push(value);
+      return `$${values.length}`;
+    },
   };
+}
+/** Filter clauses shared by the list and its facets. `$1` is always the owner. */
+function inventoryFilters(q: ItemsQueryDto, bind: Bind): string[] {
   const clauses = ['i.owner_id=$1'];
   if (q.spendingScope) {
     const membership = spendingMembershipSql({ ...q, scope: q.spendingScope }, bind);
@@ -163,6 +165,8 @@ export function inventorySql(
   ] as const) {
     if (q[key] !== undefined) clauses.push(`i.${col}=${bind(q[key])}`);
   }
+  if (q.brand !== undefined)
+    clauses.push(`lower(btrim(i.brand))=${bind(q.brand.trim().toLowerCase())}`);
   if (q.tagId)
     clauses.push(
       `EXISTS (SELECT 1 FROM item_tags it WHERE it.owner_id=$1 AND it.item_id=i.id AND it.tag_id=${bind(q.tagId)})`,
@@ -200,6 +204,16 @@ export function inventorySql(
     clauses.push(
       `(${dates.join(' AND ')}${q.dateKnown === 'include' ? " OR i.purchase_date_precision='unknown'" : ''})`,
     );
+  return clauses;
+}
+/** Only allowlisted SQL fragments are composed. Every external value is a pg bind parameter. */
+export function inventorySql(
+  owner: string,
+  q: ItemsQueryDto,
+  cursor?: Cursor,
+): { text: string; values: unknown[] } {
+  const { values, bind } = binder(owner);
+  const clauses = inventoryFilters(q, bind);
   const sort = q.sort ?? 'id',
     column = sortColumns[sort];
   const direction = q.direction === 'desc' ? 'DESC' : 'ASC';
@@ -230,6 +244,66 @@ export function inventorySql(
     text: `SELECT (i.demo_dataset_id IS NOT NULL) AS is_demo,i.id,i.name,i.ownership_status,i.currency,i.price_paid_minor,i.purchase_date_precision,i.purchase_year,i.purchase_month,i.purchase_day,i.acquisition_type,i.condition,i.use_frequency,i.category_id,i.subcategory_id,i.brand,i.model,i.revision,i.created_at,i.updated_at,${tuple} AS cursor_value FROM items i WHERE ${clauses.join(' AND ')} ORDER BY ${column} ${direction}${sort === 'price' ? ' NULLS LAST' : ''}${sort === 'id' ? '' : ',i.id ASC'} LIMIT ${bind((q.limit ?? 25) + 1)}`,
     values,
   };
+}
+type FacetKey = 'total' | 'status' | 'frequency' | 'category' | 'subcategory' | 'brand' | 'price';
+/** Each dimension drops its own filter so every option counts what choosing it would return. */
+const facetQueries: Record<
+  FacetKey,
+  { omit: (keyof ItemsQueryDto)[]; select: string; tail: string }
+> = {
+  total: { omit: [], select: 'NULL AS value,count(*)::int AS count', tail: '' },
+  status: {
+    omit: ['ownershipStatus'],
+    select: 'i.ownership_status AS value,count(*)::int AS count',
+    tail: 'GROUP BY 1',
+  },
+  frequency: {
+    omit: ['useFrequency'],
+    select: 'i.use_frequency AS value,count(*)::int AS count',
+    tail: 'GROUP BY 1',
+  },
+  category: {
+    omit: ['categoryId', 'subcategoryId'],
+    select: 'i.category_id AS value,count(*)::int AS count',
+    tail: 'GROUP BY 1',
+  },
+  subcategory: {
+    omit: ['subcategoryId'],
+    select: 'i.subcategory_id AS value,i.category_id AS category_id,count(*)::int AS count',
+    tail: 'AND i.subcategory_id IS NOT NULL GROUP BY 1,2',
+  },
+  brand: {
+    omit: ['brand'],
+    // One label per case-insensitive brand; the most common spelling wins.
+    select: 'mode() WITHIN GROUP (ORDER BY btrim(i.brand)) AS value,count(*)::int AS count',
+    tail: `AND nullif(btrim(i.brand),'') IS NOT NULL GROUP BY lower(btrim(i.brand)) ORDER BY 2 DESC,1 LIMIT ${inventoryFacetBrandLimit + 1}`,
+  },
+  price: {
+    omit: ['priceMin', 'priceMax', 'priceKnown', 'currency'],
+    select:
+      'i.currency AS value,min(i.price_paid_minor)::text AS min_minor,max(i.price_paid_minor)::text AS max_minor,count(*)::int AS count',
+    tail: 'AND i.price_paid_minor IS NOT NULL GROUP BY 1 ORDER BY 4 DESC,1',
+  },
+};
+export function inventoryFacetSql(
+  owner: string,
+  q: ItemsQueryDto,
+  key: FacetKey,
+): { text: string; values: unknown[] } {
+  const { omit, select, tail } = facetQueries[key];
+  const scoped = { ...q };
+  for (const name of omit) delete scoped[name];
+  if (omit.includes('priceKnown')) scoped.priceKnown = 'include';
+  const { values, bind } = binder(owner);
+  const clauses = inventoryFilters(scoped, bind);
+  return { text: `SELECT ${select} FROM items i WHERE ${clauses.join(' AND ')} ${tail}`, values };
+}
+interface FacetRow {
+  value: string | null;
+  count: number;
+  category_id?: string;
+  min_minor?: string;
+  max_minor?: string;
 }
 @Injectable()
 export class InventoryQueryService {
@@ -296,6 +370,45 @@ export class InventoryQueryService {
       [owner, q.categoryId ?? null, q.subcategoryId ?? null, q.tagId ?? null, q.merchantId ?? null],
     );
     if (!result.rows[0]?.valid) invalid();
+  }
+  async facets(owner: string, input: ItemsQueryDto): Promise<ItemFacetsDto> {
+    const q = normalizeQuery(input);
+    return this.repo.transaction(owner, async (c) => {
+      await this.taxonomy(c, owner, q);
+      const rows = async (key: FacetKey): Promise<FacetRow[]> => {
+        const sql = inventoryFacetSql(owner, q, key);
+        return (await c.query<FacetRow>(sql.text, sql.values)).rows;
+      };
+      // Sequential: one pooled client cannot run queries concurrently.
+      const total = await rows('total');
+      const status = await rows('status');
+      const frequency = await rows('frequency');
+      const category = await rows('category');
+      const subcategory = await rows('subcategory');
+      const brand = await rows('brand');
+      const price = await rows('price');
+      const counted = <T>(list: FacetRow[]): { value: T; count: number }[] =>
+        list.map((r) => ({ value: r.value as T, count: r.count }));
+      return {
+        total: total[0]?.count ?? 0,
+        ownershipStatus: counted(status),
+        useFrequency: counted(frequency),
+        categories: counted(category),
+        subcategories: subcategory.map((r) => ({
+          value: r.value!,
+          categoryId: r.category_id!,
+          count: r.count,
+        })),
+        brands: counted<string>(brand.slice(0, inventoryFacetBrandLimit)),
+        brandsTruncated: brand.length > inventoryFacetBrandLimit,
+        prices: price.map((r) => ({
+          currency: r.value!,
+          minMinor: r.min_minor!,
+          maxMinor: r.max_minor!,
+          count: r.count,
+        })),
+      };
+    });
   }
   async list(owner: string, input: ItemsQueryDto): Promise<ItemsPageDto> {
     const q = normalizeQuery(input),

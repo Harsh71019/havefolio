@@ -16,7 +16,7 @@ export type OwnedItemCardProps = {
   statusIcon?: ReactNode;
   /** Extra screen-reader wording for the status, for example ", no longer owned". */
   statusNote?: string;
-  /** No longer owned: shown with text and a muted cover, never colour alone. */
+  /** No longer owned: shown with text and outline status pill, in full color. */
   inactive?: boolean;
   facts: OwnedItemFact[];
   media?: ReactNode;
@@ -41,10 +41,7 @@ export function OwnedItemCard({
     <Card className={cn('h-full gap-0 overflow-hidden py-0', className)}>
       <div
         data-slot="owned-item-media"
-        className={cn(
-          'relative aspect-[4/3] bg-muted text-muted-foreground',
-          inactive && 'opacity-70 grayscale',
-        )}
+        className="relative aspect-[4/3] bg-muted text-muted-foreground"
       >
         {media ?? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm">

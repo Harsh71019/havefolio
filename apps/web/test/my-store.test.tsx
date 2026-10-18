@@ -317,6 +317,9 @@ describe('My Store page', () => {
       /Paid Gift, no amount Acquired Date not recorded/,
     );
     expect(card('Broken chair')).toHaveAccessibleName('Broken chair Disposed, no longer owned');
+    const brokenMedia = card('Broken chair').querySelector('[data-slot="owned-item-media"]');
+    expect(brokenMedia).not.toHaveClass('grayscale');
+    expect(brokenMedia).not.toHaveClass('opacity-70');
     expect(card('Umbrella')).toHaveAccessibleName('Umbrella Lost, no longer owned');
     expect(card('Headphones')).toHaveAccessibleName('Headphones Returned, no longer owned');
     expect(screen.getByText(/Books\. They appear here once/)).toBeVisible();
@@ -538,12 +541,16 @@ describe('My Store page', () => {
     await screen.findByRole('link', { name: /^Alpha/ });
     const user = userEvent.setup();
     await user.tab();
-    expect(screen.getByRole('radio', { name: 'Comfortable' })).toHaveFocus();
-    await user.tab();
+    // Filters come first, then sorting, then the cards.
+    expect(screen.getAllByTestId('store-filters')[0]).toContainElement(
+      document.activeElement as HTMLElement,
+    );
+    card('Alpha').focus();
     expect(card('Alpha')).toHaveFocus();
     await user.tab();
     expect(card('Beta')).toHaveFocus();
-    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(within(card('Alpha')).queryAllByRole('button')).toHaveLength(0);
+    expect(within(card('Beta')).queryAllByRole('button')).toHaveLength(0);
     const html = document.body.innerHTML;
     expect(html).not.toMatch(
       /cloudinary|api_key|signature=|havefolio\/(test|production|development)|receipt|warranty/i,

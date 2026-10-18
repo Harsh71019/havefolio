@@ -81,6 +81,15 @@ export class ItemsQueryDto extends PaginationQueryDto {
   @ValidateIf((_o, v) => v !== undefined)
   @IsUUID()
   tagId?: string;
+  @ApiPropertyOptional({
+    maxLength: 300,
+    description: 'Exact brand, compared trimmed and case-insensitively. Blank is rejected.',
+  })
+  @ValidateIf((_o, v) => v !== undefined)
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @Length(1, 300)
+  brand?: string;
   @ApiPropertyOptional({ enum: itemStatuses })
   @ValidateIf((_o, v) => v !== undefined)
   @IsIn(itemStatuses)

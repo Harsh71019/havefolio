@@ -293,6 +293,43 @@ export class ItemsPageDto {
   nextCursor!: string | null;
   @ApiProperty() hasMore!: boolean;
 }
+class FacetCountDto {
+  @ApiProperty() count!: number;
+}
+export class StatusFacetDto extends FacetCountDto {
+  @ApiProperty({ enum: statuses }) value!: (typeof statuses)[number];
+}
+export class FrequencyFacetDto extends FacetCountDto {
+  @ApiProperty({ enum: frequencies }) value!: (typeof frequencies)[number];
+}
+export class CategoryFacetDto extends FacetCountDto {
+  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'null: uncategorised' })
+  value!: string | null;
+}
+export class SubcategoryFacetDto extends FacetCountDto {
+  @ApiProperty({ format: 'uuid' }) value!: string;
+  @ApiProperty({ format: 'uuid' }) categoryId!: string;
+}
+export class BrandFacetDto extends FacetCountDto {
+  @ApiProperty({ maxLength: 300 }) value!: string;
+}
+export class PriceFacetDto {
+  @ApiProperty({ pattern: '^[A-Z]{3}$' }) currency!: string;
+  @ApiProperty({ description: 'Lowest recorded price in integer minor units.' }) minMinor!: string;
+  @ApiProperty({ description: 'Highest recorded price in integer minor units.' }) maxMinor!: string;
+  @ApiProperty() count!: number;
+}
+export class ItemFacetsDto {
+  @ApiProperty({ description: 'Items matching every filter.' }) total!: number;
+  @ApiProperty({ type: [StatusFacetDto] }) ownershipStatus!: StatusFacetDto[];
+  @ApiProperty({ type: [FrequencyFacetDto] }) useFrequency!: FrequencyFacetDto[];
+  @ApiProperty({ type: [CategoryFacetDto] }) categories!: CategoryFacetDto[];
+  @ApiProperty({ type: [SubcategoryFacetDto] }) subcategories!: SubcategoryFacetDto[];
+  @ApiProperty({ type: [BrandFacetDto], maxItems: 100, description: 'Most common first.' })
+  brands!: BrandFacetDto[];
+  @ApiProperty() brandsTruncated!: boolean;
+  @ApiProperty({ type: [PriceFacetDto] }) prices!: PriceFacetDto[];
+}
 export class ItemEventDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({

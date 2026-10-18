@@ -23,6 +23,7 @@ import {
   type PaginationQueryDto,
   type ItemDto,
   type ItemsPageDto,
+  type ItemFacetsDto,
   type EventsPageDto,
 } from './items.dto.js';
 import { InventoryQueryService } from './inventory-query.service.js';
@@ -350,6 +351,9 @@ export class ItemsService {
   }
   async list(owner: string, query: ItemsQueryDto): Promise<ItemsPageDto> {
     return this.inventory.list(owner, query);
+  }
+  async facets(owner: string, query: ItemsQueryDto): Promise<ItemFacetsDto> {
+    return this.inventory.facets(owner, query);
   }
 
   async update(owner: string, id: string, input: UpdateItemDto): Promise<ItemDto> {

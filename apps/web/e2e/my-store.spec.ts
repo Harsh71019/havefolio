@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import type { InventoryFacets, ItemListEntry } from '@havefolio/contracts';
 import { emptyHomeFixture } from '../test/home-fixture';
 
 test.beforeEach(async ({ page }) => {
@@ -123,6 +124,41 @@ const taxonomy = {
   defaultsSeeded: true,
 };
 
+/** Counts as the API would report them for an unfiltered store. */
+function facetsFor(entries: Entry[]): InventoryFacets {
+  const items = entries as unknown as ItemListEntry[];
+  const tally = <T>(values: T[]): { value: T; count: number }[] => {
+    const counts = new Map<T, number>();
+    for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+    return [...counts].map(([value, count]) => ({ value, count }));
+  };
+  const priced = items.filter((i) => i.pricePaidMinor !== null && i.currency === 'INR');
+  const minor = priced.map((i) => BigInt(i.pricePaidMinor!)).sort((a, b) => (a < b ? -1 : 1));
+  return {
+    total: items.length,
+    ownershipStatus: tally(items.map((i) => i.ownershipStatus)),
+    useFrequency: tally(items.map((i) => i.useFrequency)),
+    categories: tally(items.map((i) => i.categoryId)),
+    subcategories: tally(items.filter((i) => i.subcategoryId).map((i) => i.subcategoryId!)).map(
+      (entry) => ({
+        ...entry,
+        categoryId: items.find((i) => i.subcategoryId === entry.value)!.categoryId!,
+      }),
+    ),
+    brands: tally(items.filter((i) => i.brand).map((i) => i.brand!)),
+    brandsTruncated: false,
+    prices: minor.length
+      ? [
+          {
+            currency: 'INR',
+            minMinor: String(minor[0]),
+            maxMinor: String(minor.at(-1)),
+            count: minor.length,
+          },
+        ]
+      : [],
+  };
+}
 async function mock(
   page: Page,
   items: Entry[],
@@ -133,6 +169,9 @@ async function mock(
   await page.route('**/api/v1/home', (route) => route.fulfill({ json: emptyHomeFixture }));
   await page.route(/\/api\/v1\/items(\?.*)?$/, (route) =>
     route.fulfill({ json: { items, nextCursor: null, hasMore: false } }),
+  );
+  await page.route(/\/api\/v1\/items\/facets(\?.*)?$/, (route) =>
+    route.fulfill({ json: facetsFor(items) }),
   );
   await page.route('**/api/v1/items/*/photos/*/content/*', (route) => {
     if (options.failImages)
@@ -213,6 +252,16 @@ test('populated, mixed-lifecycle store is responsive, private and keyboard navig
   await page.getByRole('link', { name: 'Add item', exact: true }).focus();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Revisit welcome help' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  // PER-65: filters come before sorting and the results. One stop per filter group on desktop.
+  if (testInfo.project.name === 'desktop') {
+    await expect(page.getByRole('radio', { name: 'All categories' })).toBeFocused();
+    await page.getByRole('combobox', { name: 'Sort by' }).focus();
+  } else {
+    await expect(page.getByRole('button', { name: /^Filters/ })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('combobox', { name: 'Sort by' })).toBeFocused();
+  }
   await page.keyboard.press('Tab');
   if (testInfo.project.name === 'desktop') {
     await expect(page.getByRole('radio', { name: 'Comfortable' })).toBeFocused();
@@ -342,10 +391,11 @@ test('PER-58 desktop density geometry, facts, images, keyboard, persistence and 
   await expect(page.getByRole('radio', { name: 'Comfortable' })).toBeChecked();
   await expect(page.getByRole('link', { name: /^Electric kettle Owned/ })).toBeVisible();
   const initialRequests = inventoryRequests;
+  // PER-65: from 1280px the filter column takes one card column until 1920px.
   const expected = [
     [3, 2, 1],
-    [4, 3, 2],
-    [4, 3, 2],
+    [3, 2, 1],
+    [3, 2, 1],
     [6, 4, 3],
   ];
   for (const [index, width] of [1024, 1280, 1440, 1920].entries()) {
@@ -469,7 +519,7 @@ test('PER-58 restores before paint and mobile ignores every saved desktop densit
     const skeleton = page.getByTestId('store-skeleton');
     await expect(skeleton).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-store-density', density);
-    const expectedColumns = density === 'compact' ? 4 : density === 'large' ? 2 : 3;
+    const expectedColumns = density === 'compact' ? 3 : density === 'large' ? 1 : 2;
     expect(await columns(page)).toBe(expectedColumns);
     await expect(page.locator('html')).toHaveAttribute(
       'data-first-store-columns',
@@ -668,8 +718,8 @@ test('PER-59 sparse subcategories share one category grid at every width and den
       return links.filter((l) => Math.abs(l.getBoundingClientRect().top - top) < 1).length;
     });
   const expected: Record<number, [number, number, number]> = {
-    1280: [4, 3, 2],
-    1512: [4, 3, 2],
+    1280: [3, 2, 1],
+    1512: [3, 2, 1],
     1920: [6, 4, 3],
   };
   for (const width of [1280, 1512, 1920]) {

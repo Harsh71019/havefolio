@@ -54,17 +54,8 @@
     padding-block: 0.75rem;
   }
 }
-@media (min-width: 1280px) {
-  .my-store .store-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  html[data-store-density='compact'] .my-store .store-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  html[data-store-density='large'] .my-store .store-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
+/* PER-65: from 1280px the 15rem filter column takes the room of one extra card column, so the
+   1024px column counts hold until 1920px. */
 @media (min-width: 1920px) {
   .my-store .store-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));

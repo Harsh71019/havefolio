@@ -30,6 +30,13 @@ describe('inventory URL contract', () => {
       readInventoryQuery(new URLSearchParams('q=' + 'x'.repeat(201) + '&sort=name&sort=price')),
     ).toEqual({});
   });
+  it('keeps a trimmed brand and drops a blank or oversized one', () => {
+    expect(readInventoryQuery(new URLSearchParams('brand=%20Prestige%20'))).toEqual({
+      brand: 'Prestige',
+    });
+    expect(readInventoryQuery(new URLSearchParams('brand=%20%20'))).toEqual({});
+    expect(readInventoryQuery(new URLSearchParams('brand=' + 'b'.repeat(301)))).toEqual({});
+  });
   it('resets cursor on changes, clears dependent child/direction and preserves pagination', () => {
     expect(
       changeInventoryQuery({ after: 'cursor', sort: 'price', direction: 'desc' }, { sort: 'name' }),

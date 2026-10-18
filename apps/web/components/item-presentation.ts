@@ -80,13 +80,16 @@ export function acquiredFact(date: PurchaseDate, now = new Date()): Fact {
   return { label: 'Acquired', value: `${shown} · ${age}` };
 }
 
-const frequencyLabels: Record<ItemFrequency, string> = {
+export const frequencyLabels: Record<ItemFrequency, string> = {
   often: 'Often',
   sometimes: 'Sometimes',
   rarely: 'Rarely',
   never: 'Not used',
   unknown: 'Not recorded',
 };
+export function frequencyLabel(frequency: ItemFrequency): string {
+  return frequencyLabels[frequency] ?? frequency;
+}
 export function useFact(frequency: ItemFrequency): Fact {
   return { label: 'Use', value: frequencyLabels[frequency], muted: frequency === 'unknown' };
 }

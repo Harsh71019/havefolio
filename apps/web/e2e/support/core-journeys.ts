@@ -217,6 +217,27 @@ function body(path: string, search: URLSearchParams, empty: boolean): unknown {
         : taxonomy;
     case '/api/v1/items':
       return { items: empty ? [] : [listEntry], nextCursor: null, hasMore: false };
+    case '/api/v1/items/facets':
+      return {
+        total: empty ? 0 : 1,
+        ownershipStatus: empty ? [] : [{ value: listEntry.ownershipStatus, count: 1 }],
+        useFrequency: empty ? [] : [{ value: listEntry.useFrequency, count: 1 }],
+        categories: empty ? [] : [{ value: listEntry.categoryId, count: 1 }],
+        subcategories: [],
+        brands: empty || !listEntry.brand ? [] : [{ value: listEntry.brand, count: 1 }],
+        brandsTruncated: false,
+        prices:
+          empty || listEntry.pricePaidMinor === null
+            ? []
+            : [
+                {
+                  currency: listEntry.currency,
+                  minMinor: listEntry.pricePaidMinor,
+                  maxMinor: listEntry.pricePaidMinor,
+                  count: 1,
+                },
+              ],
+      };
     case items:
       return item;
     case `${items}/history`:
