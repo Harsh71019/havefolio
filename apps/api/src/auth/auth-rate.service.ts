@@ -46,7 +46,7 @@ export class AuthRateService implements OnModuleDestroy {
       this.client.on('error', () => undefined);
     }
   }
-  keys(action: 'login' | 'register', source: string, email: string): [string, string] {
+  keys(action: 'login' | 'register' | 'delete', source: string, email: string): [string, string] {
     const secret = this.config.get<string>('AUTH_RATE_KEY_SECRET');
     if (!secret) throw new ServiceUnavailableException('AUTH_UNAVAILABLE');
     const digest = (value: string): string =>
@@ -61,7 +61,11 @@ export class AuthRateService implements OnModuleDestroy {
       `${prefix}:auth:${action}:account-source:${digest(JSON.stringify([source, email]))}`,
     ];
   }
-  async check(action: 'login' | 'register', source: string, email: string): Promise<void> {
+  async check(
+    action: 'login' | 'register' | 'delete',
+    source: string,
+    email: string,
+  ): Promise<void> {
     if (!this.client) throw new ServiceUnavailableException('AUTH_UNAVAILABLE');
     let counts: number[];
     try {

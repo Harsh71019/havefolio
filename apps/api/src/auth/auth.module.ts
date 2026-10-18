@@ -19,6 +19,6 @@ import { SessionCookieService } from './session-cookie.service.js';
     SessionCookieService,
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
-  exports: [AuthService],
+  exports: [AuthService, PasswordService, AuthRateService],
 })
 export class AuthModule {}

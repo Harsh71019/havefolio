@@ -1,3 +1,4 @@
+import { PrivacyModule } from './privacy/privacy.module.js';
 import { GoalsModule } from './goals/goals.module.js';
 import { HomeModule } from './home/home.module.js';
 import { TelemetryModule } from '@havefolio/logging';
@@ -39,6 +40,7 @@ import { SettingsModule } from './settings/settings.module.js';
     OperationsModule,
     MediaModule,
     SettingsModule,
+    PrivacyModule,
   ],
 })
 export class AppModule {}

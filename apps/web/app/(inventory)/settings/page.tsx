@@ -1,3 +1,4 @@
+import { PrivacyControls } from '@/components/privacy-controls';
 import type { ReactElement } from 'react';
 import type { Metadata } from 'next';
 import { SettingsView } from '@/components/settings-view';
@@ -14,6 +15,7 @@ export default function SettingsPage(): ReactElement {
         </p>
       </header>
       <SettingsView />
+      <PrivacyControls />
     </main>
   );
 }
