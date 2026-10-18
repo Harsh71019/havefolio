@@ -7,7 +7,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import request, { type Test as HttpTest } from 'supertest';
 import { TelemetryModule } from '@havefolio/logging';
 import { validateApiEnvironment } from '@havefolio/config';
-import { applyMigrations } from '@havefolio/db';
 import { IntegrationRun, integrationConfiguration } from '@havefolio/test-utils';
 import type { SettingsOverview, OwnerPreferences } from '@havefolio/contracts';
 import { AuthModule } from '../src/auth/auth.module.js';
