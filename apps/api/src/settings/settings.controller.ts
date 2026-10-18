@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Header, HttpCode, Param, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Header,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiConflictResponse,
@@ -99,7 +109,7 @@ export class SettingsController {
   @ApiNotFoundResponse({ description: 'SESSION_NOT_FOUND' })
   async revokeSession(
     @CurrentOwner() owner: OwnerContext,
-    @Param('id') sessionId: string,
+    @Param('id', ParseUUIDPipe) sessionId: string,
   ): Promise<void> {
     await this.authService.revokeSession(owner, sessionId);
   }
