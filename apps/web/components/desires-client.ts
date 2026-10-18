@@ -38,6 +38,11 @@ export const desireMessages: Record<string, string> = {
   CONTRIBUTION_ALREADY_CORRECTED: 'This entry was corrected elsewhere. Reload its history.',
   CONTRIBUTION_COMMAND_REUSED: 'This correction changed. Reload before trying again.',
   GOALS_UNAVAILABLE: 'Goals are temporarily unavailable. Try again shortly.',
+  GOAL_CURRENCY_LOCKED:
+    'This goal already has contributions, so its currency stays fixed. No conversion is applied.',
+  INVALID_GOAL: 'Check the goal name, target amount, currency and optional date, then try again.',
+  INVALID_CONTRIBUTION: 'Check the amount and optional note, then try again.',
+  CONTRIBUTION_NOT_FOUND: 'This entry is no longer available. Reload its history.',
   REVIEW_EVENT_REQUIRED:
     'Change the waiting period through Decision history to preserve the recorded decisions.',
   REVIEW_COMMAND_REUSED: 'This submission changed. Reload history before trying again.',

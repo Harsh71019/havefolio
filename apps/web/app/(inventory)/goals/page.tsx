@@ -1,7 +1,12 @@
-import { Target } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
+import type { Metadata } from 'next';
+import Link from 'next/link';
 import type { ReactElement } from 'react';
-import { CollectionEmptyState } from '@/components/collection-empty-state';
+import { Button } from '@havefolio/ui/components/button';
+import { GoalsList } from '@/components/goals-list';
 import { PageHeading } from '@/components/page-heading';
+
+export const metadata: Metadata = { title: 'Goals' };
 
 export default function GoalsPage(): ReactElement {
   return (
@@ -9,14 +14,18 @@ export default function GoalsPage(): ReactElement {
       <PageHeading
         eyebrow="Goals"
         title="Keep the other possibility in view."
-        description="Compare a planned purchase with something meaningful while keeping estimated avoided spend separate from actual savings."
+        description="Progress counts only the contributions you confirm. Estimates from wants you decide against stay separate until you explicitly allocate them."
+        action={
+          <Button asChild className="min-h-11">
+            <Link href="/goals/new">
+              <PlusCircle className="mr-2 size-4" aria-hidden="true" />
+              New goal
+            </Link>
+          </Button>
+        }
       />
       <section className="mt-10" aria-label="Goals">
-        <CollectionEmptyState
-          icon={Target}
-          title="No goals yet"
-          description="Goal tracking and explicit savings allocation remain part of their own product ticket."
-        />
+        <GoalsList />
       </section>
     </main>
   );
