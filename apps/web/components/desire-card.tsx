@@ -67,7 +67,7 @@ export function DesireCard({
   return (
     <Card className="overflow-hidden transition-colors hover:border-foreground/20">
       <CardContent className="p-4 sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
             {/* Optional Thumbnail */}
             {desire.photo ? (
@@ -87,9 +87,9 @@ export function DesireCard({
             {/* Content */}
             <div className="space-y-1.5 flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-1.5">
-                <h3 className="font-semibold text-base sm:text-lg leading-snug break-words">
+                <h2 className="font-semibold text-base sm:text-lg leading-snug break-words">
                   {desire.name}
-                </h3>
+                </h2>
               </div>
 
               {/* Badges / metadata */}
@@ -146,7 +146,7 @@ export function DesireCard({
           </div>
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center gap-1 shrink-0 self-end sm:self-start pt-2 sm:pt-0">
+          <div className="flex flex-wrap items-center gap-1 self-end pt-2 xl:shrink-0 xl:self-start xl:pt-0">
             <Button asChild variant="outline" size="sm" className="min-h-11 px-3">
               <Link href={`/wants/${desire.id}/compare`}>
                 <Scale className="mr-1.5 size-3.5" aria-hidden="true" />
@@ -180,7 +180,7 @@ export function DesireCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="min-h-11 px-3 text-muted-foreground hover:text-destructive"
+                  className="min-h-11 min-w-11 px-3 text-muted-foreground hover:text-destructive"
                   aria-label={`Delete ${desire.name}`}
                 >
                   <Trash2 className="size-4" aria-hidden="true" />

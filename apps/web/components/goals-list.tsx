@@ -9,15 +9,20 @@ import { Card, CardContent } from '@havefolio/ui/components/card';
 import { Progress } from '@havefolio/ui/components/progress';
 import { Skeleton } from '@havefolio/ui/components/skeleton';
 import { CollectionEmptyState } from './collection-empty-state';
-import { DesireRequestError } from './desires-client';
+import { DesireRequestError, desireMessages } from './desires-client';
 import { listGoals } from './goals-client';
 import { goalProgressSummary, goalStatusLabels } from './goal-presentation';
 import { calendarDay } from './home-presentation';
 
 type Filter = 'all' | GoalStatus;
 const filters: readonly Filter[] = ['all', ...goalStatuses];
-export const goalMessage = (e: unknown): string =>
-  e instanceof DesireRequestError ? e.message : 'Goals could not be loaded. Try again.';
+export const goalMessage = (e: unknown): string => {
+  if (!(e instanceof DesireRequestError)) return 'Goals could not be loaded. Try again.';
+  // The shared client's status fallback names desires; an uncoded 503 here is the goals service.
+  if (e.status === 503 && !(e.code in desireMessages))
+    return desireMessages.GOALS_UNAVAILABLE ?? e.message;
+  return e.message;
+};
 
 export function GoalCard({ goal }: Readonly<{ goal: Goal }>): ReactElement {
   const view = goalProgressSummary(goal);
@@ -29,7 +34,7 @@ export function GoalCard({ goal }: Readonly<{ goal: Goal }>): ReactElement {
           <h2 className="min-w-0 text-lg font-semibold break-words">
             <Link
               href={`/goals/${goal.id}`}
-              className="underline-offset-4 hover:underline focus-visible:underline"
+              className="inline-flex min-h-11 items-center underline-offset-4 hover:underline focus-visible:underline"
             >
               {goal.name}
             </Link>
@@ -120,7 +125,7 @@ export function GoalsList(): ReactElement {
             key={f}
             type="button"
             size="sm"
-            className="min-h-11"
+            className="min-h-11 min-w-11"
             variant={filter === f ? 'secondary' : 'outline'}
             aria-pressed={filter === f}
             onClick={() => {

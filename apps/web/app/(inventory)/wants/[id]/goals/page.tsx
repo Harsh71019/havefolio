@@ -17,7 +17,10 @@ export default async function DesireGoalsPage({
     notFound();
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8 sm:py-12">
-      <Link className="text-sm underline underline-offset-4" href="/wants">
+      <Link
+        className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
+        href="/wants"
+      >
         Back to Wants
       </Link>
       <div className="mt-4 mb-8">

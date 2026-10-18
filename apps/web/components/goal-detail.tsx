@@ -40,6 +40,7 @@ import {
   goalStatusLabels,
 } from './goal-presentation';
 import { goalMessage } from './goals-list';
+import { PageLoadFailure } from './page-load-failure';
 import { calendarDay } from './home-presentation';
 import { amountEntryToMinor, minorToAmountEntry } from './money-entry';
 
@@ -268,12 +269,18 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
   if (loading) return <p role="status">Loading goal…</p>;
   if (loadError || !goal)
     return (
-      <div role="alert" className="space-y-3">
-        <p>{loadError || 'This goal is unavailable.'}</p>
-        <Link className="underline" href="/goals">
-          Back to Goals
-        </Link>
-      </div>
+      <PageLoadFailure
+        heading="Goal details"
+        message={loadError || 'This goal is unavailable.'}
+        onRetry={() =>
+          reload().then(
+            () => setLoadError(''),
+            (e: unknown) => setLoadError(goalMessage(e)),
+          )
+        }
+        backHref="/goals"
+        backLabel="Back to Goals"
+      />
     );
 
   const view = goalProgressSummary(goal);
@@ -291,7 +298,10 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
 
   return (
     <div className="space-y-6 break-words">
-      <Link className="text-sm underline underline-offset-4" href="/goals">
+      <Link
+        className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
+        href="/goals"
+      >
         Back to Goals
       </Link>
       <header className="mt-2 flex flex-wrap items-start justify-between gap-4">
@@ -319,7 +329,9 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
 
       <Card>
         <CardHeader>
-          <CardTitle>Confirmed progress</CardTitle>
+          <CardTitle>
+            <h2>Confirmed progress</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {view.bar === null ? null : (
@@ -348,7 +360,9 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
 
       <Card>
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>
+            <h2>Details</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-3 sm:grid-cols-[10rem_1fr]">
@@ -370,7 +384,9 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
 
       <Card>
         <CardHeader>
-          <CardTitle>Contribution history</CardTitle>
+          <CardTitle>
+            <h2>Contribution history</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
@@ -462,7 +478,9 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
 
       <Card>
         <CardHeader>
-          <CardTitle>Manage goal</CardTitle>
+          <CardTitle>
+            <h2>Manage goal</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           {transitions.map((s) => (
