@@ -11,7 +11,9 @@ PER-34 settings, PER-30 goals, PER-31 allocations, PER-56 merchants,
 PER-60 explicit LAN authentication and PER-37 security hardening are merged.
 PER-32 goals screens are now merged through PR #47; the implementation includes current
 main `cc6f076`. PER-39 contract/failure-boundary coverage is also reconciled from
-main `438becd`; recheck main before final handoff.
+main `438becd`, followed by PER-36 accessibility/resilience from main `4623047`.
+The new privacy controls retain keyboard focus and meet the merged 44-pixel touch-target
+contract. Recheck main before final handoff.
 Existing authentication origin/cookie policies must remain intact.
 
 ## Proposed export contract

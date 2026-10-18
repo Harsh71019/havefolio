@@ -142,10 +142,16 @@ export function PrivacyControls(): ReactElement {
           document files are downloaded separately from their items. Keep your download private.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" disabled={busy || !!status} onClick={() => void download()}>
+          <Button
+            className="min-h-11 min-w-11"
+            variant="outline"
+            disabled={busy || !!status}
+            onClick={() => void download()}
+          >
             Download private data
           </Button>
           <Button
+            className="min-h-11 min-w-11"
             variant="destructive"
             disabled={busy || !!status}
             ref={deleteTrigger}
@@ -178,12 +184,13 @@ export function PrivacyControls(): ReactElement {
           backup erasure.
         </p>
         <details>
-          <summary className="cursor-pointer text-sm">
+          <summary className="min-h-11 cursor-pointer py-3 text-sm">
             Check deletion status or recover with a saved receipt
           </summary>
           <div className="mt-3 space-y-3">
             <Label htmlFor="deletion-receipt">Status receipt (keep private)</Label>
             <Input
+              className="min-h-11"
               id="deletion-receipt"
               type="password"
               value={receipt}
@@ -195,6 +202,7 @@ export function PrivacyControls(): ReactElement {
               browser data. It grants status access only and expires 30 days after completion.
             </p>
             <Button
+              className="min-h-11 min-w-11"
               variant="outline"
               disabled={busy || !/^[a-f0-9]{64}$/.test(receipt)}
               onClick={() => void refresh()}
@@ -220,6 +228,7 @@ export function PrivacyControls(): ReactElement {
           }}
         >
           <AlertDialogContent
+            className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
             onCloseAutoFocus={(event) => {
               event.preventDefault();
               (status ? deletionStatus.current : deleteTrigger.current)?.focus();
@@ -237,6 +246,7 @@ export function PrivacyControls(): ReactElement {
               <div className="space-y-2">
                 <Label htmlFor="delete-password">Current password</Label>
                 <Input
+                  className="min-h-11"
                   id="delete-password"
                   type="password"
                   required
@@ -250,6 +260,7 @@ export function PrivacyControls(): ReactElement {
               <div className="space-y-2">
                 <Label htmlFor="delete-confirmation">Type DELETE MY ACCOUNT to confirm</Label>
                 <Input
+                  className="min-h-11"
                   id="delete-confirmation"
                   autoComplete="off"
                   required
@@ -264,8 +275,11 @@ export function PrivacyControls(): ReactElement {
                 </p>
               ) : null}
               <AlertDialogFooter>
-                <AlertDialogCancel disabled={busy}>Keep account</AlertDialogCancel>
+                <AlertDialogCancel className="min-h-11 min-w-11" disabled={busy}>
+                  Keep account
+                </AlertDialogCancel>
                 <Button
+                  className="min-h-11 min-w-11"
                   variant="destructive"
                   type="submit"
                   disabled={busy || !password || confirmation !== 'DELETE MY ACCOUNT'}
