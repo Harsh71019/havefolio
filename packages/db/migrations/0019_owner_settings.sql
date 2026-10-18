@@ -11,7 +11,7 @@ CREATE TABLE "owner_settings" (
 	CONSTRAINT "owner_settings_times_check" CHECK (isfinite("owner_settings"."created_at") and isfinite("owner_settings"."updated_at") and "owner_settings"."created_at" <= "owner_settings"."updated_at")
 );
 --> statement-breakpoint
-ALTER TABLE "owner_settings" ADD CONSTRAINT "owner_settings_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "owner_settings" ADD CONSTRAINT "owner_settings_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE cascade ON UPDATE no action;
 --> statement-breakpoint
 ALTER TABLE "owner_settings" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY owner_settings_policy ON "owner_settings"
