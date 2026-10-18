@@ -85,3 +85,33 @@ test('optional ntfy delivery requires a safe fixed endpoint', () => {
     );
   }
 });
+
+test('LAN HTTP opt-in is exact and limited to private IPv4 origins', () => {
+  assert.equal(validateApiEnvironment({}).AUTH_LAN_HTTP_ORIGIN, undefined);
+  for (const origin of [
+    'http://192.168.0.226:3020',
+    'http://10.0.0.1',
+    'http://172.16.0.1:3020',
+    'http://172.31.255.254:3020',
+  ]) {
+    assert.equal(
+      validateApiEnvironment({ AUTH_LAN_HTTP_ORIGIN: origin }).AUTH_LAN_HTTP_ORIGIN,
+      origin,
+    );
+  }
+  for (const origin of [
+    'http://8.8.8.8',
+    'http://localhost:3020',
+    'http://127.0.0.1:3020',
+    'http://172.32.0.1',
+    'http://192.168.0.226:3020/',
+    'http://192.168.0.226:3020/path',
+    'http://192.168.0.226:3020?x=1',
+    'http://192.168.0.226:3020#x',
+    'http://user:password@192.168.0.226:3020',
+    'https://192.168.0.226:3020',
+    'http://192.168.0.226.example.test:3020',
+  ]) {
+    assert.throws(() => validateApiEnvironment({ AUTH_LAN_HTTP_ORIGIN: origin }));
+  }
+});
