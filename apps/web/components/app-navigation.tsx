@@ -35,7 +35,11 @@ export function AppNavigation(): ReactElement {
 
   function isItemActive(href: string): boolean {
     if (!pathname) return false;
-    return pathname === href || (href === '/settings' && pathname.startsWith('/settings'));
+    return (
+      pathname === href ||
+      (href === '/settings' && pathname.startsWith('/settings')) ||
+      (href === '/goals' && pathname.startsWith('/goals/'))
+    );
   }
 
   return (

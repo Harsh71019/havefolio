@@ -302,3 +302,4 @@ See [private Cloudinary operations](../operations/cloudinary-media.md) and [ADR-
 - [Authoritative recorded spending](spending-aggregation.md): PER-20 scopes, dimensions, date disclosures and downstream integration.
 
 - [Optional demo inventory and onboarding](demo-onboarding.md): PER-19 durable identity, spending exclusion, read-only examples, private milestones and safe removal.
+- [PER-32 goals and money-alternatives screens](goals-screens.md): goal list/detail/forms over the PER-30 API, confirmed-ledger history with retry-safe commands, and hypothetical want-versus-goal comparison that defers to PER-31 allocation.

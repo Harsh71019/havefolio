@@ -926,6 +926,54 @@ export const allocationErrorCodes = [
   'STALE_DECLINED_OUTCOME',
   'ALLOCATION_ESTIMATE_REQUIRED',
 ] as const;
+/** PER-30 goal wire shapes consumed by the PER-32 screens. Money is exact minor-unit strings. */
+export const goalStatuses = ['active', 'completed', 'archived'] as const;
+export type GoalStatus = (typeof goalStatuses)[number];
+export interface Goal {
+  id: string;
+  name: string;
+  targetMinor: string;
+  currency: string;
+  /** Calendar `YYYY-MM-DD`; never timezone-shifted. */
+  targetDate: string | null;
+  notes: string | null;
+  status: GoalStatus;
+  revision: number;
+  /** Effective confirmed ledger leaves only; may exceed the target and the bigint range. */
+  progressMinor: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface GoalsPage {
+  items: Goal[];
+  nextAfter: string | null;
+}
+export type GoalContribution = AllocationContribution;
+export interface GoalContributionsPage {
+  items: GoalContribution[];
+  nextBefore: number | null;
+}
+export interface CreateGoalRequest {
+  name: string;
+  targetMinor: string;
+  currency: string;
+  targetDate?: string | null;
+  notes?: string | null;
+}
+export interface PatchGoalRequest extends Partial<CreateGoalRequest> {
+  revision: number;
+  status?: GoalStatus;
+}
+/** Owner confirmation only; it never moves money. Retry the identical body after ambiguity. */
+export interface CreateGoalContributionRequest {
+  commandId: string;
+  revision: number;
+  kind: 'contribution' | 'correction' | 'reversal';
+  amountMinor: string;
+  currency: string;
+  supersedesId?: string;
+  note?: string;
+}
 /** PER-33: one owner-scoped Home summary, `GET /api/v1/home`. Every list is bounded. */
 export const homeLimits = { recentItems: 4, desires: 3, goals: 3 } as const;
 export interface HomeDesireEntry {
