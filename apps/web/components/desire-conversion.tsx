@@ -346,6 +346,7 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
   if (!state)
     return (
       <div className="space-y-4">
+        <h1 className="text-2xl font-semibold">Add to your inventory</h1>
         <Alert variant="destructive">
           <AlertTitle>Could not load this want</AlertTitle>
           <AlertDescription>{loadError}</AlertDescription>
@@ -370,7 +371,10 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
 
   return (
     <div className="space-y-6">
-      <Link href={historyHref} className="underline underline-offset-4">
+      <Link
+        href={historyHref}
+        className="inline-flex min-h-11 items-center underline underline-offset-4"
+      >
         Back to decision history
       </Link>
       <header className="space-y-2">
@@ -517,10 +521,12 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
                       id={`${formId}-link`}
                       checked={includeLink}
                       onCheckedChange={(v) => setIncludeLink(v === true)}
-                      className="mt-1"
+                      className="mt-3.5"
                     />
                     <div className="space-y-1">
-                      <Label htmlFor={`${formId}-link`}>Add the product link to notes</Label>
+                      <Label htmlFor={`${formId}-link`} className="min-h-11">
+                        Add the product link to notes
+                      </Label>
                       <p className="break-all text-sm text-muted-foreground">{s.productUrl}</p>
                     </div>
                   </div>
@@ -531,10 +537,12 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
                       id={`${formId}-photo`}
                       checked={copyPhoto}
                       onCheckedChange={(v) => setCopyPhoto(v === true)}
-                      className="mt-1"
+                      className="mt-3.5"
                     />
                     <div className="space-y-2">
-                      <Label htmlFor={`${formId}-photo`}>Copy the want’s photo to the item</Label>
+                      <Label htmlFor={`${formId}-photo`} className="min-h-11">
+                        Copy the want’s photo to the item
+                      </Label>
                       <p className="text-sm text-muted-foreground">
                         A private copy is made. The want keeps its own photo.
                       </p>
@@ -583,11 +591,13 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
                   >
                     <div className="flex min-h-11 items-center gap-3">
                       <RadioGroupItem value="known" id={`${formId}-price-known`} />
-                      <Label htmlFor={`${formId}-price-known`}>I know the amount</Label>
+                      <Label htmlFor={`${formId}-price-known`} className="min-h-11 flex-1">
+                        I know the amount
+                      </Label>
                     </div>
                     <div className="flex min-h-11 items-center gap-3">
                       <RadioGroupItem value="unknown" id={`${formId}-price-unknown`} />
-                      <Label htmlFor={`${formId}-price-unknown`}>
+                      <Label htmlFor={`${formId}-price-unknown`} className="min-h-11 flex-1">
                         I don’t know (left out of spending totals)
                       </Label>
                     </div>
@@ -643,7 +653,9 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
                     {(Object.keys(precisionLabels) as DatePrecision[]).map((p) => (
                       <div key={p} className="flex min-h-11 items-center gap-3">
                         <RadioGroupItem value={p} id={`${formId}-precision-${p}`} />
-                        <Label htmlFor={`${formId}-precision-${p}`}>{precisionLabels[p]}</Label>
+                        <Label htmlFor={`${formId}-precision-${p}`} className="min-h-11 flex-1">
+                          {precisionLabels[p]}
+                        </Label>
                       </div>
                     ))}
                   </RadioGroup>

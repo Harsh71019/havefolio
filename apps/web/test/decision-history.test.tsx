@@ -138,8 +138,11 @@ describe('PER-28 accessible decision history', () => {
     vi.mocked(readReviews).mockRejectedValueOnce(new Error('unavailable'));
     render(<DecisionHistory desireId={d.id} />);
     await screen.findByRole('alert');
-    await userEvent.click(screen.getByRole('button', { name: 'Retry loading' }));
-    await screen.findByRole('heading', { name: 'Decision history' });
+    // PER-36: the failed page keeps its level-one heading and a 44 px way back.
+    expect(screen.getByRole('heading', { level: 1, name: 'Decision history' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Wants' })).toHaveAttribute('href', '/wants');
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await screen.findByText('No decisions recorded yet.');
   });
   it('validates delayed dates before submitting', async () => {
     await load();

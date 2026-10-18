@@ -549,7 +549,10 @@ describe('DesiresList & DesireCard components', () => {
     expect(screen.getByText('Winter Running Jacket')).toBeInTheDocument();
     expect(screen.getByText('High-end Mechanical Keyboard')).toBeInTheDocument();
 
-    const feed = screen.getByRole('feed', { name: /Desires list/i });
+    // PER-36: a plain labelled list; role="feed" required article children it never had.
+    const feed = screen.getByRole('list', { name: /Desires list/i });
+    expect(within(feed).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(feed).getAllByRole('heading', { level: 2 })).toHaveLength(3);
 
     // Check classification badges
     expect(within(feed).getByText('Want')).toBeInTheDocument();

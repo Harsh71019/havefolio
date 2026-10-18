@@ -66,7 +66,9 @@ export function PrivatePhoto({
         )}
       >
         <ImageOffIcon aria-hidden="true" className="size-6" />
-        <p {...(announceFailure ? { role: 'alert' } : {})}>{failedLabel}</p>
+        <p className="text-foreground" {...(announceFailure ? { role: 'alert' } : {})}>
+          {failedLabel}
+        </p>
         {onRetry ? (
           <Button className="min-h-11" onClick={onRetry} size="sm" type="button" variant="outline">
             <RotateCcwIcon aria-hidden="true" />

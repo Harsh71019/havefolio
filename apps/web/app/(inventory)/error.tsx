@@ -22,7 +22,9 @@ export default function ErrorPage({
     <main className="grid min-h-[70svh] place-items-center px-5 py-12">
       <Card className="w-full max-w-xl">
         <CardHeader>
-          <CardTitle>We could not open this page.</CardTitle>
+          <CardTitle>
+            <h1>We could not open this page.</h1>
+          </CardTitle>
           <CardDescription>
             Your data has not been changed. Try loading the page again.
           </CardDescription>

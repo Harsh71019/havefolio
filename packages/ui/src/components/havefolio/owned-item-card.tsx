@@ -49,7 +49,7 @@ export function OwnedItemCard({
         {media ?? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm">
             <ImageIcon aria-hidden="true" className="size-7" />
-            <span>No photo yet</span>
+            <span className="text-foreground">No photo yet</span>
           </div>
         )}
       </div>

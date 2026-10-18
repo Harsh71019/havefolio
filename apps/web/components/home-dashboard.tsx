@@ -352,7 +352,7 @@ function Wants({ summary: s }: Readonly<{ summary: HomeSummary }>): ReactElement
             <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <Link
                 href={`/wants/${d.id}/compare`}
-                className="min-w-0 font-medium break-words hover:underline"
+                className="inline-flex min-h-11 min-w-0 items-center font-medium break-words hover:underline"
               >
                 {d.name}
               </Link>

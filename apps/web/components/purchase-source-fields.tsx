@@ -171,22 +171,34 @@ export function PurchaseSourceFields({
                 : 'No saved merchants yet. Manual entry is available below.')}
       </p>
       {page.hasMore ? (
-        <Button type="button" variant="outline" disabled={loading} onClick={() => void more()}>
+        <Button
+          className="min-h-11"
+          type="button"
+          variant="outline"
+          disabled={loading}
+          onClick={() => void more()}
+        >
           Load more merchants
         </Button>
       ) : null}
       {error ? (
         <div role="alert" className="grid gap-2 text-sm">
           <p>{error}</p>
-          <Button type="button" variant="outline" onClick={() => setRetry((v) => v + 1)}>
+          <Button
+            className="min-h-11"
+            type="button"
+            variant="outline"
+            onClick={() => setRetry((v) => v + 1)}
+          >
             Retry merchants
           </Button>
           <p>You can keep the merchant Not recorded and save the item.</p>
         </div>
       ) : null}
-      <div className="flex flex-wrap gap-2" aria-label="Common merchant suggestions">
+      <div role="group" className="flex flex-wrap gap-2" aria-label="Common merchant suggestions">
         {['Amazon', 'Flipkart'].map((displayName) => (
           <Button
+            className="min-h-11"
             key={displayName}
             type="button"
             variant="outline"
@@ -197,12 +209,13 @@ export function PurchaseSourceFields({
         ))}
       </div>
       <details className="grid min-w-0 gap-3">
-        <summary className="cursor-pointer py-2 text-sm focus-visible:outline-2">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm leading-5 focus-visible:outline-2">
           Create a custom merchant
         </summary>
         <div className="grid gap-3 py-3">
           <Label htmlFor={`${id}-custom`}>Merchant name</Label>
           <Input
+            className="min-h-11"
             id={`${id}-custom`}
             value={customName}
             onChange={(e) => setCustomName(e.target.value)}
@@ -211,6 +224,7 @@ export function PurchaseSourceFields({
           />
           <Label htmlFor={`${id}-host`}>Website host (optional)</Label>
           <Input
+            className="min-h-11"
             id={`${id}-host`}
             value={host}
             onChange={(e) => setHost(e.target.value)}
@@ -222,6 +236,7 @@ export function PurchaseSourceFields({
             Leave the host empty for an offline seller.
           </p>
           <Button
+            className="min-h-11"
             type="button"
             variant="outline"
             disabled={!customName.trim()}
@@ -238,6 +253,7 @@ export function PurchaseSourceFields({
       {merchant ? (
         <>
           <Button
+            className="min-h-11"
             type="button"
             variant="ghost"
             onClick={() => {
@@ -256,6 +272,7 @@ export function PurchaseSourceFields({
               </p>
               <Label htmlFor={`${id}-rename`}>Correct merchant name</Label>
               <Input
+                className="min-h-11"
                 id={`${id}-rename`}
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
@@ -263,12 +280,14 @@ export function PurchaseSourceFields({
               />
               <Label htmlFor={`${id}-correct-host`}>Correct website host</Label>
               <Input
+                className="min-h-11"
                 id={`${id}-correct-host`}
                 value={host}
                 onChange={(e) => setHost(e.target.value)}
                 maxLength={253}
               />
               <Button
+                className="min-h-11"
                 type="button"
                 variant="outline"
                 onClick={() =>
@@ -285,6 +304,7 @@ export function PurchaseSourceFields({
                 Save merchant correction
               </Button>
               <Button
+                className="min-h-11"
                 type="button"
                 variant="outline"
                 onClick={() =>

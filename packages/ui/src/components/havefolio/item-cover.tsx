@@ -43,7 +43,7 @@ export function ItemCover({
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
           <ImageIcon aria-hidden="true" className="size-7" />
-          <span>{emptyLabel}</span>
+          <span className="text-foreground">{emptyLabel}</span>
         </div>
       )}
     </div>
