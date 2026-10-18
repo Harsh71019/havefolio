@@ -663,6 +663,9 @@ export const desireErrorCodes = [
   'DESIRE_PHOTO_LIMIT',
   'DESIRE_MEDIA_PENDING',
   'DESIRES_UNAVAILABLE',
+  'REVIEW_COMMAND_REUSED',
+  'REVIEW_CORRECTION_REQUIRED',
+  'REVIEW_EVENT_REQUIRED',
   ...desireMatchErrorCodes,
   ...desireConversionErrorCodes,
 ] as const;
@@ -1081,3 +1084,5 @@ export const settingsErrorCodes = [
 ] as const;
 
 export type SettingsErrorCode = (typeof settingsErrorCodes)[number];
+
+export * from './openapi-compatibility.js';

@@ -15,6 +15,9 @@ import {
 import {
   matchRelevanceValues,
   matchSources,
+  itemStatuses,
+  itemConditions,
+  itemFrequencies,
   type MatchRelevance,
   type MatchSource,
   type DesireMatchItemSummary,
@@ -174,13 +177,13 @@ export class DesireMatchItemSummaryDto implements DesireMatchItemSummary {
   @ApiProperty({ type: String, nullable: true })
   model!: string | null;
 
-  @ApiProperty()
+  @ApiProperty({ enum: itemStatuses })
   ownershipStatus!: ItemStatus;
 
-  @ApiProperty()
+  @ApiProperty({ enum: itemConditions })
   condition!: ItemCondition;
 
-  @ApiProperty()
+  @ApiProperty({ enum: itemFrequencies })
   useFrequency!: ItemFrequency;
 
   @ApiProperty({ type: String, nullable: true })
