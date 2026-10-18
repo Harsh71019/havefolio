@@ -1,11 +1,28 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { AppNavigation } from '../components/app-navigation';
 
-vi.mock('next/navigation', () => ({ usePathname: (): string => '/store' }));
+let pathname = '/store';
+vi.mock('next/navigation', () => ({ usePathname: (): string => pathname }));
 
 describe('primary navigation', () => {
+  afterEach(() => {
+    pathname = '/store';
+  });
+  it('keeps the parent destination current on nested journeys in both surfaces (PER-36)', () => {
+    pathname = '/wants/d1000000-0000-4000-a000-000000000001/compare';
+    render(<AppNavigation />);
+    for (const navigation of screen.getAllByRole('navigation', { name: 'Primary' })) {
+      expect(within(navigation).getByRole('link', { name: 'Wants' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+      expect(within(navigation).getByRole('link', { name: 'Home' })).not.toHaveAttribute(
+        'aria-current',
+      );
+    }
+  });
   it('labels both responsive navigation surfaces and exposes the current page', () => {
     render(<AppNavigation />);
     const navigations = screen.getAllByRole('navigation', { name: 'Primary' });
