@@ -31,7 +31,7 @@ describe('primary navigation', () => {
       const links = within(navigation).getAllByRole('link');
       expect(links.map((link) => link.getAttribute('href'))).toEqual(
         index === 0
-          ? ['/', '/store', '/insights', '/wants', '/goals', '/settings']
+          ? ['/', '/store', '/insights', '/wants', '/goals', '/settings/taxonomy', '/settings']
           : ['/', '/store', '/insights', '/wants'],
       );
       expect(within(navigation).getByRole('link', { name: 'My Store' })).toHaveAttribute(
@@ -49,9 +49,34 @@ describe('primary navigation', () => {
     trigger.focus();
     await userEvent.keyboard('{Enter}');
     expect(screen.getByRole('menuitem', { name: 'Goals' })).toHaveAttribute('href', '/goals');
+    expect(screen.getByRole('menuitem', { name: 'Categories' })).toHaveAttribute(
+      'href',
+      '/settings/taxonomy',
+    );
     expect(screen.getByRole('menuitem', { name: 'Settings' })).toHaveAttribute('href', '/settings');
     await userEvent.keyboard('{Escape}');
     expect(trigger).toHaveFocus();
+  });
+  it('highlights Categories exclusively on taxonomy, and Settings on merchants', () => {
+    pathname = '/settings/taxonomy';
+    const { unmount } = render(<AppNavigation />);
+    const desktop = screen.getAllByRole('navigation', { name: 'Primary' })[0]!;
+    expect(within(desktop).getByRole('link', { name: 'Categories' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(desktop).getByRole('link', { name: 'Settings' })).not.toHaveAttribute(
+      'aria-current',
+    );
+    unmount();
+    pathname = '/settings/merchants';
+    render(<AppNavigation />);
+    expect(
+      within(screen.getAllByRole('navigation', { name: 'Primary' })[0]!).getByRole('link', {
+        name: 'Settings',
+      }),
+    ).toHaveAttribute('aria-current', 'page');
+    pathname = '/store';
   });
   it('lets keyboard users reach the primary links', async () => {
     const user = userEvent.setup();
