@@ -70,6 +70,7 @@ import {
   type DecisionActionType,
   type FormattedMatchedItem,
 } from './desire-compare-presentation';
+import { randomId } from './random-id';
 
 const errorMessage = (error: unknown): string => {
   if (error instanceof DesireRequestError) return error.message;
@@ -340,7 +341,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
         isResolved && reviewPage?.currentEventId ? reviewPage.currentEventId : undefined;
 
       pendingCommandRef.current = {
-        commandId: crypto.randomUUID(),
+        commandId: randomId(),
         revision: desire.revision,
         outcome,
         ...(noteContent ? { note: noteContent } : {}),

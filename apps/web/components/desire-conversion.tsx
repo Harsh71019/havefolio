@@ -59,6 +59,7 @@ import {
 } from './desires-client';
 import { formatLikelyPrice } from './desire-presentation';
 import { amountEntryToMinor } from './money-entry';
+import { randomId } from './random-id';
 
 const statusLabels: Record<ItemStatus, string> = {
   owned: 'Currently owned',
@@ -258,7 +259,7 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
     setErrors(e);
     if (Object.keys(e).length) return null;
     return {
-      commandId: crypto.randomUUID(),
+      commandId: randomId(),
       boughtEventId: s.boughtEventId!,
       copyPhoto: copyPhoto && s.suggestions.photo !== null,
       item: {
