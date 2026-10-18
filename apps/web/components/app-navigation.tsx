@@ -9,6 +9,7 @@ import {
   Target,
   ChartNoAxesCombined,
   Ellipsis,
+  Tags,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -27,6 +28,7 @@ const navigationItems = [
   { href: '/insights', icon: ChartNoAxesCombined, label: 'Insights' },
   { href: '/wants', icon: Heart, label: 'Wants' },
   { href: '/goals', icon: Target, label: 'Goals' },
+  { href: '/settings/taxonomy', icon: Tags, label: 'Categories' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ] as const;
 
@@ -35,6 +37,11 @@ export function AppNavigation(): ReactElement {
 
   function isItemActive(href: string): boolean {
     if (!pathname) return false;
+    if (
+      href === '/settings' &&
+      (pathname === '/settings/taxonomy' || pathname.startsWith('/settings/taxonomy/'))
+    )
+      return false;
     return pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
   }
 
