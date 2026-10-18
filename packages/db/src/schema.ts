@@ -1107,6 +1107,35 @@ export const goalContributions = pgTable(
   ],
 );
 
+export const ownerSettings = pgTable(
+  'owner_settings',
+  {
+    ownerId: uuid('owner_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    defaultCurrency: text('default_currency').notNull().default('INR'),
+    notifyInApp: boolean('notify_in_app').notNull().default(true),
+    notifyNtfy: boolean('notify_ntfy').notNull().default(true),
+    revision: integer('revision').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      'owner_settings_currency_check',
+      sql`${t.defaultCurrency} in (${sql.join(
+        currencyCodes.map((c) => sql.raw("'" + c + "'")),
+        sql`, `,
+      )})`,
+    ),
+    check('owner_settings_revision_check', sql`${t.revision} >= 1`),
+    check(
+      'owner_settings_times_check',
+      sql`isfinite(${t.createdAt}) and isfinite(${t.updatedAt}) and ${t.createdAt} <= ${t.updatedAt}`,
+    ),
+  ],
+);
+
 /** Only links, never source/goal snapshots. Deleted goals remain unavailable; desire erasure purges links. */
 export const desireGoalAllocations = pgTable(
   'desire_goal_allocations',

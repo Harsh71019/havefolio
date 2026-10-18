@@ -27,11 +27,16 @@ const navigationItems = [
   { href: '/insights', icon: ChartNoAxesCombined, label: 'Insights' },
   { href: '/wants', icon: Heart, label: 'Wants' },
   { href: '/goals', icon: Target, label: 'Goals' },
-  { href: '/settings/taxonomy', icon: Settings, label: 'Settings' },
+  { href: '/settings', icon: Settings, label: 'Settings' },
 ] as const;
 
 export function AppNavigation(): ReactElement {
   const pathname = usePathname();
+
+  function isItemActive(href: string): boolean {
+    if (!pathname) return false;
+    return pathname === href || (href === '/settings' && pathname.startsWith('/settings'));
+  }
 
   return (
     <>
@@ -46,7 +51,7 @@ export function AppNavigation(): ReactElement {
 
         <nav aria-label="Primary" className="mt-10 grid gap-2">
           {navigationItems.map((item) => {
-            const active = pathname === item.href;
+            const active = isItemActive(item.href);
             const Icon = item.icon;
 
             return (
@@ -97,13 +102,13 @@ export function AppNavigation(): ReactElement {
           <DropdownMenuTrigger asChild>
             <Button
               variant={
-                navigationItems.slice(4).some((item) => pathname === item.href)
+                navigationItems.slice(4).some((item) => isItemActive(item.href))
                   ? 'secondary'
                   : 'ghost'
               }
               className="h-14 flex-col gap-1 px-1 text-xs"
               aria-label={
-                navigationItems.slice(4).some((item) => pathname === item.href)
+                navigationItems.slice(4).some((item) => isItemActive(item.href))
                   ? 'More destinations, current page'
                   : 'More destinations'
               }
@@ -118,10 +123,11 @@ export function AppNavigation(): ReactElement {
             className="min-w-48 motion-reduce:animate-none motion-reduce:transition-none"
           >
             {navigationItems.slice(4).map((item) => {
+              const active = isItemActive(item.href);
               const Icon = item.icon;
               return (
                 <DropdownMenuItem key={item.href} asChild className="min-h-11">
-                  <Link href={item.href} aria-current={pathname === item.href ? 'page' : undefined}>
+                  <Link href={item.href} aria-current={active ? 'page' : undefined}>
                     <Icon aria-hidden="true" className="size-4" />
                     {item.label}
                   </Link>

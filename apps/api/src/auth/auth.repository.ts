@@ -182,6 +182,86 @@ export class AuthRepository implements OnModuleDestroy {
       );
     }, true);
   }
+  async listSessions(
+    ownerId: string,
+    currentSessionId?: string,
+  ): Promise<
+    Array<{
+      id: string;
+      createdAt: string;
+      lastUsedAt: string;
+      idleExpiresAt: string;
+      isCurrent: boolean;
+    }>
+  > {
+    return this.run(async (client) => {
+      const rows = (
+        await client.query<{
+          id: string;
+          created_at: Date;
+          last_used_at: Date;
+          idle_expires_at: Date;
+        }>(
+          `SELECT id, created_at, last_used_at, idle_expires_at
+           FROM auth_sessions
+           WHERE owner_id = $1 AND ${ACTIVE}
+           ORDER BY last_used_at DESC, created_at DESC`,
+          [ownerId],
+        )
+      ).rows;
+      return rows.map((row) => ({
+        id: row.id,
+        createdAt: row.created_at.toISOString(),
+        lastUsedAt: row.last_used_at.toISOString(),
+        idleExpiresAt: row.idle_expires_at.toISOString(),
+        isCurrent: row.id === currentSessionId,
+      }));
+    });
+  }
+  async revokeSession(ownerId: string, sessionId: string): Promise<boolean> {
+    return this.run(async (client) => {
+      const result = await client.query(
+        `UPDATE auth_sessions
+         SET revoked_at = clock_timestamp()
+         WHERE owner_id = $1 AND id = $2 AND revoked_at IS NULL`,
+        [ownerId, sessionId],
+      );
+      return (result.rowCount ?? 0) > 0;
+    });
+  }
+  async revokeOtherSessions(ownerId: string, currentSessionId: string): Promise<number> {
+    return this.run(async (client) => {
+      const result = await client.query(
+        `UPDATE auth_sessions
+         SET revoked_at = clock_timestamp()
+         WHERE owner_id = $1 AND id <> $2 AND revoked_at IS NULL`,
+        [ownerId, currentSessionId],
+      );
+      return result.rowCount ?? 0;
+    });
+  }
+  async isRegistrationLocked(): Promise<{ locked: boolean; reason: string }> {
+    return this.run(async (client) => {
+      const existing = await client.query('SELECT id FROM users WHERE email IS NOT NULL LIMIT 1');
+      if (existing.rowCount) {
+        return {
+          locked: true,
+          reason: 'Single owner configured. Additional registrations are blocked.',
+        };
+      }
+      const enabled = this.config.get<boolean>('AUTH_REGISTRATION_ENABLED', false);
+      if (!enabled) {
+        return {
+          locked: true,
+          reason: 'Registration is disabled by server configuration.',
+        };
+      }
+      return {
+        locked: false,
+        reason: 'Initial owner registration is available.',
+      };
+    });
+  }
   async onModuleDestroy(): Promise<void> {
     if (!this.closed) {
       this.closed = true;

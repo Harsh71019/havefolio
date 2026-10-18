@@ -426,5 +426,5 @@ test('mobile More menu preserves Goals and Settings keyboard access', async ({ p
     'page',
   );
   await page.getByRole('menuitem', { name: 'Settings', exact: true }).click();
-  await expect(page).toHaveURL(/\/settings\/taxonomy$/);
+  await expect(page).toHaveURL(/\/settings$/);
 });
