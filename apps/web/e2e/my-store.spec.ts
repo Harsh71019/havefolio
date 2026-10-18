@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { emptyHomeFixture } from '../test/home-fixture';
 
 test.beforeEach(async ({ page }) => {
   // These tests isolate browse behaviour; PER-19's dedicated journeys cover welcome help.
@@ -128,6 +129,8 @@ async function mock(
   options: { failImages?: boolean } = {},
 ): Promise<void> {
   await page.route('**/api/v1/taxonomy**', (route) => route.fulfill({ json: taxonomy }));
+  // PER-33: navigating through Home requests its summary; keep that hop free of proxy errors.
+  await page.route('**/api/v1/home', (route) => route.fulfill({ json: emptyHomeFixture }));
   await page.route(/\/api\/v1\/items(\?.*)?$/, (route) =>
     route.fulfill({ json: { items, nextCursor: null, hasMore: false } }),
   );

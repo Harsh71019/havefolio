@@ -872,6 +872,53 @@ export interface ConvertDesireRequest {
   item: ConvertDesireItemRequest;
 }
 
+/** PER-33: one owner-scoped Home summary, `GET /api/v1/home`. Every list is bounded. */
+export const homeLimits = { recentItems: 4, desires: 3, goals: 3 } as const;
+export interface HomeDesireEntry {
+  id: string;
+  name: string;
+  effectiveState: Extract<DesireEffectiveState, 'considering' | 'waiting' | 'ready_for_review'>;
+  reviewAt: string | null;
+}
+export interface HomeGoalEntry {
+  id: string;
+  name: string;
+  /** Exact minor-unit strings in the goal currency; never converted or combined. */
+  targetMinor: string;
+  progressMinor: string;
+  currency: string;
+  targetDate: string | null;
+}
+/** Owner-declared signals only: ownership, condition and use frequency, plus explicit "used" events. */
+export interface HomeRediscoveryItem {
+  id: string;
+  name: string;
+  condition: ItemCondition;
+  useFrequency: Extract<ItemFrequency, 'rarely' | 'never'>;
+  /** Latest explicit "used again" event, or null when no use has been recorded. */
+  lastUsedAt: string | null;
+  cover: ItemCoverSummary | null;
+}
+export interface HomeSummary {
+  inventory: {
+    /** Currently owned genuine items, matching current-owned spending membership. */
+    ownedCount: number;
+    /** Owned sample items; disclosed separately, never added to ownedCount. */
+    sampleOwnedCount: number;
+  };
+  /** The authoritative current-owned overall spending report, unchanged. */
+  spending: SpendingReport;
+  recentItems: ItemListEntry[];
+  desires: {
+    /** Considering, waiting and ready-for-review desires. */
+    activeCount: number;
+    readyForReviewCount: number;
+    items: HomeDesireEntry[];
+  };
+  goals: { activeCount: number; items: HomeGoalEntry[] };
+  rediscovery: { eligibleCount: number; item: HomeRediscoveryItem | null };
+}
+
 export interface OwnerPreferences {
   defaultCurrency: string;
   notifyInApp: boolean;

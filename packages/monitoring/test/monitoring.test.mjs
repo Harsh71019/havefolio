@@ -57,6 +57,8 @@ test('known routes normalize UUIDs, queries and app-router templates without kee
     normalizeRoute('/api/v1/spending?categoryId=private&currency=INR'),
     '/api/v1/spending',
   );
+  assert.equal(normalizeRoute('/api/v1/home?private=1'), '/api/v1/home');
+  assert.equal(normalizeRoute('/api/v1/home/private-id'), '/unmatched');
   assert.equal(traceRate('/api/v1/health?secret=x', 0.01), 0);
   assert.equal(traceRate('/_next/static/chunk.js', 0.01), 0);
   assert.equal(traceRate('/store', 0.01), 0.01);

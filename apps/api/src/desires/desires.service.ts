@@ -17,6 +17,7 @@ import {
 } from 'node:crypto';
 import { captureFailure } from '@havefolio/monitoring/server';
 import type { PoolClient } from 'pg';
+import type { HomeSummary } from '@havefolio/contracts';
 
 import {
   deriveDesireEffectiveState,
@@ -1025,5 +1026,38 @@ export class DesiresService {
       if (err instanceof HttpException) throw err;
       throw new ServiceUnavailableException('MEDIA_STORAGE_UNAVAILABLE');
     }
+  }
+
+  /** PER-33 Home: active (considering/waiting) desires, using the list's effective-state rules. */
+  async activeSnapshot(owner: string, limit: number): Promise<HomeSummary['desires']> {
+    const now = this.clock();
+    return this.repo.transaction(owner, async (c) => {
+      const counts = await c.query<{ active: number; ready: number }>(
+        `SELECT count(*)::int AS active,
+           count(*) FILTER (WHERE status='waiting' AND review_at<=$2)::int AS ready
+         FROM desires WHERE owner_id=$1 AND status IN ('considering','waiting')`,
+        [owner, now],
+      );
+      const rows = await c.query<Pick<DesireRow, 'id' | 'name' | 'status' | 'review_at'>>(
+        `SELECT id,name,status,review_at FROM desires
+         WHERE owner_id=$1 AND status IN ('considering','waiting')
+         ORDER BY created_at DESC,id ASC LIMIT $2`,
+        [owner, limit],
+      );
+      return {
+        activeCount: counts.rows[0]!.active,
+        readyForReviewCount: counts.rows[0]!.ready,
+        items: rows.rows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          effectiveState: deriveDesireEffectiveState(
+            r.status,
+            r.review_at,
+            now,
+          ) as HomeSummary['desires']['items'][number]['effectiveState'],
+          reviewAt: r.review_at ? r.review_at.toISOString() : null,
+        })),
+      };
+    });
   }
 }
