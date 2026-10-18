@@ -1,4 +1,5 @@
 import { GoalsModule } from './goals/goals.module.js';
+import { HomeModule } from './home/home.module.js';
 import { TelemetryModule } from '@havefolio/logging';
 import { MerchantsModule } from './merchants/merchants.module.js';
 import { ItemsModule } from './items/items.module.js';
@@ -33,6 +34,7 @@ import { SettingsModule } from './settings/settings.module.js';
     GoalsModule,
     MerchantsModule,
     DesiresModule,
+    HomeModule,
     NotificationsModule,
     OperationsModule,
     MediaModule,

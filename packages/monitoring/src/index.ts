@@ -76,7 +76,7 @@ export function normalizeRoute(input: unknown): string {
   path = path.replace(/\/\([^/]+\)/g, '').replace(/\/(?:page|route)$/, '');
   if (/^\/api\/v1\/merchants(?:\/[^/]+)?$/.test(path))
     return path === '/api/v1/merchants' ? path : '/api/v1/merchants/:id';
-  if (path === '/api/v1/spending') return path;
+  if (path === '/api/v1/spending' || path === '/api/v1/home') return path;
   if (/^\/api\/v1\/desires\/[^/]+\/allocation(?:\/history)?$/.test(path))
     return path.replace(/(\/desires)\/[^/]+/, '$1/:id');
   if (/^\/wants\/[^/]+\/allocate$/.test(path)) return '/wants/:id/allocate';

@@ -7,5 +7,6 @@ import { GoalsService } from './goals.service.js';
 @Module({
   controllers: [GoalsController, AllocationsController],
   providers: [GoalsRepository, GoalsService, AllocationsService],
+  exports: [GoalsService],
 })
 export class GoalsModule {}

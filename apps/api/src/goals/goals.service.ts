@@ -292,4 +292,21 @@ export class GoalsService {
     if (!result.replay) this.emit('contribution');
     return result.event;
   }
+  /** PER-33 Home: active goals with the same confirmed-progress SQL; nearest target date first. */
+  async activeSnapshot(
+    owner: string,
+    limit: number,
+  ): Promise<{ activeCount: number; items: GoalDto[] }> {
+    return this.repo.transaction(owner, async (c) => {
+      const count = await c.query<{ n: number }>(
+        `SELECT count(*)::int AS n FROM goals WHERE owner_id=$1 AND status='active'`,
+        [owner],
+      );
+      const rows = await c.query<GoalRow>(
+        `${goalSelect} WHERE g.owner_id=$1 AND g.status='active' ORDER BY g.target_date ASC NULLS LAST,g.id LIMIT $2`,
+        [owner, limit],
+      );
+      return { activeCount: count.rows[0]!.n, items: rows.rows.map(goalMap) };
+    });
+  }
 }
