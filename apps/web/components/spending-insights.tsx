@@ -317,7 +317,9 @@ function SpendingInsightsContent(): React.JSX.Element {
                   ? 'Yearly trend'
                   : query.grouping === 'category'
                     ? 'Category totals'
-                    : 'Subcategory totals'}
+                    : query.grouping === 'subcategory'
+                      ? 'Subcategory totals'
+                      : 'Merchant totals'}
               </h2>
               <p className="text-sm leading-6 text-muted-foreground">
                 Exact tables show gross purchases, confirmed refunds and net spending. Item counts
@@ -371,6 +373,11 @@ function SpendingInsightsContent(): React.JSX.Element {
                                   <span className="font-medium">
                                     {spendingGroupName(b, query.grouping, taxonomy)}
                                   </span>
+                                  {query.grouping === 'merchant' && b.merchant?.websiteHost ? (
+                                    <p className="text-xs text-muted-foreground">
+                                      {b.merchant.websiteHost}
+                                    </p>
+                                  ) : null}
                                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
                                     {b.totalItemCount} items · {b.unknownPriceCount} unknown prices
                                     · {b.notSpendingCount} non-spending · {b.explicitZeroCount}{' '}

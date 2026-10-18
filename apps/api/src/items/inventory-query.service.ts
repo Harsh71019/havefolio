@@ -86,12 +86,16 @@ export function normalizeQuery(input: ItemsQueryDto): ItemsQueryDto {
       !['dated', 'spanningRange', 'unknownDate'].includes(q.spendingDateBucket)
     )
       invalid();
-    if (q.spendingUnassigned && !['category', 'subcategory'].includes(q.spendingUnassigned))
+    if (
+      q.spendingUnassigned &&
+      !['category', 'subcategory', 'merchant'].includes(q.spendingUnassigned)
+    )
       invalid();
     if (q.spendingYear && (!/^[0-9]{4}$/.test(q.spendingYear) || q.spendingYear === '0000'))
       invalid();
     if (q.spendingUnassigned === 'category' && (q.categoryId || q.subcategoryId)) invalid();
     if (q.spendingUnassigned === 'subcategory' && q.subcategoryId) invalid();
+    if (q.spendingUnassigned === 'merchant' && q.merchantId) invalid();
     if (q.ownershipStatus || q.dateKnown !== 'include' || q.datePrecision) invalid();
   }
   if (q.subcategoryId && !q.categoryId) invalid();
@@ -137,7 +141,11 @@ export function inventorySql(
     if (q.spendingDateBucket) conditions.push(`relation=${bind(q.spendingDateBucket)}`);
     if (q.spendingUnassigned)
       conditions.push(
-        q.spendingUnassigned === 'category' ? 'category_id IS NULL' : 'subcategory_id IS NULL',
+        q.spendingUnassigned === 'category'
+          ? 'category_id IS NULL'
+          : q.spendingUnassigned === 'subcategory'
+            ? 'subcategory_id IS NULL'
+            : 'merchant_id IS NULL',
       );
     if (q.spendingYear) conditions.push(`purchase_year=${bind(Number(q.spendingYear))}::int`);
     clauses.push(
@@ -147,6 +155,7 @@ export function inventorySql(
   for (const [key, col] of [
     ['categoryId', 'category_id'],
     ['subcategoryId', 'subcategory_id'],
+    ['merchantId', 'merchant_id'],
     ['ownershipStatus', 'ownership_status'],
     ['useFrequency', 'use_frequency'],
     ['currency', 'currency'],
@@ -277,13 +286,14 @@ export class InventoryQueryService {
   }
   private async taxonomy(c: PoolClient, owner: string, q: ItemsQueryDto): Promise<void> {
     // One bounded validation query; foreign/absent choices share the same controlled error.
-    if (!q.categoryId && !q.subcategoryId && !q.tagId) return;
+    if (!q.categoryId && !q.subcategoryId && !q.tagId && !q.merchantId) return;
     const result = await c.query<{ valid: boolean }>(
       `SELECT
       ($2::uuid IS NULL OR EXISTS (SELECT 1 FROM categories WHERE owner_id=$1 AND id=$2)) AND
       ($3::uuid IS NULL OR EXISTS (SELECT 1 FROM subcategories WHERE owner_id=$1 AND id=$3 AND category_id=$2)) AND
-      ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM tags WHERE owner_id=$1 AND id=$4)) AS valid`,
-      [owner, q.categoryId ?? null, q.subcategoryId ?? null, q.tagId ?? null],
+      ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM tags WHERE owner_id=$1 AND id=$4)) AND
+      ($5::uuid IS NULL OR EXISTS (SELECT 1 FROM merchants WHERE owner_id=$1 AND id=$5)) AS valid`,
+      [owner, q.categoryId ?? null, q.subcategoryId ?? null, q.tagId ?? null, q.merchantId ?? null],
     );
     if (!result.rows[0]?.valid) invalid();
   }

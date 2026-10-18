@@ -64,6 +64,75 @@ describe('spending contract boundaries', () => {
     ).rejects.toThrow('INVALID_SPENDING_QUERY');
     expect(query).toHaveBeenCalledTimes(1);
   });
+  it('rejects foreign merchant before aggregation', async () => {
+    query.mockResolvedValueOnce({ rows: [{ valid: false }] } as never);
+    await expect(
+      service.report('owner', {
+        scope: 'all-history',
+        merchantId: '00000000-0000-0000-0000-000000000001',
+      }),
+    ).rejects.toThrow('INVALID_SPENDING_QUERY');
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+  it('generates merchant grouping SQL with merchant join and stable ordering', () => {
+    const sql = spendingSql('owner', { scope: 'current-owned', grouping: 'merchant' });
+    expect(sql.text).toContain('LEFT JOIN merchants m ON m.id=s.merchant_id AND m.owner_id=$1');
+    expect(sql.text).toContain(
+      'ORDER BY currency,(s.merchant_id IS NULL) ASC,m.normalized_name ASC NULLS LAST,relation',
+    );
+    expect(sql.text).toContain('"missingMerchantCount"');
+  });
+  it('attaches merchant metadata on merchant grouping and parses counts', async () => {
+    query.mockResolvedValueOnce({
+      rows: [
+        {
+          currency: 'INR',
+          key: 'm-1',
+          dateBucket: 'dated',
+          grossMinor: '10000',
+          refundedMinor: '0',
+          netMinor: '10000',
+          pricedItemCount: '1',
+          unknownPriceCount: '0',
+          notSpendingCount: '0',
+          explicitZeroCount: '0',
+          knownDateCount: '1',
+          unknownDateCount: '0',
+          missingMerchantCount: '0',
+          totalItemCount: '1',
+          merchant: { id: 'm-1', displayName: 'Amazon', websiteHost: 'amazon.in', state: 'active' },
+        },
+        {
+          currency: 'INR',
+          key: null,
+          dateBucket: 'dated',
+          grossMinor: '5000',
+          refundedMinor: '0',
+          netMinor: '5000',
+          pricedItemCount: '1',
+          unknownPriceCount: '0',
+          notSpendingCount: '0',
+          explicitZeroCount: '0',
+          knownDateCount: '1',
+          unknownDateCount: '0',
+          missingMerchantCount: '1',
+          totalItemCount: '1',
+          merchant: null,
+        },
+      ],
+    } as never);
+    const result = await service.report('owner', { scope: 'current-owned', grouping: 'merchant' });
+    expect(result.buckets).toHaveLength(2);
+    expect(result.buckets[0]?.merchant).toEqual({
+      id: 'm-1',
+      displayName: 'Amazon',
+      websiteHost: 'amazon.in',
+      state: 'active',
+    });
+    expect(result.buckets[0]?.missingMerchantCount).toBe(0);
+    expect(result.buckets[1]?.merchant).toBeNull();
+    expect(result.buckets[1]?.missingMerchantCount).toBe(1);
+  });
   it('rejects excessive buckets instead of returning truncated totals', async () => {
     query.mockResolvedValueOnce({ rows: Array.from({ length: 1001 }, () => ({})) } as never);
     await expect(service.report('owner', { scope: 'all-history' })).rejects.toThrow(

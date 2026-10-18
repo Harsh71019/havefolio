@@ -22,6 +22,8 @@ const taxonomy: TaxonomySnapshot = {
   tags: [],
   defaultsSeeded: true,
 };
+const merchantAmazon = '00000000-0000-4000-a000-000000000051';
+const merchantFlipkart = '00000000-0000-4000-a000-000000000052';
 const bucket = (patch: Partial<SpendingBucket> = {}): SpendingBucket => ({
   currency: 'INR',
   key: null,
@@ -36,6 +38,7 @@ const bucket = (patch: Partial<SpendingBucket> = {}): SpendingBucket => ({
   explicitZeroCount: 1,
   knownDateCount: 6,
   unknownDateCount: 0,
+  missingMerchantCount: 0,
   ...patch,
 });
 async function fixture(
@@ -72,26 +75,78 @@ async function fixture(
               : grouping === 'year'
                 ? '2024'
                 : null;
+        let buckets: SpendingBucket[] = [];
+        if (!state.empty) {
+          if (grouping === 'merchant') {
+            buckets = [
+              bucket({
+                key: merchantAmazon,
+                grossMinor: '125000',
+                refundedMinor: '25000',
+                netMinor: '100000',
+                merchant: {
+                  id: merchantAmazon,
+                  displayName: 'Amazon India',
+                  websiteHost: 'amazon.in',
+                  state: 'active',
+                },
+              }),
+              bucket({
+                key: merchantFlipkart,
+                grossMinor: '45000',
+                refundedMinor: '0',
+                netMinor: '45000',
+                merchant: {
+                  id: merchantFlipkart,
+                  displayName: 'Flipkart',
+                  websiteHost: 'flipkart.com',
+                  state: 'retired',
+                },
+              }),
+              bucket({
+                key: null,
+                grossMinor: '20000',
+                refundedMinor: '0',
+                netMinor: '20000',
+                missingMerchantCount: 1,
+                merchant: null,
+              }),
+              bucket({
+                key: merchantAmazon,
+                currency: 'USD',
+                grossMinor: '5000',
+                refundedMinor: '0',
+                netMinor: '5000',
+                merchant: {
+                  id: merchantAmazon,
+                  displayName: 'Amazon India',
+                  websiteHost: 'amazon.in',
+                  state: 'active',
+                },
+              }),
+            ];
+          } else {
+            buckets = [
+              bucket({ key }),
+              bucket({
+                key,
+                currency: 'USD',
+                grossMinor: '5000',
+                refundedMinor: '0',
+                netMinor: '5000',
+              }),
+              bucket({ dateBucket: 'unknownDate', unknownDateCount: 6, knownDateCount: 0 }),
+              bucket({ key, dateBucket: 'spanningRange' }),
+            ];
+          }
+        }
         body = {
           scope: u.searchParams.get('scope'),
           grouping,
           basis: 'purchase-date',
           purchasedFrom: u.searchParams.get('purchasedFrom'),
           purchasedTo: u.searchParams.get('purchasedTo'),
-          buckets: state.empty
-            ? []
-            : [
-                bucket({ key }),
-                bucket({
-                  key,
-                  currency: 'USD',
-                  grossMinor: '5000',
-                  refundedMinor: '0',
-                  netMinor: '5000',
-                }),
-                bucket({ dateBucket: 'unknownDate', unknownDateCount: 6, knownDateCount: 0 }),
-                bucket({ key, dateBucket: 'spanningRange' }),
-              ],
+          buckets,
         };
       }
     } else if (u.pathname === '/api/v1/items') {
@@ -101,11 +156,19 @@ async function fixture(
         /^(dated|unknownDate|spanningRange)$/,
       );
       const next = u.searchParams.has('after');
+      const isAmazon = u.searchParams.get('merchantId') === merchantAmazon;
+      const isUnrecorded = u.searchParams.get('spendingUnassigned') === 'merchant';
       body = {
         items: [
           {
             id: category,
-            name: next ? 'Synthetic second page kettle' : 'Synthetic first page kettle',
+            name: next
+              ? 'Synthetic second page kettle'
+              : isAmazon
+                ? 'Amazon bought kettle'
+                : isUnrecorded
+                  ? 'Unrecorded merchant kettle'
+                  : 'Synthetic first page kettle',
             currency: u.searchParams.get('currency'),
             ownershipStatus: 'owned',
             pricePaidMinor: '125000',
@@ -210,6 +273,46 @@ for (const theme of ['light', 'dark'] as const) {
     await page.keyboard.press('Escape');
     await expect(dialog).not.toBeVisible();
     await expect(rowAction).toBeFocused();
+    await page.getByRole('combobox', { name: 'Breakdown' }).click();
+    await page.getByRole('option', { name: 'Merchant totals', exact: true }).click();
+    await expect(page).toHaveURL(/grouping=merchant/);
+    await expect(page.getByRole('heading', { name: 'Merchant totals', exact: true })).toBeVisible();
+    await expect(page.getByRole('cell', { name: /Amazon India/ }).first()).toBeVisible();
+    await expect(page.getByRole('cell', { name: /amazon\.in/ }).first()).toBeVisible();
+    await expect(page.getByRole('cell', { name: /Flipkart \(retired\)/ }).first()).toBeVisible();
+    await expect(page.getByRole('cell', { name: /Not recorded/ }).first()).toBeVisible();
+    await noOverflow(page);
+    await page.screenshot({
+      path: resolve('../../docs/screenshots', `per-57-merchant-${info.project.name}-${theme}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    const merchantRowAction = page
+      .getByRole('button', { name: /View items: Amazon India/ })
+      .first();
+    await merchantRowAction.click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('link', { name: 'Amazon bought kettle' })).toBeVisible();
+    const merchantItemCall = calls.findLast((u) => u.pathname === '/api/v1/items')!;
+    expect(merchantItemCall.searchParams.get('merchantId')).toBe(merchantAmazon);
+    await page.screenshot({
+      path: resolve('../../docs/screenshots', `per-57-drilldown-${info.project.name}-${theme}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
+    const unrecordedRowAction = page
+      .getByRole('button', { name: /View items: Not recorded/ })
+      .first();
+    await unrecordedRowAction.click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('link', { name: 'Unrecorded merchant kettle' })).toBeVisible();
+    const unrecordedItemCall = calls.findLast((u) => u.pathname === '/api/v1/items')!;
+    expect(unrecordedItemCall.searchParams.get('spendingUnassigned')).toBe('merchant');
+    expect(unrecordedItemCall.searchParams.get('merchantId')).toBeNull();
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
     await page.getByRole('combobox', { name: 'Breakdown' }).click();
     await page.getByRole('option', { name: 'Yearly trend', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Yearly trend', exact: true })).toBeVisible();

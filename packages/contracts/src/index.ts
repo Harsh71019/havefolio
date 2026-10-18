@@ -316,11 +316,12 @@ export interface InventoryQuery {
   /** Exact spending membership; additive, used only by the insights drill-down. */
   spendingScope?: SpendingScope;
   spendingDateBucket?: SpendingBucket['dateBucket'];
-  spendingUnassigned?: 'category' | 'subcategory';
+  spendingUnassigned?: 'category' | 'subcategory' | 'merchant';
   spendingYear?: string;
   q?: string;
   sort?: (typeof inventorySorts)[number];
   direction?: 'asc' | 'desc';
+  merchantId?: string;
   categoryId?: string;
   subcategoryId?: string;
   tagId?: string;
@@ -355,6 +356,7 @@ export const inventoryQueryKeys = [
   'q',
   'sort',
   'direction',
+  'merchantId',
   'categoryId',
   'subcategoryId',
   'tagId',
@@ -485,19 +487,27 @@ export type CorrectRefundRequest = Partial<Omit<RecordRefundRequest, 'revision'>
 
 /** PER-20: one purchase-basis analysis; no cross-currency grand total. */
 export type SpendingScope = 'current-owned' | 'all-history';
-export type SpendingGrouping = 'overall' | 'category' | 'subcategory' | 'year' | 'month';
+export type SpendingGrouping =
+  'overall' | 'category' | 'subcategory' | 'year' | 'month' | 'merchant';
 export interface SpendingQuery {
   scope: SpendingScope;
   grouping?: SpendingGrouping;
   currency?: string;
+  merchantId?: string;
   categoryId?: string;
   subcategoryId?: string;
   purchasedFrom?: string;
   purchasedTo?: string;
 }
+export interface SpendingBucketMerchant {
+  id: string;
+  displayName: string;
+  websiteHost: string | null;
+  state: 'active' | 'retired';
+}
 export interface SpendingBucket {
   currency: string;
-  /** null for overall, unassigned taxonomy or unknown date; see grouping/dateBucket. */
+  /** null for overall, unassigned taxonomy, not recorded merchant, or unknown date; see grouping/dateBucket. */
   key: string | null;
   dateBucket: 'dated' | 'spanningRange' | 'unknownDate';
   grossMinor: string;
@@ -510,6 +520,8 @@ export interface SpendingBucket {
   knownDateCount: number;
   unknownDateCount: number;
   totalItemCount: number;
+  missingMerchantCount: number;
+  merchant?: SpendingBucketMerchant | null | undefined;
 }
 export interface SpendingReport {
   scope: SpendingScope;

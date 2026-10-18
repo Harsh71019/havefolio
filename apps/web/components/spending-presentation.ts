@@ -40,6 +40,13 @@ export function spendingGroupName(
 ): string {
   if (grouping === 'overall') return 'All records';
   if (grouping === 'year' || grouping === 'month') return b.key ?? 'Date unknown';
+  if (grouping === 'merchant') {
+    if (b.merchant) {
+      return `${b.merchant.displayName}${b.merchant.state === 'retired' ? ' (retired)' : ''}`;
+    }
+    if (!b.key) return 'Not recorded';
+    return 'Merchant unavailable';
+  }
   if (!b.key) return grouping === 'category' ? 'Unassigned category' : 'Unassigned subcategory';
   const entry = (grouping === 'category' ? taxonomy?.categories : taxonomy?.subcategories)?.find(
     (row) => row.id === b.key,
