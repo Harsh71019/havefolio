@@ -77,11 +77,32 @@ export function normalizeRoute(input: unknown): string {
   if (/^\/api\/v1\/merchants(?:\/[^/]+)?$/.test(path))
     return path === '/api/v1/merchants' ? path : '/api/v1/merchants/:id';
   if (path === '/api/v1/spending' || path === '/api/v1/home') return path;
-  if (/^\/api\/v1\/desires\/[^/]+\/allocation(?:\/history)?$/.test(path))
-    return path.replace(/(\/desires)\/[^/]+/, '$1/:id');
   if (/^\/wants\/[^/]+\/allocate$/.test(path)) return '/wants/:id/allocate';
   if (/^\/api\/v1\/goals(?:\/[^/]+(?:\/contributions)?)?$/.test(path)) {
     return path.replace(/(\/goals)\/[^/]+/, '$1/:id');
+  }
+  if (/^\/api\/v1\/settings(?:\/(?:preferences|sessions(?:\/[^/]+)?))?$/.test(path)) {
+    return path.replace(/\/sessions\/[^/]+$/, '/sessions/:id');
+  }
+  if (/^\/api\/v1\/notifications(?:\/(?:unread-count|[^/]+\/read))?$/.test(path)) {
+    return path.replace(/\/notifications\/[^/]+\/read$/, '/notifications/:id/read');
+  }
+  const desire =
+    /^\/api\/v1\/desires(?:\/([^/]+)(?:\/(photo(?:\/(?:access|content(?:\/[^/]+)?))?|matches(?:\/([^/]+)(?:\/dismiss)?)?|conversion(?:\/(?:confirm|cancel))?|reviews|allocation(?:\/history)?))?)?$/.exec(
+      path,
+    );
+  if (desire) {
+    let res = '/api/v1/desires';
+    if (desire[1]) res += '/:id';
+    if (desire[2]) {
+      let sub = desire[2];
+      if (desire[3]) {
+        sub = sub.replace(new RegExp('/' + desire[3]), '/:matchId');
+      }
+      sub = sub.replace(/\/content\/[^/]+$/, '/content/:variant');
+      res += '/' + sub;
+    }
+    return res;
   }
   if (/^\/api\/v1\/onboarding(?:\/(actions|demo))?$/.test(path)) return path;
   if (/^\/api\/v1\/health(?:\/|$)/.test(path)) return '/api/v1/health';
@@ -97,15 +118,23 @@ export function normalizeRoute(input: unknown): string {
         '/' + domain + '/' + (id === 'order' ? 'order' : ':id'),
     );
   }
-  const item = /^\/(api\/v1\/)?items(?:\/([^/]+))?(?:\/(actions|history))?$/.exec(path);
-  if (item)
-    return (
-      '/' +
-      (item[1] ?? '') +
-      'items' +
-      (item[2] ? '/' + (item[2] === 'new' ? 'new' : ':itemId') : '') +
-      (item[3] ? '/' + item[3] : '')
+  const item =
+    /^\/(api\/v1\/)?items(?:\/([^/]+))?(?:\/(actions|history|lifecycle|refunds(?:\/([^/]+))?))?$/.exec(
+      path,
     );
+  if (item) {
+    const prefix = '/' + (item[1] ?? '') + 'items';
+    const id = item[2] ? '/' + (item[2] === 'new' ? 'new' : ':itemId') : '';
+    let action = '';
+    if (item[3]) {
+      if (item[3].startsWith('refunds')) {
+        action = item[4] ? '/refunds/:refundId' : '/refunds';
+      } else {
+        action = '/' + item[3];
+      }
+    }
+    return prefix + id + action;
+  }
   const media =
     /^\/(api\/v1\/)?items\/[^/]+\/(photos|documents)(?:\/([^/]+)(?:\/(access|content|download)(?:\/[^/]+)?)?)?$/.exec(
       path,

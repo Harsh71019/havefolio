@@ -12,6 +12,17 @@ export function configureApplication(app: INestApplication): void {
   server.set('trust proxy', config.get<string[]>('API_TRUST_PROXY', []));
   const logger = app.get(EventLogger);
   app.use((req: Request, res: Response, next: NextFunction): void => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-DNS-Prefetch-Control', 'off');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (!req.path.startsWith('/api/docs')) {
+      res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+    }
+    next();
+  });
+  app.use((req: Request, res: Response, next: NextFunction): void => {
     const requestId = effectiveId(req.headers['x-request-id']);
     const correlationId = effectiveId(req.headers['x-correlation-id'] ?? requestId);
     res.setHeader('X-Request-ID', requestId);

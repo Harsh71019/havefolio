@@ -32,11 +32,13 @@ import {
   ApiProduces,
   ApiServiceUnavailableResponse,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { CurrentOwner, type OwnerContext } from '../auth/auth.context.js';
 import { readPhotos } from '../media/photo-multipart.js';
+import { UploadRateService } from '../media/upload-rate.service.js';
 import {
   CreateDesireDto,
   DesireDto,
@@ -86,6 +88,7 @@ export class DesiresController {
   constructor(
     private readonly service: DesiresService,
     private readonly reviews: ReviewsService,
+    private readonly uploadRate: UploadRateService,
   ) {}
 
   @Get(':id/reviews')
@@ -228,6 +231,7 @@ export class DesiresController {
     type: DesirePhotoDto,
     description: 'The photo was processed, stored and attached to the desire.',
   })
+  @ApiTooManyRequestsResponse({ description: 'Upload attempt limit exceeded.' })
   async uploadPhoto(
     @CurrentOwner() owner: OwnerContext,
     @Param('id', ParseUUIDPipe) id: string,
@@ -240,6 +244,8 @@ export class DesiresController {
       throw new BadRequestException('PHOTO_UPLOAD_ID_REQUIRED');
     }
     await this.service.authorizePhoto(owner.id, id);
+    const source = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    await this.uploadRate.check(owner.id, source);
     if (this.activeUploads >= 1) {
       throw new ServiceUnavailableException('PHOTO_PROCESSING_BUSY');
     }
