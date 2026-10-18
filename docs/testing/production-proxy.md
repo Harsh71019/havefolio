@@ -15,12 +15,12 @@ separate allocated loopback port. Neither server uses PostgreSQL, Valkey or a
 deployed API.
 
 Real HTTP requests verify the anonymous `401 AUTH_REQUIRED` JSON response,
-onboarding, desires and notifications methods, paths, JSON body, multipart photo uploads, cookie, query string, origin rejection and
+onboarding, desires, goal allocation and notifications methods, paths, JSON body, multipart photo uploads, cookie, query string, origin rejection and
 `no-store` responses. Notification collection checks preserve limit, unreadOnly and an
 encoded synthetic cursor; mark-read PATCH checks preserve the exact JSON body (`{}`),
 cookie, origin and content type. The API mark-read endpoint consumes no body; this
 assertion covers transport only and creates no notification data.
-Auth, taxonomy, items, spending, health, onboarding, desires, notifications and home remain forwarded, while
+Auth, taxonomy, items, spending, health, onboarding, desires, goals, settings, notifications and home remain forwarded, while
 an unknown API domain stays a web 404. Browser JavaScript is checked for the
 synthetic internal API address and runtime-generated server credential sentinels
 (auth rate key, media secret, Kan key and source-map upload token). Chromium then uses the existing onboarding client
@@ -42,6 +42,8 @@ node scripts/testing/production-proxy.mjs --without-onboarding
 node scripts/testing/production-proxy.mjs --without-desires
 # or
 node scripts/testing/production-proxy.mjs --without-notifications
+# or
+node scripts/testing/production-proxy.mjs --without-goals
 # or
 node scripts/testing/production-proxy.mjs --without-home
 ```

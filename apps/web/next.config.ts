@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
         'health',
         'onboarding',
         'desires',
+        'goals',
         'notifications',
         'home',
         'settings',

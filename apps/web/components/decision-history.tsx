@@ -245,6 +245,9 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
           </p>
         </CardContent>
       </Card>
+      <Button asChild variant="outline" className="min-h-11">
+        <Link href={`/wants/${desireId}/allocate`}>Allocate to a goal / allocation history</Link>
+      </Button>
       {conversion || desire.status === 'bought' ? (
         <Card>
           <CardHeader>

@@ -1135,3 +1135,33 @@ export const ownerSettings = pgTable(
     ),
   ],
 );
+
+/** Only links, never source/goal snapshots. Deleted goals remain unavailable; desire erasure purges links. */
+export const desireGoalAllocations = pgTable(
+  'desire_goal_allocations',
+  {
+    desireId: uuid('desire_id').primaryKey(),
+    ownerId: uuid('owner_id').notNull(),
+    reviewEventId: uuid('review_event_id').notNull(),
+    goalId: uuid('goal_id').notNull(),
+    contributionId: uuid('contribution_id').notNull(),
+    commandId: uuid('command_id').notNull(),
+    requestHash: text('request_hash').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'allocation_source_fk',
+      columns: [t.reviewEventId, t.desireId, t.ownerId],
+      foreignColumns: [
+        desireReviewEvents.id,
+        desireReviewEvents.desireId,
+        desireReviewEvents.ownerId,
+      ],
+    }).onDelete('cascade'),
+    unique('allocation_contribution_unique').on(t.contributionId),
+    unique('allocation_command_unique').on(t.ownerId, t.commandId),
+    index('allocation_goal_owner_idx').on(t.ownerId, t.goalId),
+    check('allocation_hash_check', sql`${t.requestHash} ~ '^[a-f0-9]{64}$'`),
+  ],
+);

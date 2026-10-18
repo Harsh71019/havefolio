@@ -11,6 +11,7 @@ import {
   taxonomyErrorCodes,
   desireErrorCodes,
   notificationErrorCodes,
+  allocationErrorCodes,
   settingsErrorCodes,
 } from '@havefolio/contracts';
 import { financialErrorCodes } from '@havefolio/domain';
@@ -20,6 +21,7 @@ import type { Request, Response } from 'express';
 const safeMessages = new Set<string>([
   ...taxonomyErrorCodes,
   ...goalErrorCodes,
+  ...allocationErrorCodes,
   // Fixed financial-domain tokens (PER-22); never amounts, notes or dates.
   ...financialErrorCodes,
   // Fixed desire-domain tokens (PER-23).
