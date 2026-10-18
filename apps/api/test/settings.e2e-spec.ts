@@ -137,10 +137,17 @@ describe('PER-34 owner settings and privacy integration', () => {
   it('rejects invalid currency codes with 400', async () => {
     const res = await ownerPatch({
       revision: 1,
-      defaultCurrency: 'NOT_A_CURRENCY',
+      defaultCurrency: 'ZZZ',
     }).expect(400);
 
     expect(res.body.message).toBe('INVALID_SETTINGS_CURRENCY');
+
+    const malformed = await ownerPatch({
+      revision: 1,
+      defaultCurrency: 'NOT_A_CURRENCY',
+    }).expect(400);
+
+    expect(malformed.body.message).toBe('INVALID_REQUEST');
   });
 
   it('updates preferences and increments revision', async () => {
