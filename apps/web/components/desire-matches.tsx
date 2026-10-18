@@ -851,7 +851,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
               />
               <Label
                 htmlFor={`${componentId}-include-unavailable`}
-                className="text-xs sm:text-sm font-normal text-muted-foreground cursor-pointer"
+                className="min-h-11 flex-1 text-xs sm:text-sm font-normal text-muted-foreground cursor-pointer"
               >
                 Include unavailable or worn-out possessions (sold, donated, disposed, lost,
                 returned, worn out)
