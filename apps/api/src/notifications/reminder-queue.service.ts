@@ -78,6 +78,56 @@ export class ReminderQueueService implements OnModuleDestroy {
     }
   }
 
+  async cancelForOwner(
+    reminders: Array<{ desireId: string; scheduleVersion: number }>,
+  ): Promise<void> {
+    if (!this.queue) return;
+    try {
+      for (const reminder of reminders) {
+        await this.queue.remove(desireReminderJobId(reminder.desireId, reminder.scheduleVersion));
+      }
+    } catch {
+      this.logger.emit('warn', {
+        event: 'reminder_cancel_deferred',
+        component: 'notifications',
+        operation: 'cancel',
+        category: 'dependency_unavailable',
+        code: 'VALKEY_UNAVAILABLE',
+      });
+    }
+  }
+
+  async reenqueueForOwner(
+    reminders: Array<{ desireId: string; scheduleVersion: number; scheduledFor: Date }>,
+  ): Promise<void> {
+    if (!this.queue) return;
+    try {
+      for (const reminder of reminders) {
+        const data = correlatedJobData({
+          desireId: reminder.desireId,
+          scheduleVersion: reminder.scheduleVersion,
+          scheduledFor: reminder.scheduledFor.toISOString(),
+        });
+        await this.queue.add(desireReminderJob, data, {
+          jobId: desireReminderJobId(reminder.desireId, reminder.scheduleVersion),
+          delay: Math.max(0, reminder.scheduledFor.getTime() - Date.now()),
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 30_000 },
+          removeOnComplete: true,
+          removeOnFail: { age: 7 * 24 * 60 * 60, count: 1000 },
+        });
+      }
+    } catch {
+      this.logger.emit('warn', {
+        event: 'reminder_dispatch_deferred',
+        component: 'notifications',
+        operation: 'schedule',
+        category: 'dependency_unavailable',
+        code: 'VALKEY_UNAVAILABLE',
+      });
+    }
+  }
+
   async onModuleDestroy(): Promise<void> {
     await this.queue?.close().catch(() => undefined);
   }

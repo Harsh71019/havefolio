@@ -55,6 +55,7 @@ import {
   type UploadPhotoOutcome,
   DesireRequestError,
 } from './desires-client';
+import { fetchOwnerPreferences } from './settings-client';
 import {
   formatLikelyPrice,
   formatReviewDateTime,
@@ -76,6 +77,22 @@ export function AddDesireForm(): ReactElement {
   const [showPrice, setShowPrice] = useState(false);
   const [priceDisplay, setPriceDisplay] = useState('');
   const [currency, setCurrency] = useState('INR');
+  const defaultCurrencyRef = useRef('INR');
+
+  useEffect(() => {
+    let active = true;
+    void fetchOwnerPreferences()
+      .then((prefs) => {
+        if (prefs?.defaultCurrency && active) {
+          defaultCurrencyRef.current = prefs.defaultCurrency;
+          setCurrency((current) => (current === 'INR' ? prefs.defaultCurrency : current));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const [showWaiting, setShowWaiting] = useState(false);
   const [waitingPreset, setWaitingPreset] = useState<WaitingPresetKey>('none');
@@ -314,7 +331,7 @@ export function AddDesireForm(): ReactElement {
     setClassification(null);
     setShowClassification(false);
     setPriceDisplay('');
-    setCurrency('INR');
+    setCurrency(defaultCurrencyRef.current);
     setShowPrice(false);
     setWaitingPreset('none');
     setCustomDateTime('');

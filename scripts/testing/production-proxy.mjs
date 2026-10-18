@@ -428,6 +428,7 @@ try {
     'onboarding',
     'desires',
     'notifications',
+    'settings',
   ]) {
     assert.equal((await request(`/api/v1/${domain}`, { headers })).status, 200);
     assert.equal(records.at(-1).path, `/api/v1/${domain}`);

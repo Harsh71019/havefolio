@@ -14,7 +14,7 @@ describe('primary navigation', () => {
       const links = within(navigation).getAllByRole('link');
       expect(links.map((link) => link.getAttribute('href'))).toEqual(
         index === 0
-          ? ['/', '/store', '/insights', '/wants', '/goals', '/settings/taxonomy']
+          ? ['/', '/store', '/insights', '/wants', '/goals', '/settings']
           : ['/', '/store', '/insights', '/wants'],
       );
       expect(within(navigation).getByRole('link', { name: 'My Store' })).toHaveAttribute(
@@ -32,10 +32,7 @@ describe('primary navigation', () => {
     trigger.focus();
     await userEvent.keyboard('{Enter}');
     expect(screen.getByRole('menuitem', { name: 'Goals' })).toHaveAttribute('href', '/goals');
-    expect(screen.getByRole('menuitem', { name: 'Settings' })).toHaveAttribute(
-      'href',
-      '/settings/taxonomy',
-    );
+    expect(screen.getByRole('menuitem', { name: 'Settings' })).toHaveAttribute('href', '/settings');
     await userEvent.keyboard('{Escape}');
     expect(trigger).toHaveFocus();
   });
