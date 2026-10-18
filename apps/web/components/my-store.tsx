@@ -41,8 +41,14 @@ import { ItemCover } from '@havefolio/ui/components/havefolio/item-cover';
 import { OwnedItemCard } from '@havefolio/ui/components/havefolio/owned-item-card';
 import { RadioGroup, RadioGroupItem } from '@havefolio/ui/components/radio-group';
 import { Label } from '@havefolio/ui/components/label';
-import { densityImageSizes, storeDensities, type StoreDensity } from './store-density-config';
+import {
+  collapsedDensityImageSizes,
+  densityImageSizes,
+  storeDensities,
+  type StoreDensity,
+} from './store-density-config';
 import { selectDensity, useStoreDensity } from './store-density';
+import { useSidebarState } from './sidebar-state';
 import { Skeleton } from '@havefolio/ui/components/skeleton';
 import {
   apiInventorySource,
@@ -654,6 +660,8 @@ function StoreCard({
   const inactive = isInactive(item.ownershipStatus);
   const Icon = statusIcons[item.ownershipStatus];
   const cover = item.cover;
+  const imageSizes =
+    useSidebarState() === 'collapsed' ? collapsedDensityImageSizes : densityImageSizes;
   return (
     <Link
       href={itemHref(item.id, returnTo)}
@@ -690,7 +698,7 @@ function StoreCard({
                 item.id,
                 { id: cover.photoId, width: cover.width, height: cover.height },
                 cover.decorative ? '' : (cover.altText ?? `Photo of ${item.name}`),
-                densityImageSizes[density],
+                imageSizes[density],
               )}
             />
           ) : (

@@ -1,5 +1,8 @@
 @import '@havefolio/ui/styles/globals.css';
 
+/* PER-66: the desktop navigation's saved width is set on <html> before first paint. */
+@custom-variant sidebar-collapsed (html[data-sidebar='collapsed'] &);
+
 /* PER-58: geometry is scoped to My Store; mobile/tablet ignores desktop preferences. */
 @media (min-width: 1024px) {
   .my-store .store-grid {

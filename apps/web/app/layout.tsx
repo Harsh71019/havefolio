@@ -3,6 +3,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { Toaster } from '@havefolio/ui/components/sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { densityBootstrap } from '@/components/store-density-config';
+import { sidebarBootstrap } from '@/components/sidebar-config';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: densityBootstrap }} />
+        <script dangerouslySetInnerHTML={{ __html: sidebarBootstrap }} />
       </head>
       <body>
         <ThemeProvider
