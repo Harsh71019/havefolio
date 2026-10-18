@@ -134,6 +134,13 @@
       "when": 1792262763045,
       "tag": "0018_personal_goals",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792299586256,
+      "tag": "0019_owner_settings",
+      "breakpoints": true
     }
   ]
 }
