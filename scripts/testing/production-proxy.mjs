@@ -187,7 +187,7 @@ try {
   });
   const nextBin = join(app, 'node_modules/.bin/next');
   // Mutation mode proves the original omission fails; it only changes the disposable source copy.
-  for (const domain of ['onboarding', 'desires', 'notifications']) {
+  for (const domain of ['onboarding', 'desires', 'notifications', 'home']) {
     if (!process.argv.includes(`--without-${domain}`)) continue;
     const config = join(app, 'next.config.ts');
     const source = await readFile(config, 'utf8');
@@ -327,6 +327,18 @@ try {
     if (body) assert(metadata.readBody, 'Mark-read JSON body preserved exactly');
   }
   console.log('PASS: notifications anonymous JSON 401, collection query and PATCH transport');
+  const anonymousHome = await request('/api/v1/home');
+  assert.equal(
+    anonymousHome.status,
+    401,
+    'Anonymous Home summary must reach the API, not a Next 404',
+  );
+  assert.equal(anonymousHome.headers.get('cache-control'), 'no-store');
+  const home = await request('/api/v1/home', { headers });
+  assert.equal(home.status, 200);
+  assert.equal(records.at(-1).path, '/api/v1/home');
+  assert(records.at(-1).authenticated, 'Owner cookie preserved for the Home summary');
+  console.log('PASS: Home summary anonymous 401 and authenticated same-origin transport');
   const anonymousMerchants = await request('/api/v1/merchants?probe=one&probe=two');
   assert.equal(anonymousMerchants.status, 401, 'Anonymous merchants reach the API');
   assert.equal(anonymousMerchants.headers.get('cache-control'), 'no-store');
@@ -428,6 +440,7 @@ try {
     'onboarding',
     'desires',
     'notifications',
+    'home',
   ]) {
     assert.equal((await request(`/api/v1/${domain}`, { headers })).status, 200);
     assert.equal(records.at(-1).path, `/api/v1/${domain}`);
