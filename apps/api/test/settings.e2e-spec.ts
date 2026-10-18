@@ -43,13 +43,12 @@ describe('PER-34 owner settings and privacy integration', () => {
 
   beforeAll(async () => {
     await run.start();
-    await applyMigrations(run.migration, run.schema);
 
-    // Seed owners
+    // Seed owners (only one owner can have credentials due to single-owner instance constraint)
     await run.runtime.query(
       `INSERT INTO users(id, email, password_hash) VALUES
        ($1, 'settings-owner@example.test', '$argon2id$fixture'),
-       ($2, 'other-owner@example.test', '$argon2id$fixture')`,
+       ($2, NULL, NULL)`,
       [ownerId, otherOwnerId],
     );
 
