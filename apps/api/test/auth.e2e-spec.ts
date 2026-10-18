@@ -54,6 +54,7 @@ describe('private authentication on isolated PostgreSQL and Valkey', () => {
       ...validateApiEnvironment({ NODE_ENV: 'test' }),
       DATABASE_URL: url.toString(),
       AUTH_REGISTRATION_ENABLED: true,
+      AUTH_LAN_HTTP_ORIGIN: 'http://192.168.0.226:3020',
       AUTH_RATE_KEY_SECRET: 'synthetic test HMAC key for isolation',
       VALKEY_HOST: config.valkeyHost,
       VALKEY_PORT: config.valkeyPort,
@@ -100,6 +101,27 @@ describe('private authentication on isolated PostgreSQL and Valkey', () => {
     request(app.getHttpServer()).post(`/api/v1/auth/${path}`).send(values);
   const me = (session: string): HttpTest =>
     request(app.getHttpServer()).get('/api/v1/auth/me').set('Cookie', session);
+
+  it('supports a real LAN session lifecycle without relaxing origin checks', async () => {
+    const origin = 'http://192.168.0.226:3020';
+    const registered = await post('register').set('Origin', origin).expect(201);
+    const first = cookie(registered);
+    expect(first).toMatch(/^havefolio_lan_session=/);
+    const attributes = (registered.headers['set-cookie'] as unknown as string[])[0]!;
+    expect(attributes).toContain('HttpOnly');
+    expect(attributes).toContain('SameSite=Strict');
+    expect(attributes).not.toContain('Secure');
+    await me(first).expect(200);
+    await post('login').set('Origin', 'http://192.168.0.227:3020').expect(403);
+    const rotated = await post('login').set('Origin', origin).set('Cookie', first).expect(200);
+    const second = cookie(rotated);
+    expect(second).not.toBe(first);
+    await me(first).expect(401);
+    await me(second).expect(200);
+    const cleared = await post('logout').set('Origin', origin).set('Cookie', second).expect(204);
+    expect(cookie(cleared)).toBe('havefolio_lan_session=');
+    await me(second).expect(401);
+  });
 
   it('applies the forward migration twice, preserves shells, normalizes and registers only one owner concurrently', async () => {
     const shellId = randomUUID();

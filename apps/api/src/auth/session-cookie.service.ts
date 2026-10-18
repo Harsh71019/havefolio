@@ -14,9 +14,12 @@ export function newToken(): string {
 export class SessionCookieService {
   readonly name: string;
   private readonly options: CookieOptions;
+  private readonly lanOrigin: string | undefined;
+  private readonly lanName = 'havefolio_lan_session';
   constructor(private readonly config: ConfigService) {
     const secure = config.get<string>('NODE_ENV') === 'production';
     this.name = secure ? '__Host-havefolio_session' : 'havefolio_session';
+    this.lanOrigin = config.get<string>('AUTH_LAN_HTTP_ORIGIN');
     this.options = { httpOnly: true, secure, sameSite: 'strict', path: '/' };
   }
   read(request: Request): string | undefined {
@@ -26,9 +29,12 @@ export class SessionCookieService {
     const values = header
       .split(';')
       .map((part) => part.trim())
-      .filter((part) => part.split('=')[0] === this.name);
+      .filter((part) => {
+        const name = part.split('=')[0];
+        return name === this.name || (Boolean(this.lanOrigin) && name === this.lanName);
+      });
     if (!values.length) return undefined;
-    const token = values[0]?.slice(this.name.length + 1);
+    const token = values[0]?.slice(values[0].indexOf('=') + 1);
     if (
       values.length !== 1 ||
       !token ||
@@ -38,13 +44,22 @@ export class SessionCookieService {
       throw new UnauthorizedException('AUTH_REQUIRED');
     return token;
   }
-  write(response: Response, token: string): void {
-    response.cookie(this.name, token, {
-      ...this.options,
+  private cookieOptions(request?: Request): { name: string; options: CookieOptions } {
+    // The guard admits this exact Origin before any credential or session write.
+    // Never infer HTTP opt-in from forwarded headers or a caller-provided cookie.
+    if (this.lanOrigin && request?.headers.origin === this.lanOrigin)
+      return { name: this.lanName, options: { ...this.options, secure: false } };
+    return { name: this.name, options: this.options };
+  }
+  write(response: Response, token: string, request?: Request): void {
+    const { name, options } = this.cookieOptions(request);
+    response.cookie(name, token, {
+      ...options,
       maxAge: this.config.getOrThrow<number>('AUTH_SESSION_ABSOLUTE_SECONDS') * 1000,
     });
   }
-  clear(response: Response): void {
-    response.clearCookie(this.name, this.options);
+  clear(response: Response, request?: Request): void {
+    const { name, options } = this.cookieOptions(request);
+    response.clearCookie(name, options);
   }
 }
