@@ -7385,6 +7385,152 @@
         "summary": "Revoke a specific active session.",
         "tags": ["settings"]
       }
+    },
+    "/api/v1/privacy/export": {
+      "get": {
+        "operationId": "PrivacyController_export_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "format": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "exportedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "attachments": {
+                      "type": "string",
+                      "enum": ["metadata_only"]
+                    },
+                    "money": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: invalid confirmation, password or status receipt."
+          },
+          "401": {
+            "description": "AUTH_REQUIRED"
+          },
+          "413": {
+            "description": "EXPORT_TOO_LARGE: export exceeds 16 MiB; no truncated export is returned."
+          },
+          "503": {
+            "description": "PRIVACY_UNAVAILABLE or EXPORT_BUSY; retry later."
+          }
+        },
+        "security": [
+          {
+            "ownerSession": []
+          }
+        ],
+        "summary": "Download complete owner-scoped JSON, attachment metadata only. No stored artifact or delivery URL.",
+        "tags": ["privacy"]
+      }
+    },
+    "/api/v1/privacy/deletion": {
+      "post": {
+        "operationId": "PrivacyController_delete_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionStatusDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: invalid confirmation, password or status receipt."
+          },
+          "401": {
+            "description": "AUTH_REQUIRED or INVALID_CREDENTIALS"
+          },
+          "429": {
+            "description": "AUTH_RATE_LIMITED"
+          },
+          "503": {
+            "description": "PRIVACY_UNAVAILABLE or EXPORT_BUSY; retry later."
+          }
+        },
+        "security": [
+          {
+            "ownerSession": []
+          }
+        ],
+        "summary": "Verify password now and confirm irreversible deletion. Revokes all normal sessions; client must save its receipt before submission.",
+        "tags": ["privacy"]
+      }
+    },
+    "/api/v1/privacy/deletion-status": {
+      "post": {
+        "operationId": "PrivacyController_status_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletionReceiptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionStatusDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: invalid confirmation, password or status receipt."
+          },
+          "404": {
+            "description": "DELETION_NOT_FOUND"
+          },
+          "503": {
+            "description": "PRIVACY_UNAVAILABLE or EXPORT_BUSY; retry later."
+          }
+        },
+        "summary": "Inspect deletion using a 256-bit status-only receipt in the body. Cannot authenticate, export, cancel or mutate an account. Completed receipts expire after 30 days.",
+        "tags": ["privacy"]
+      }
     }
   },
   "info": {
@@ -11823,6 +11969,58 @@
           }
         },
         "required": ["revokedCount"]
+      },
+      "DeleteAccountDto": {
+        "type": "object",
+        "properties": {
+          "receipt": {
+            "type": "string",
+            "description": "Random 256-bit status-only receipt generated and saved by the client; never include in a URL.",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "writeOnly": true
+          },
+          "confirmation": {
+            "type": "string",
+            "enum": ["DELETE MY ACCOUNT"]
+          }
+        },
+        "required": ["receipt", "password", "confirmation"]
+      },
+      "DeletionReceiptDto": {
+        "type": "object",
+        "properties": {
+          "receipt": {
+            "type": "string",
+            "description": "Random 256-bit status-only receipt generated and saved by the client; never include in a URL.",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": ["receipt"]
+      },
+      "DeletionStatusDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["pending", "retrying", "awaiting_finality", "completed"]
+          },
+          "remainingFiles": {
+            "type": "number"
+          },
+          "awaitingFinality": {
+            "type": "number"
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["state", "remainingFiles", "awaitingFinality", "completedAt"]
       }
     }
   }

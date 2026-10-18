@@ -55,6 +55,12 @@ test('private-data confirmation and finality recovery', async ({ page }, testInf
   await page.goto('/settings');
   await page.getByRole('button', { name: 'Delete my account', exact: true }).click();
   await expect(page.getByRole('alertdialog')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Keep account' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('alertdialog')).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Delete my account', exact: true })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('alertdialog')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Confirm permanent deletion' })).toBeDisabled();
   await page.getByLabel('Current password').fill('synthetic-not-an-account-password');
   await page.getByLabel('Type DELETE MY ACCOUNT to confirm').fill('DELETE MY ACCOUNT');
@@ -63,7 +69,7 @@ test('private-data confirmation and finality recovery', async ({ page }, testInf
   await mkdir(folder, { recursive: true });
   await page.screenshot({
     path: resolve(folder, `per-35-confirmation-${testInfo.project.name}.png`),
-    fullPage: true,
+    animations: 'disabled',
   });
   await page.getByRole('button', { name: 'Confirm permanent deletion' }).click();
   await expect(
@@ -74,8 +80,12 @@ test('private-data confirmation and finality recovery', async ({ page }, testInf
   await expect(page.getByText(/Deletion is pending provider finality/)).toBeVisible();
   // The receipt is a synthetic capability; hide its input before capturing public evidence.
   await page.locator('#deletion-receipt').fill('');
-  await page.screenshot({
-    path: resolve(folder, `per-35-finality-${testInfo.project.name}.png`),
-    fullPage: true,
-  });
+  await page.getByText('Check deletion status or recover with a saved receipt').click();
+  await page
+    .locator('[data-slot="card"]')
+    .filter({ has: page.getByText('Your data', { exact: true }) })
+    .screenshot({
+      path: resolve(folder, `per-35-finality-${testInfo.project.name}.png`),
+      animations: 'disabled',
+    });
 });

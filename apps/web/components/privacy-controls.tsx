@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState, type ReactElement, type FormEvent } from 'react';
+import type { AccountDeletionStatus as DeletionStatus } from '@havefolio/contracts';
+import { useEffect, useRef, useState, type ReactElement, type FormEvent } from 'react';
 import { Button } from '@havefolio/ui/components/button';
 import { Input } from '@havefolio/ui/components/input';
 import { Label } from '@havefolio/ui/components/label';
@@ -20,12 +21,6 @@ import {
   AlertDialogCancel,
 } from '@havefolio/ui/components/alert-dialog';
 
-interface DeletionStatus {
-  state: string;
-  remainingFiles: number;
-  awaitingFinality: number;
-  completedAt: string | null;
-}
 const storageKey = 'havefolio.deletion-receipt.v1';
 async function send(path: string, body: object): Promise<DeletionStatus> {
   const response = await fetch(`/api/v1/privacy/${path}`, {
@@ -50,6 +45,8 @@ async function send(path: string, body: object): Promise<DeletionStatus> {
   return response.json() as Promise<DeletionStatus>;
 }
 export function PrivacyControls(): ReactElement {
+  const deleteTrigger = useRef<HTMLButtonElement>(null);
+  const deletionStatus = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -148,13 +145,18 @@ export function PrivacyControls(): ReactElement {
           <Button variant="outline" disabled={busy || !!status} onClick={() => void download()}>
             Download private data
           </Button>
-          <Button variant="destructive" disabled={busy || !!status} onClick={() => setOpen(true)}>
+          <Button
+            variant="destructive"
+            disabled={busy || !!status}
+            ref={deleteTrigger}
+            onClick={() => setOpen(true)}
+          >
             Delete my account
           </Button>
         </div>
         {busy ? <p role="status">Working…</p> : null}
         {status ? (
-          <div role="status" className="space-y-2 text-sm">
+          <div ref={deletionStatus} tabIndex={-1} role="status" className="space-y-2 text-sm">
             <p>
               {status.state === 'completed'
                 ? 'Your account and active application data have been deleted.'
@@ -217,7 +219,12 @@ export function PrivacyControls(): ReactElement {
             }
           }}
         >
-          <AlertDialogContent>
+          <AlertDialogContent
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              (status ? deletionStatus.current : deleteTrigger.current)?.focus();
+            }}
+          >
             <AlertDialogHeader>
               <AlertDialogTitle>Permanently delete your account?</AlertDialogTitle>
               <AlertDialogDescription>

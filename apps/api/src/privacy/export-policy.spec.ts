@@ -8,6 +8,8 @@ import {
   exportTables,
   excludedColumns,
   excludedTables,
+  exportJsonColumns,
+  serializeExportRow,
 } from './export-policy.js';
 describe('private export schema coverage', () => {
   it('requires an explicit decision for every current table', () => {
@@ -19,12 +21,30 @@ describe('private export schema coverage', () => {
     for (const table of Object.values(schema).filter((v) => is(v, PgTable))) {
       const name = getTableName(table) as keyof typeof exportColumns;
       if (excludedTables.includes(name)) continue;
+      expect(
+        Object.values(getTableColumns(table))
+          .filter((c) => c.getSQLType() === 'jsonb')
+          .map((c) => c.name as string)
+          .sort(),
+      ).toEqual([...(exportJsonColumns[name] ?? [])].sort());
       expect([...exportColumns[name], ...(excludedColumns[name] ?? [])].sort()).toEqual(
         Object.values(getTableColumns(table))
           .map((c) => c.name as string)
           .sort(),
       );
     }
+  });
+  it('preserves arbitrary-precision nested JSON without a JavaScript numeric round trip', () => {
+    expect(
+      serializeExportRow('items', {
+        id: 'synthetic',
+        original_entry: '{"numericOriginal":9007199254740993}',
+        specifications: null,
+      }),
+    ).toContain('9007199254740993');
+    expect(() => serializeExportRow('items', { original_entry: { unparsed: false } })).toThrow(
+      'EXPORT_JSON_UNAVAILABLE',
+    );
   });
   it('excludes internal secrets and delivery identities while preserving private original values', () => {
     expect(

@@ -10,7 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Pool, types, type PoolClient } from 'pg';
 import type { OwnerContext } from '../auth/auth.context.js';
-import { exportColumns, exportRow, exportTables } from './export-policy.js';
+import { exportColumns, exportRow, exportTables, serializeExportRow } from './export-policy.js';
 import type { DeletionStatusDto } from './privacy.dto.js';
 import type { PrivateMediaStorage, ResourceType } from '../media/storage.js';
 
@@ -27,7 +27,7 @@ export class PrivacyRepository implements OnModuleDestroy {
         statement_timeout: 10000,
         types: {
           getTypeParser: (oid, format): ((value: string) => unknown) =>
-            oid === types.builtins.DATE
+            [types.builtins.DATE, types.builtins.JSON, types.builtins.JSONB].includes(oid)
               ? (v: string) => v
               : (types.getTypeParser(oid, format) as (value: string) => unknown),
         },
@@ -72,19 +72,21 @@ export class PrivacyRepository implements OnModuleDestroy {
   async export(owner: OwnerContext): Promise<string> {
     return this.transaction(async (c) => {
       await this.session(c, owner, false);
-      const data: Record<string, unknown> = {};
-      data.owner = exportRow(
-        'users',
-        (
-          await c.query<Record<string, unknown>>(
-            'SELECT id,email,display_name,created_at,updated_at FROM users WHERE id=$1',
-            [owner.id],
-          )
-        ).rows[0]!,
+      const data: Record<string, string> = {};
+      data.owner = JSON.stringify(
+        exportRow(
+          'users',
+          (
+            await c.query<Record<string, unknown>>(
+              'SELECT id,email,display_name,created_at,updated_at FROM users WHERE id=$1',
+              [owner.id],
+            )
+          ).rows[0]!,
+        ),
       );
       let size = 0;
       for (const table of exportTables) {
-        const rows: Record<string, unknown>[] = [];
+        const rows: string[] = [];
         // Constants only: never interpolate request input into an SQL identifier.
         await c.query(
           `DECLARE export_rows NO SCROLL CURSOR FOR SELECT ${exportColumns[table].join(',')} FROM ${table} WHERE owner_id=$1`,
@@ -93,15 +95,15 @@ export class PrivacyRepository implements OnModuleDestroy {
         for (;;) {
           const page = await c.query<Record<string, unknown>>('FETCH FORWARD 100 FROM export_rows');
           for (const row of page.rows) {
-            const safe = exportRow(table, row);
-            size += Buffer.byteLength(JSON.stringify(safe));
+            const safe = serializeExportRow(table, row);
+            size += Buffer.byteLength(safe);
             if (size > 16 * 1024 * 1024) throw new PayloadTooLargeException('EXPORT_TOO_LARGE');
             rows.push(safe);
           }
           if (page.rows.length < 100) break;
         }
         await c.query('CLOSE export_rows');
-        data[table] = rows;
+        data[table] = '[' + rows.join(',') + ']';
       }
       const result = JSON.stringify({
         format: 'havefolio-private-export',
@@ -109,11 +111,17 @@ export class PrivacyRepository implements OnModuleDestroy {
         exportedAt: new Date().toISOString(),
         attachments: 'metadata_only',
         money: 'integer minor units as decimal strings; ISO currency retained',
-        data,
       });
-      if (Buffer.byteLength(result) > 16 * 1024 * 1024)
+      const complete =
+        result.slice(0, -1) +
+        ',"data":{' +
+        Object.entries(data)
+          .map(([key, value]) => JSON.stringify(key) + ':' + value)
+          .join(',') +
+        '}}';
+      if (Buffer.byteLength(complete) > 16 * 1024 * 1024)
         throw new PayloadTooLargeException('EXPORT_TOO_LARGE');
-      return result;
+      return complete;
     }, true);
   }
   async admit(
@@ -130,6 +138,8 @@ export class PrivacyRepository implements OnModuleDestroy {
       ).rows[0];
       if (!(await verify(row?.password_hash ?? null)))
         throw new UnauthorizedException('INVALID_CREDENTIALS');
+      // Password verification may outlast a nearly expired session. Recheck at admission.
+      await this.session(c, owner, true);
       const request = (
         await c.query<{ id: string }>(
           'INSERT INTO account_deletions(owner_id,receipt_hash) VALUES($1,$2) RETURNING id',
@@ -162,7 +172,7 @@ export class PrivacyRepository implements OnModuleDestroy {
     return this.transaction(async (c) => {
       const row = (
         await c.query<{
-          state: string;
+          state: DeletionStatusDto['state'];
           completed_at: Date | null;
           remaining: string;
           uncertain: string;

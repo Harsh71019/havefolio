@@ -1,3 +1,4 @@
+import type { AccountDeletionStatus } from '@havefolio/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Equals, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
@@ -20,9 +21,9 @@ export class DeleteAccountDto extends DeletionReceiptDto {
   @Equals('DELETE MY ACCOUNT')
   confirmation!: string;
 }
-export class DeletionStatusDto {
+export class DeletionStatusDto implements AccountDeletionStatus {
   @ApiProperty({ enum: ['pending', 'retrying', 'awaiting_finality', 'completed'] })
-  state!: string;
+  state!: AccountDeletionStatus['state'];
   @ApiProperty() remainingFiles!: number;
   @ApiProperty() awaitingFinality!: number;
   @ApiProperty({ nullable: true, type: String }) completedAt!: string | null;

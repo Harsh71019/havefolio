@@ -292,3 +292,31 @@ export function exportRow(
   const allowed: readonly string[] = exportColumns[table];
   return Object.fromEntries(Object.entries(row).filter(([key]) => allowed.includes(key)));
 }
+
+// Preserve nested original/suggested JSON verbatim too: parsing JSONB through JS numbers
+// would round large original numeric values before the export is serialised.
+export const exportJsonColumns: Partial<Record<keyof typeof exportColumns, readonly string[]>> = {
+  items: ['original_entry', 'specifications'],
+  lifecycle_events: ['metadata'],
+  item_suggestions: ['suggested_values'],
+};
+export function serializeExportRow(
+  table: keyof typeof exportColumns,
+  row: Record<string, unknown>,
+): string {
+  const fields = exportRow(table, row);
+  return (
+    '{' +
+    Object.entries(fields)
+      .map(([key, value]) => {
+        let encoded: string;
+        if (value !== null && exportJsonColumns[table]?.includes(key)) {
+          if (typeof value !== 'string') throw new Error('EXPORT_JSON_UNAVAILABLE');
+          encoded = value; // PostgreSQL JSONB text is validated JSON, never request-supplied SQL/text.
+        } else encoded = JSON.stringify(value);
+        return JSON.stringify(key) + ':' + encoded;
+      })
+      .join(',') +
+    '}'
+  );
+}

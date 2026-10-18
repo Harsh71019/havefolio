@@ -31,6 +31,9 @@ describe('PER-35 private export and account erasure', () => {
     desire = randomUUID(),
     goal = randomUUID(),
     contribution = randomUUID();
+  const photo = randomUUID(),
+    display = randomUUID(),
+    thumbnail = randomUUID();
   const ready = randomUUID(),
     uncertain = randomUUID();
   const deletedKeys: string[] = [];
@@ -96,7 +99,7 @@ describe('PER-35 private export and account erasure', () => {
     await identity();
     await run.runtime.query('INSERT INTO users(id) VALUES($1)', [other]);
     await run.runtime.query(
-      "INSERT INTO items(id,owner_id,name,currency,price_paid_minor,original_entry,original_source,purchase_date_precision,purchase_year) VALUES($1,$2,'Synthetic item','INR',9007199254740993,'{\"manual\":true}','manual','year',2020)",
+      "INSERT INTO items(id,owner_id,name,currency,price_paid_minor,original_entry,original_source,purchase_date_precision,purchase_year) VALUES($1,$2,'Synthetic item','INR',9007199254740993,'{\"manual\":true,\"numericOriginal\":9007199254740993}','manual','year',2020)",
       [item, owner],
     );
     await run.runtime.query(
@@ -139,6 +142,17 @@ describe('PER-35 private export and account erasure', () => {
       );
     });
     await media(ready);
+    for (const [id, variant, parent] of [
+      [photo, 'original', null],
+      [display, 'display', photo],
+      [thumbnail, 'thumbnail', photo],
+    ]) {
+      await run.runtime.query(
+        `INSERT INTO media_attachments(id,owner_id,item_id,parent_id,kind,variant,state,object_key,resource_type,format,provider_asset_id,provider_version,original_filename,mime_type,byte_size,checksum) VALUES($1,$2,$3,$4,'photo',$5,'ready',$6,'image','webp',$7,1,'sanitized.webp','image/webp',100,repeat('a',64))`,
+        [id, owner, item, parent, variant, `havefolio/test/${id}`, randomUUID()],
+      );
+    }
+
     const otherFile = randomUUID();
     await run.runtime.query(
       `INSERT INTO media_attachments(id,owner_id,kind,variant,state,object_key,resource_type,format,provider_asset_id,provider_version,original_filename,mime_type,byte_size,checksum) VALUES($1,$2,'receipt','original','ready',$3,'raw','pdf',$4,1,'other.pdf','application/pdf',100,repeat('a',64))`,
@@ -163,6 +177,7 @@ describe('PER-35 private export and account erasure', () => {
     const response = await auth(http().get('/api/v1/privacy/export')).expect(200);
     expect(response.headers['cache-control']).toContain('no-store');
     expect(response.headers['content-disposition']).toContain('attachment');
+    expect(response.text).toMatch(/"numericOriginal":\s*9007199254740993/);
     const data = response.body.data as Record<string, Record<string, unknown>[]>;
     expect(data.items).toHaveLength(1);
     expect(data.items![0]).toMatchObject({
@@ -194,7 +209,10 @@ describe('PER-35 private export and account erasure', () => {
       'Other private item',
     ])
       expect(text).not.toContain(secret);
-    expect(data.media_attachments![0]!.original_filename).toBe('synthetic.pdf');
+    expect(data.media_attachments!.find((r) => r.id === ready)!.original_filename).toBe(
+      'synthetic.pdf',
+    );
+    expect(data.media_attachments).toHaveLength(4);
   });
   it('requires explicit confirmation and fresh password verification without revoking on rejection', async () => {
     await auth(http().post('/api/v1/privacy/deletion'))
@@ -269,6 +287,7 @@ describe('PER-35 private export and account erasure', () => {
     expect((await run.runtime.query('SELECT id FROM users WHERE id=$1', [owner])).rowCount).toBe(1);
     providerFails = false;
     await Promise.all([service.tick(), service.tick()]);
+    for (let i = 0; i < 3; i++) await service.tick();
     response = await http()
       .post('/api/v1/privacy/deletion-status')
       .send({ receipt: r })
@@ -278,7 +297,20 @@ describe('PER-35 private export and account erasure', () => {
       remainingFiles: 0,
       awaitingFinality: 0,
     });
-    expect(deletedKeys).toEqual([`havefolio/test/${ready}.pdf`]);
+    expect(new Set(deletedKeys)).toEqual(
+      new Set([
+        `havefolio/test/${ready}.pdf`,
+        `havefolio/test/${photo}`,
+        `havefolio/test/${display}`,
+        `havefolio/test/${thumbnail}`,
+      ]),
+    );
+    expect(deletedKeys.indexOf(`havefolio/test/${display}`)).toBeLessThan(
+      deletedKeys.indexOf(`havefolio/test/${photo}`),
+    );
+    expect(deletedKeys.indexOf(`havefolio/test/${thumbnail}`)).toBeLessThan(
+      deletedKeys.indexOf(`havefolio/test/${photo}`),
+    );
     expect((await run.runtime.query('SELECT id FROM users WHERE id=$1', [owner])).rowCount).toBe(0);
     expect(
       (await run.runtime.query('SELECT id FROM items WHERE owner_id=$1', [other])).rowCount,
@@ -288,7 +320,7 @@ describe('PER-35 private export and account erasure', () => {
         .rowCount,
     ).toBe(0);
     await service.tick();
-    expect(deletedKeys).toHaveLength(1);
+    expect(deletedKeys).toHaveLength(4);
     await http().post('/api/v1/privacy/deletion-status').send({ receipt: receipt() }).expect(404);
     await http().get('/api/v1/privacy/export').set('Authorization', `Bearer ${r}`).expect(401);
     await run.runtime.query(

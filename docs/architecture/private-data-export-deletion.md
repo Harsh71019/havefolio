@@ -1,6 +1,6 @@
 # PER-35: private export and account deletion proposal
 
-Status: implementation in progress. The owner approved keeping deletion pending until
+Status: implemented; verification and PR handoff are tracked in PER-35. The owner approved keeping deletion pending until
 provider finality is established, retaining exact retry keys meanwhile (2026-10-18).
 No production operations are authorised.
 
@@ -10,7 +10,8 @@ Prepared from origin/main `19ef51fdeb850138be6392d6f5c92d9dc29dd502` on 2026-10-
 PER-34 settings, PER-30 goals, PER-31 allocations, PER-56 merchants,
 PER-60 explicit LAN authentication and PER-37 security hardening are merged.
 PER-32 goals screens are now merged through PR #47; the implementation includes current
-main `cc6f076` and must reconcile main again before final validation.
+main `cc6f076`. PER-39 contract/failure-boundary coverage is also reconciled from
+main `438becd`; recheck main before final handoff.
 Existing authentication origin/cookie policies must remain intact.
 
 ## Proposed export contract
@@ -20,7 +21,8 @@ transaction with a shared owner lock that serialises deletion admission and deli
 export artifact: there is no stored download URL, artifact expiry job or residual export
 file to erase. Bound concurrent generation, database execution time and output memory;
 report an explicit recoverable limit error rather than silently truncating a dataset.
-Money uses decimal strings for integer minor units. Preserve currencies, nulls, original
+Money uses decimal strings for integer minor units. Nested original/suggested JSON is
+serialised directly from validated PostgreSQL JSON text to preserve large original numeric values. Preserve currencies, nulls, original
 purchase precision/components, date-only values, provenance and all correction chains.
 
 Explicit attachment treatment: include attachment metadata only, excluding provider
