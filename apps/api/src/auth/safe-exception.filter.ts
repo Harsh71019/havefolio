@@ -106,6 +106,9 @@ const safeMessages = new Set<string>([
   'REQUEST_ORIGIN_REJECTED',
   'AUTH_RATE_LIMITED',
   'AUTH_UNAVAILABLE',
+  'REVIEW_COMMAND_REUSED',
+  'REVIEW_CORRECTION_REQUIRED',
+  'REVIEW_EVENT_REQUIRED',
 ]);
 const statusMessages: Record<number, string> = {
   400: 'INVALID_REQUEST',
