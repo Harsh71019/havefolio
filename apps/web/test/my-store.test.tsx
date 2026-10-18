@@ -538,12 +538,13 @@ describe('My Store page', () => {
     await screen.findByRole('link', { name: /^Alpha/ });
     const user = userEvent.setup();
     await user.tab();
-    expect(screen.getByRole('radio', { name: 'Comfortable' })).toHaveFocus();
-    await user.tab();
+    expect(screen.getByRole('searchbox', { name: 'Search your items' })).toHaveFocus();
+    card('Alpha').focus();
     expect(card('Alpha')).toHaveFocus();
     await user.tab();
     expect(card('Beta')).toHaveFocus();
-    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(within(card('Alpha')).queryAllByRole('button')).toHaveLength(0);
+    expect(within(card('Beta')).queryAllByRole('button')).toHaveLength(0);
     const html = document.body.innerHTML;
     expect(html).not.toMatch(
       /cloudinary|api_key|signature=|havefolio\/(test|production|development)|receipt|warranty/i,

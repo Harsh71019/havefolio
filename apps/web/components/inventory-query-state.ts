@@ -40,7 +40,7 @@ export function readInventoryQuery(params: URLSearchParams): InventoryQuery {
       if (normalized.length <= 200 && normalized) query[key] = normalized;
       continue;
     }
-    if (['categoryId', 'subcategoryId', 'tagId'].includes(key)) {
+    if (['categoryId', 'subcategoryId', 'tagId', 'merchantId'].includes(key)) {
       if (uuid.test(value)) query[key] = value;
       continue;
     }
@@ -88,12 +88,20 @@ export function inventoryQueryParams(query: InventoryQuery): URLSearchParams {
   }
   return result;
 }
+export type InventoryPatch = {
+  [K in keyof InventoryQuery]?: InventoryQuery[K] | undefined;
+};
+
 /** Every changed filter/sort invalidates the previous cursor. Explicit pagination alone retains it. */
-export function changeInventoryQuery(
-  query: InventoryQuery,
-  patch: Partial<InventoryQuery>,
-): InventoryQuery {
-  const next = { ...query, ...patch };
+export function changeInventoryQuery(query: InventoryQuery, patch: InventoryPatch): InventoryQuery {
+  const next: InventoryQuery = { ...query };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined || value === '') {
+      delete (next as Record<string, unknown>)[key];
+    } else {
+      (next as Record<string, unknown>)[key] = value;
+    }
+  }
   if (Object.keys(patch).some((key) => key !== 'after')) delete next.after;
   if ('categoryId' in patch && patch.categoryId !== query.categoryId) delete next.subcategoryId;
   if ('sort' in patch && patch.sort !== query.sort && !('direction' in patch))

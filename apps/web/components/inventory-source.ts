@@ -1,13 +1,17 @@
-import type { ItemsPage, TaxonomySnapshot } from '@havefolio/contracts';
+import type {
+  InventoryQuery as ContractInventoryQuery,
+  ItemsPage,
+  TaxonomySnapshot,
+} from '@havefolio/contracts';
+import { inventoryQueryParams } from './inventory-query-state';
 import { taxonomyRequest } from './taxonomy-client';
 
 /**
- * Browse query seam. PER-16 only pages the existing bounded list; PER-17 extends this type with
- * search, filters and sort and maps it to URL state and its server query parameters.
+ * Browse query seam. Supports search, filters, sort, and bounded cursor pagination.
  */
-export interface InventoryQuery {
+export type InventoryQuery = ContractInventoryQuery & {
   cursor?: string | null;
-}
+};
 
 export interface InventorySource {
   loadPage(query: InventoryQuery): Promise<ItemsPage>;
@@ -31,9 +35,19 @@ export const inventoryPageSize = 60;
 
 /** The current bounded `GET /api/v1/items` page (UUID keyset, at most 100 per request). */
 export const apiInventorySource: InventorySource = {
-  async loadPage({ cursor }) {
-    const params = new URLSearchParams({ limit: String(inventoryPageSize) });
-    if (cursor) params.set('after', cursor);
+  async loadPage(query) {
+    const clean: ContractInventoryQuery = { ...query };
+    delete (clean as { cursor?: unknown }).cursor;
+    const after = query.after ?? query.cursor ?? undefined;
+    if (after) {
+      clean.after = after;
+    } else {
+      delete clean.after;
+    }
+    const params = inventoryQueryParams(clean);
+    if (!params.has('limit')) {
+      params.set('limit', String(inventoryPageSize));
+    }
     let response: Response;
     try {
       response = await fetch(`/api/v1/items?${params.toString()}`, {

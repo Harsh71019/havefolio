@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import {
   ArchiveIcon,
@@ -18,6 +18,13 @@ import type { ItemListEntry, ItemStatus, TaxonomySnapshot } from '@havefolio/con
 import { Button } from '@havefolio/ui/components/button';
 import { Card, CardContent } from '@havefolio/ui/components/card';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@havefolio/ui/components/dialog';
+import {
   Empty,
   EmptyContent,
   EmptyDescription,
@@ -35,8 +42,15 @@ import { Skeleton } from '@havefolio/ui/components/skeleton';
 import {
   apiInventorySource,
   InventoryRequestError,
+  type InventoryQuery,
   type InventorySource,
 } from './inventory-source';
+import {
+  changeInventoryQuery,
+  inventoryQueryParams,
+  readInventoryQuery,
+  type InventoryPatch,
+} from './inventory-query-state';
 import {
   acquiredFact,
   isInactive,
@@ -48,6 +62,9 @@ import {
 import { deletedFlashKey, storeReturnPath } from './navigation-context';
 import { photoSource } from './photos-client';
 import { groupInventory } from './store-grouping';
+import { StoreFilters, countActiveFilters } from './store-filters';
+import { StoreToolbar } from './store-toolbar';
+import { StoreActiveChips } from './store-active-chips';
 
 const statusIcons: Record<ItemStatus, LucideIcon> = {
   owned: CircleCheckIcon,
@@ -59,7 +76,23 @@ const statusIcons: Record<ItemStatus, LucideIcon> = {
 };
 const gridClass = 'store-grid grid grid-cols-1 gap-4 min-[520px]:grid-cols-2';
 
-const noSubscribe = (): (() => void) => () => undefined;
+function subscribeLocation(callback: () => void): () => void {
+  window.addEventListener('popstate', callback);
+  window.addEventListener('havefolio-store-query', callback);
+  return () => {
+    window.removeEventListener('popstate', callback);
+    window.removeEventListener('havefolio-store-query', callback);
+  };
+}
+
+function saveStoreLocation(query: InventoryQuery, replace = false): void {
+  const params = inventoryQueryParams(query).toString();
+  const url = params ? `/store?${params}` : '/store';
+  if (window.location.pathname + window.location.search === url) return;
+  window.history[replace ? 'replaceState' : 'pushState'](null, '', url);
+  window.dispatchEvent(new Event('havefolio-store-query'));
+}
+
 /** The deleted item's name left by the item page; read once, then cleared. */
 function takeDeletedFlash(): string | undefined {
   try {
@@ -114,6 +147,7 @@ export function MyStore({
   const [more, setMore] = useState<{ busy: boolean; error?: string }>({ busy: false });
   const [announcement, setAnnouncement] = useState('');
   const [deleted, setDeleted] = useState<string | undefined>();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const flash = useRef<string | undefined>(undefined);
   useEffect(() => {
     // Read after hydration; the ref survives a development double-run of this effect.
@@ -123,12 +157,14 @@ export function MyStore({
     const timer = window.setTimeout(() => setDeleted(name), 0);
     return () => window.clearTimeout(timer);
   }, []);
-  // The current browse location (search, filters, sort, page) item pages return to.
+
+  // Synchronize location search params with local query state
   const search = useSyncExternalStore(
-    noSubscribe,
+    subscribeLocation,
     () => window.location.search,
     () => '',
   );
+  const query = useMemo(() => readInventoryQuery(new URLSearchParams(search)), [search]);
   const returnTo = storeReturnPath(search);
   const online = useSyncExternalStore(
     subscribeOnline,
@@ -136,18 +172,30 @@ export function MyStore({
     () => true,
   );
 
+  const handleQueryChange = (patch: InventoryPatch): void => {
+    const next = changeInventoryQuery(query, patch);
+    saveStoreLocation(next);
+  };
+
+  const handleReset = (): void => {
+    saveStoreLocation({});
+  };
+
   const fetchFirst = useCallback(async (): Promise<Load> => {
     try {
+      const isClean = Object.keys(query).length === 0;
+      const cleanQuery: InventoryQuery = { ...query };
+      delete (cleanQuery as { cursor?: unknown }).cursor;
       // Taxonomy only names groups; a failure keeps every item visible in one neutral group.
       const [page, taxonomy] = await Promise.all([
-        source.loadPage({ cursor: null }),
+        source.loadPage(isClean ? { cursor: null } : cleanQuery),
         source.loadTaxonomy().catch(() => undefined),
       ]);
       return { kind: 'ready', items: page.items, taxonomy, nextCursor: page.nextCursor };
     } catch (error) {
       return { kind: 'failed', error: asRequestError(error) };
     }
-  }, [source]);
+  }, [source, query]);
 
   useEffect(() => {
     let active = true;
@@ -165,7 +213,10 @@ export function MyStore({
   async function loadMore(cursor: string): Promise<void> {
     setMore({ busy: true });
     try {
-      const page = await source.loadPage({ cursor });
+      const isClean = Object.keys(query).length === 0;
+      const cleanQuery: InventoryQuery = { ...query, after: cursor };
+      delete (cleanQuery as { cursor?: unknown }).cursor;
+      const page = await source.loadPage(isClean ? { cursor } : cleanQuery);
       setLoad((current) => {
         if (current.kind !== 'ready') return current;
         // Keyset pages are live views; drop any item already shown.
@@ -186,7 +237,7 @@ export function MyStore({
   }
 
   return (
-    <section aria-label="Your items" className="my-store mt-8 space-y-8">
+    <section aria-label="Your items" className="my-store mt-8 space-y-6">
       <p role="status" aria-live="polite" className="sr-only">
         {load.kind === 'loading' ? 'Loading your items.' : announcement}
       </p>
@@ -204,47 +255,105 @@ export function MyStore({
           You are offline. Items already shown stay visible; reconnect to load more.
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-muted-foreground">
-          {load.kind === 'ready'
-            ? `Showing ${load.items.length} item${load.items.length === 1 ? '' : 's'}${load.nextCursor ? ' so far' : ''}.${load.taxonomy ? '' : ' Categories could not load, so items are not grouped.'}`
-            : load.kind === 'loading'
-              ? 'Loading your items…'
-              : 'Items unavailable'}
-        </p>
-        <div className="hidden items-center gap-3 lg:flex">
-          <span id="store-density-label" className="text-sm font-medium">
-            View density
-          </span>
-          <RadioGroup
-            aria-labelledby="store-density-label"
-            orientation="horizontal"
-            value={density}
-            onValueChange={selectDensity}
-            className="flex gap-3"
-          >
-            {storeDensities.map((mode) => (
-              <Label key={mode} className="flex min-h-11 cursor-pointer items-center gap-2">
-                <RadioGroupItem value={mode} aria-label={mode[0]!.toUpperCase() + mode.slice(1)} />
-                {mode[0]!.toUpperCase() + mode.slice(1)}
-              </Label>
-            ))}
-          </RadioGroup>
+
+      {/* Top Search & Sorting Toolbar */}
+      <StoreToolbar
+        query={query}
+        onQueryChange={handleQueryChange}
+        onOpenMobileFilters={() => setMobileFiltersOpen(true)}
+      />
+
+      {/* Active Filter Chips */}
+      <StoreActiveChips
+        query={query}
+        taxonomy={load.kind === 'ready' ? load.taxonomy : undefined}
+        onQueryChange={handleQueryChange}
+        onReset={handleReset}
+      />
+
+      {/* Mobile Filters Modal */}
+      <Dialog open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filters</DialogTitle>
+            <DialogDescription>
+              Filter your home inventory by category, status, frequency, and price.
+            </DialogDescription>
+          </DialogHeader>
+          <StoreFilters
+            query={query}
+            taxonomy={load.kind === 'ready' ? load.taxonomy : undefined}
+            onQueryChange={handleQueryChange}
+            onReset={handleReset}
+            isMobileModal
+            onCloseMobile={() => setMobileFiltersOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* E-Commerce Catalog Layout: Sidebar + Grid */}
+      <div className="flex flex-col lg:flex-row gap-8 items-start pt-2">
+        {/* Sticky Desktop Filters Sidebar */}
+        <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start rounded-xl border bg-card p-4 shadow-xs">
+          <StoreFilters
+            query={query}
+            taxonomy={load.kind === 'ready' ? load.taxonomy : undefined}
+            onQueryChange={handleQueryChange}
+            onReset={handleReset}
+          />
+        </aside>
+
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0 w-full space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              {load.kind === 'ready'
+                ? `Showing ${load.items.length} item${load.items.length === 1 ? '' : 's'}${load.nextCursor ? ' so far' : ''}.${load.taxonomy ? '' : ' Categories could not load, so items are not grouped.'}`
+                : load.kind === 'loading'
+                  ? 'Loading your items…'
+                  : 'Items unavailable'}
+            </p>
+            <div className="hidden items-center gap-3 lg:flex">
+              <span id="store-density-label" className="text-sm font-medium">
+                View density
+              </span>
+              <RadioGroup
+                aria-labelledby="store-density-label"
+                orientation="horizontal"
+                value={density}
+                onValueChange={selectDensity}
+                className="flex gap-3"
+              >
+                {storeDensities.map((mode) => (
+                  <Label key={mode} className="flex min-h-11 cursor-pointer items-center gap-2">
+                    <RadioGroupItem
+                      value={mode}
+                      aria-label={mode[0]!.toUpperCase() + mode.slice(1)}
+                    />
+                    {mode[0]!.toUpperCase() + mode.slice(1)}
+                  </Label>
+                ))}
+              </RadioGroup>
+            </div>
+          </div>
+
+          {load.kind === 'loading' ? <StoreSkeleton /> : null}
+          {load.kind === 'failed' ? <LoadFailure error={load.error} onRetry={retry} /> : null}
+          {load.kind === 'ready' ? (
+            <StoreContent
+              density={density}
+              load={load}
+              now={now}
+              more={more}
+              online={online}
+              returnTo={returnTo}
+              query={query}
+              onResetFilters={handleReset}
+              onLoadMore={(cursor) => void loadMore(cursor)}
+            />
+          ) : null}
         </div>
       </div>
-      {load.kind === 'loading' ? <StoreSkeleton /> : null}
-      {load.kind === 'failed' ? <LoadFailure error={load.error} onRetry={retry} /> : null}
-      {load.kind === 'ready' ? (
-        <StoreContent
-          density={density}
-          load={load}
-          now={now}
-          more={more}
-          online={online}
-          returnTo={returnTo}
-          onLoadMore={(cursor) => void loadMore(cursor)}
-        />
-      ) : null}
     </section>
   );
 }
@@ -300,6 +409,19 @@ function LoadFailure({
   );
 }
 
+function resolveItemContext(
+  item: ItemListEntry,
+  taxonomy: TaxonomySnapshot | undefined,
+): string | undefined {
+  if (!taxonomy || !item.categoryId) return undefined;
+  const category = taxonomy.categories.find((c) => c.id === item.categoryId);
+  if (!category) return undefined;
+  if (!item.subcategoryId) return category.name;
+  const subcategory = taxonomy.subcategories.find((s) => s.id === item.subcategoryId);
+  if (!subcategory) return category.name;
+  return `${category.name} › ${subcategory.name}`;
+}
+
 function StoreContent({
   density,
   load,
@@ -308,6 +430,8 @@ function StoreContent({
   onLoadMore,
   online,
   returnTo,
+  query,
+  onResetFilters,
 }: {
   density: StoreDensity;
   load: Extract<Load, { kind: 'ready' }>;
@@ -316,8 +440,34 @@ function StoreContent({
   now: Date | undefined;
   onLoadMore: (cursor: string) => void;
   online: boolean;
+  query: InventoryQuery;
+  onResetFilters: () => void;
 }): React.JSX.Element {
-  if (!load.items.length)
+  if (!load.items.length) {
+    const hasFilters = countActiveFilters(query) > 0;
+    if (hasFilters) {
+      return (
+        <Card className="border-dashed py-0">
+          <Empty className="min-h-80">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <SearchXIcon aria-hidden="true" />
+              </EmptyMedia>
+              <EmptyTitle>No items match your filters</EmptyTitle>
+              <EmptyDescription>
+                We couldn’t find anything in your home matching your search and filter criteria. Try
+                adjusting your search terms or clearing some filters to see your items.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button variant="outline" className="min-h-11" onClick={onResetFilters}>
+                Clear all filters
+              </Button>
+            </EmptyContent>
+          </Empty>
+        </Card>
+      );
+    }
     return (
       <Card className="border-dashed py-0">
         <Empty className="min-h-80">
@@ -342,6 +492,65 @@ function StoreContent({
         </Empty>
       </Card>
     );
+  }
+
+  // When custom sorting is applied, display items in their explicit sorted order
+  if (query.sort && query.sort !== 'id') {
+    const eagerIds = new Set(load.items.slice(0, 4).map((i) => i.id));
+    return (
+      <>
+        <section aria-label="Sorted items" className="space-y-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h2 className="text-xl font-semibold tracking-tight">
+              {query.q ? `Search results for “${query.q}”` : 'All items'}
+            </h2>
+            <span className="text-sm text-muted-foreground">
+              {load.nextCursor && load.items.length
+                ? `${load.items.length} items shown so far`
+                : `${load.items.length} item${load.items.length === 1 ? '' : 's'}`}
+            </span>
+          </div>
+          <ul className={gridClass}>
+            {load.items.map((item) => (
+              <li key={item.id}>
+                <StoreCard
+                  density={density}
+                  item={item}
+                  context={resolveItemContext(item, load.taxonomy)}
+                  eager={eagerIds.has(item.id)}
+                  now={now}
+                  returnTo={returnTo}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+        {load.nextCursor ? (
+          <div className="flex flex-col items-start gap-2">
+            <Button
+              variant="outline"
+              className="min-h-11"
+              disabled={more.busy || !online}
+              onClick={() => load.nextCursor && onLoadMore(load.nextCursor)}
+            >
+              {more.busy
+                ? 'Loading more…'
+                : more.error
+                  ? 'Try loading more again'
+                  : 'Show more items'}
+            </Button>
+            {more.error ? (
+              <p role="alert" className="text-sm">
+                {more.error} Items already shown are unchanged.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </>
+    );
+  }
+
+  // Default browsing: group by category in taxonomy order
   const { groups, emptyCategories } = groupInventory(load.items, load.taxonomy);
   // The first few cards in display order load eagerly; the rest wait until near the viewport.
   const eagerIds = new Set(
