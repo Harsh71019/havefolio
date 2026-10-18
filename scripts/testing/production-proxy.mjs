@@ -452,10 +452,24 @@ try {
     'goals',
     'home',
     'settings',
+    'privacy',
   ]) {
     assert.equal((await request(`/api/v1/${domain}`, { headers })).status, 200);
     assert.equal(records.at(-1).path, `/api/v1/${domain}`);
   }
+  assert.equal((await request('/api/v1/privacy/export', { headers })).status, 200);
+  assert.equal(records.at(-1).path, '/api/v1/privacy/export');
+  assert.equal(
+    (
+      await request('/api/v1/privacy/deletion-status', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receipt: 'synthetic-status-receipt' }),
+      })
+    ).status,
+    200,
+  );
+  assert.equal(records.at(-1).path, '/api/v1/privacy/deletion-status');
   const count = records.length;
   assert.equal((await request('/api/v1/not-allowlisted', { headers })).status, 404);
   assert.equal(records.length, count, 'Unknown domain must never reach upstream');

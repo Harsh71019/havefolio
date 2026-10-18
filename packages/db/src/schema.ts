@@ -46,6 +46,7 @@ export const users = pgTable(
   'users',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    deletionRequestedAt: timestamp('deletion_requested_at', { withTimezone: true, precision: 3 }),
     displayName: text('display_name'),
     email: text('email'),
     passwordHash: text('password_hash'),
@@ -1164,4 +1165,47 @@ export const desireGoalAllocations = pgTable(
     index('allocation_goal_owner_idx').on(t.ownerId, t.goalId),
     check('allocation_hash_check', sql`${t.requestHash} ~ '^[a-f0-9]{64}$'`),
   ],
+);
+
+/** Durable erasure intent; receipt grants status access only after normal sessions are revoked. */
+export const accountDeletions = pgTable(
+  'account_deletions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .unique()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    receiptHash: text('receipt_hash').notNull().unique(),
+    state: text('state').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true, precision: 3 }),
+  },
+  (t) => [
+    check(
+      'deletion_state_check',
+      sql`${t.state} in ('pending','retrying','awaiting_finality','completed')`,
+    ),
+    check('deletion_receipt_check', sql`${t.receiptHash} ~ '^[a-f0-9]{64}$'`),
+    check(
+      'deletion_completion_check',
+      sql`(${t.state}='completed' and ${t.ownerId} is null and ${t.completedAt} is not null) or (${t.state}<>'completed' and ${t.ownerId} is not null and ${t.completedAt} is null)`,
+    ),
+    index('deletion_recovery_idx').on(t.state, t.updatedAt),
+  ],
+);
+/** Exact authorised resources survive provider failures; uncertain writes require finality evidence. */
+export const deletionResources = pgTable(
+  'deletion_resources',
+  {
+    attachmentId: uuid('attachment_id')
+      .primaryKey()
+      .references(() => mediaAttachments.id, { onDelete: 'restrict' }),
+    deletionId: uuid('deletion_id')
+      .notNull()
+      .references(() => accountDeletions.id, { onDelete: 'cascade' }),
+    finalityEstablished: boolean('finality_established').notNull(),
+    cleanedAt: timestamp('cleaned_at', { withTimezone: true, precision: 3 }),
+  },
+  (t) => [index('deletion_resource_request_idx').on(t.deletionId, t.attachmentId)],
 );

@@ -1,3 +1,4 @@
+import { PrivacyControls } from '@/components/privacy-controls';
 import type { ReactElement } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -31,6 +32,7 @@ export default function SettingsPage(): ReactElement {
         </Button>
       </section>
       <SettingsView />
+      <PrivacyControls />
     </main>
   );
 }

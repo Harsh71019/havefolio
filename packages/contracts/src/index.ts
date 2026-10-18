@@ -1086,3 +1086,11 @@ export const settingsErrorCodes = [
 export type SettingsErrorCode = (typeof settingsErrorCodes)[number];
 
 export * from './openapi-compatibility.js';
+
+/** Status-only receipt response; never contains owner identity or private resource keys (PER-35). */
+export interface AccountDeletionStatus {
+  state: 'pending' | 'retrying' | 'awaiting_finality' | 'completed';
+  remainingFiles: number;
+  awaitingFinality: number;
+  completedAt: string | null;
+}

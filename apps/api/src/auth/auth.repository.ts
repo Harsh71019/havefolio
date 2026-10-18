@@ -62,7 +62,7 @@ export class AuthRepository implements OnModuleDestroy {
       async (client) =>
         (
           await client.query<CredentialOwner>(
-            `SELECT ${OWNER_COLUMNS} FROM users WHERE email = $1`,
+            `SELECT ${OWNER_COLUMNS} FROM users WHERE email = $1 AND deletion_requested_at IS NULL`,
             [email],
           )
         ).rows[0],
@@ -119,7 +119,7 @@ export class AuthRepository implements OnModuleDestroy {
     return this.run(async (client) => {
       const owner = (
         await client.query<CredentialOwner>(
-          `SELECT ${OWNER_COLUMNS} FROM users WHERE id = $1 FOR UPDATE`,
+          `SELECT ${OWNER_COLUMNS} FROM users WHERE id = $1 AND deletion_requested_at IS NULL FOR UPDATE`,
           [expected.id],
         )
       ).rows[0];
@@ -147,14 +147,14 @@ export class AuthRepository implements OnModuleDestroy {
       // Conditional update serializes with revoke and cannot resurrect an expired/revoked row.
       const session = (
         await client.query<{ owner_id: string; id: string }>(
-          `UPDATE auth_sessions SET last_used_at = clock_timestamp(), idle_expires_at = least(absolute_expires_at, clock_timestamp() + $2 * interval '1 second') WHERE token_hash = $1 AND ${ACTIVE} RETURNING owner_id, id`,
+          `UPDATE auth_sessions SET last_used_at = clock_timestamp(), idle_expires_at = least(absolute_expires_at, clock_timestamp() + $2 * interval '1 second') WHERE token_hash = $1 AND EXISTS (SELECT 1 FROM users WHERE users.id=auth_sessions.owner_id AND deletion_requested_at IS NULL) AND ${ACTIVE} RETURNING owner_id, id`,
           [tokenHash, this.config.getOrThrow<number>('AUTH_SESSION_IDLE_SECONDS')],
         )
       ).rows[0];
       if (!session) return undefined;
       const owner = (
         await client.query<CredentialOwner>(
-          `SELECT ${OWNER_COLUMNS} FROM users WHERE id = $1 AND email IS NOT NULL`,
+          `SELECT ${OWNER_COLUMNS} FROM users WHERE id = $1 AND email IS NOT NULL AND deletion_requested_at IS NULL`,
           [session.owner_id],
         )
       ).rows[0];
