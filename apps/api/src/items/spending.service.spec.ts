@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
 import type { PoolClient } from 'pg';
 import { ItemsRepository } from './items.repository.js';
-import { SpendingService, normalizeSpendingQuery, spendingSql } from './spending.service.js';
+import {
+  SpendingService,
+  merchantSpendingSql,
+  normalizeSpendingQuery,
+  spendingSql,
+} from './spending.service.js';
 import type { SpendingQueryDto } from './spending.dto.js';
 
 describe('spending contract boundaries', () => {
@@ -36,6 +41,43 @@ describe('spending contract boundaries', () => {
     });
     expect(query).toHaveBeenCalledTimes(1);
     expect(spendingSql('owner', { scope: 'current-owned' }).text).toContain('LIMIT 1001');
+  });
+  it('reads lifetime merchant spend in one bounded, owner-bound, all-history query', async () => {
+    query.mockResolvedValueOnce({
+      rows: [
+        {
+          currency: 'INR',
+          merchant: { id: 'm', displayName: 'Amazon', websiteHost: 'amazon.in', state: 'active' },
+          grossMinor: '30000',
+          refundedMinor: '5000',
+          netMinor: '25000',
+          pricedItemCount: '3',
+          unknownPriceCount: '1',
+          totalItemCount: '4',
+        },
+      ],
+    } as never);
+    expect(await service.merchants('owner')).toEqual({
+      scope: 'all-history',
+      rows: [
+        {
+          currency: 'INR',
+          merchant: { id: 'm', displayName: 'Amazon', websiteHost: 'amazon.in', state: 'active' },
+          grossMinor: '30000',
+          refundedMinor: '5000',
+          netMinor: '25000',
+          pricedItemCount: 3,
+          unknownPriceCount: 1,
+          totalItemCount: 4,
+        },
+      ],
+    });
+    expect(query).toHaveBeenCalledTimes(1);
+    const sql = merchantSpendingSql('private-owner');
+    expect(sql.text).not.toContain('private');
+    expect(sql.values[0]).toBe('private-owner');
+    expect(sql.text).toContain('demo_dataset_id IS NULL');
+    expect(sql.text).toContain('LIMIT 1001');
   });
   it.each([
     { scope: 'bad' },

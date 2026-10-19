@@ -557,6 +557,24 @@ export interface SpendingReport {
   buckets: SpendingBucket[];
 }
 
+/** PER-69: lifetime (all recorded history) spend per merchant, one row per merchant and currency. */
+export interface MerchantSpendingRow {
+  currency: string;
+  /** null when no merchant was recorded on the purchase. */
+  merchant: SpendingBucketMerchant | null;
+  grossMinor: string;
+  refundedMinor: string;
+  netMinor: string;
+  pricedItemCount: number;
+  unknownPriceCount: number;
+  totalItemCount: number;
+}
+export interface MerchantSpendingReport {
+  scope: 'all-history';
+  /** Ranked by net spend, highest first, within each currency. Currencies are never summed. */
+  rows: MerchantSpendingRow[];
+}
+
 export type OnboardingState = 'not_started' | 'active' | 'skipped' | 'completed';
 export type OnboardingAction =
   'start' | 'skip' | 'complete' | 'revisit' | 'browse_store' | 'review_item';

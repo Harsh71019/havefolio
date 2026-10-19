@@ -16,7 +16,12 @@ import request from 'supertest';
 import { IntegrationRun, integrationConfiguration } from '@havefolio/test-utils';
 import { validateApiEnvironment } from '@havefolio/config';
 import { summarizeSpending, type SpendingItemInput } from '@havefolio/domain';
-import type { ItemsPage, SpendingReport, SpendingBucket } from '@havefolio/contracts';
+import type {
+  ItemsPage,
+  MerchantSpendingReport,
+  SpendingReport,
+  SpendingBucket,
+} from '@havefolio/contracts';
 import { AuthModule } from '../src/auth/auth.module.js';
 import { newToken, hashToken } from '../src/auth/session-cookie.service.js';
 import { configureApplication } from '../src/app.setup.js';
@@ -264,6 +269,48 @@ describe('authoritative spending HTTP, SQL and domain parity', () => {
     },
     60000,
   );
+  it('ranks lifetime merchant spend and reconciles with every all-history merchant bucket', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/spending/merchants')
+      .set('Cookie', `havefolio_session=${token}`)
+      .expect(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    const lifetime = response.body as MerchantSpendingReport;
+    const grouped = await report({ grouping: 'merchant' });
+    const expected = new Map<
+      string,
+      { gross: bigint; refunded: bigint; net: bigint; total: number; unknown: number }
+    >();
+    for (const b of grouped.buckets) {
+      const key = `${b.currency}:${b.key ?? ''}`;
+      const t = expected.get(key) ?? { gross: 0n, refunded: 0n, net: 0n, total: 0, unknown: 0 };
+      t.gross += BigInt(b.grossMinor);
+      t.refunded += BigInt(b.refundedMinor);
+      t.net += BigInt(b.netMinor);
+      t.total += b.totalItemCount;
+      t.unknown += b.unknownPriceCount;
+      expected.set(key, t);
+    }
+    expect(lifetime.scope).toBe('all-history');
+    expect(lifetime.rows).toHaveLength(expected.size);
+    for (const row of lifetime.rows) {
+      const t = expected.get(`${row.currency}:${row.merchant?.id ?? ''}`)!;
+      expect(row).toMatchObject({
+        grossMinor: t.gross.toString(),
+        refundedMinor: t.refunded.toString(),
+        netMinor: t.net.toString(),
+        totalItemCount: t.total,
+        unknownPriceCount: t.unknown,
+      });
+      expect(row.merchant?.id).not.toBe(foreignMerchant);
+    }
+    for (let n = 1; n < lifetime.rows.length; n++) {
+      const [a, b] = [lifetime.rows[n - 1]!, lifetime.rows[n]!];
+      if (a.currency === b.currency) expect(BigInt(a.netMinor) >= BigInt(b.netMinor)).toBe(true);
+      else expect(a.currency < b.currency).toBe(true);
+    }
+    await request(app.getHttpServer()).get('/api/v1/spending/merchants').expect(401);
+  });
   it('rejects incomplete, incompatible and foreign drill-down filters without private prose', async () => {
     for (const q of [
       { spendingDateBucket: 'dated' },

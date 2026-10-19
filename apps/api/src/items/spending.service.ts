@@ -1,7 +1,12 @@
 import { spendingMembershipSql } from './spending-membership.js';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { isCurrencyCode, parseCalendarDay } from '@havefolio/domain';
-import type { SpendingBucket, SpendingReport } from '@havefolio/contracts';
+import type {
+  MerchantSpendingReport,
+  MerchantSpendingRow,
+  SpendingBucket,
+  SpendingReport,
+} from '@havefolio/contracts';
 import { ItemsRepository } from './items.repository.js';
 import type { SpendingQueryDto } from './spending.dto.js';
 
@@ -81,6 +86,43 @@ export function spendingSql(
     ${orderBy} LIMIT 1001`,
   };
 }
+
+/** PER-69: lifetime totals per merchant. Same membership and refund rules as spendingSql, but
+ * all history with no date range, so every dated and unknown-date purchase belongs to one total. */
+export function merchantSpendingSql(owner: string): { text: string; values: unknown[] } {
+  const values: unknown[] = [owner];
+  const bind = (v: unknown): string => {
+    values.push(v);
+    return `$${values.length}`;
+  };
+  const membership = spendingMembershipSql({ scope: 'all-history' }, bind);
+  return {
+    values,
+    text: `WITH ${membership}, refunds AS (
+    SELECT r.item_id,sum(r.amount_minor) AS refunded FROM item_refunds r
+      JOIN source s ON s.id=r.item_id AND s.owner_id=r.owner_id AND s.currency=r.currency
+      WHERE r.owner_id=$1 GROUP BY r.item_id
+  ), totals AS (
+    SELECT currency,s.merchant_id,
+      coalesce(sum(price_paid_minor),0) AS gross,sum(coalesce(r.refunded,0::numeric)) AS refunded,
+      count(*) FILTER (WHERE price_paid_minor IS NOT NULL) AS priced,
+      count(*) FILTER (WHERE price_paid_minor IS NULL AND acquisition_type<>'gift') AS unknown,
+      count(*) AS total
+    FROM related s LEFT JOIN refunds r ON r.item_id=s.id WHERE relation<>'outside'
+    GROUP BY currency,s.merchant_id
+  ) SELECT t.currency,
+    CASE WHEN t.merchant_id IS NOT NULL THEN jsonb_build_object('id',m.id::text,'displayName',m.display_name,'websiteHost',m.website_host,'state',m.state) ELSE NULL END AS merchant,
+    t.gross::text AS "grossMinor",t.refunded::text AS "refundedMinor",(t.gross-t.refunded)::text AS "netMinor",
+    t.priced::text AS "pricedItemCount",t.unknown::text AS "unknownPriceCount",t.total::text AS "totalItemCount"
+    FROM totals t LEFT JOIN merchants m ON m.id=t.merchant_id AND m.owner_id=$1
+    ORDER BY t.currency,(t.gross-t.refunded) DESC,(t.merchant_id IS NULL) ASC,m.normalized_name ASC NULLS LAST
+    LIMIT 1001`,
+  };
+}
+type MerchantRow = Omit<
+  MerchantSpendingRow,
+  'pricedItemCount' | 'unknownPriceCount' | 'totalItemCount'
+> & { pricedItemCount: string; unknownPriceCount: string; totalItemCount: string };
 
 type AggregateRow = Omit<
   SpendingBucket,
@@ -170,6 +212,34 @@ export class SpendingService {
         purchasedFrom: q.purchasedFrom ?? null,
         purchasedTo: q.purchasedTo ?? null,
         buckets,
+      };
+    });
+  }
+  async merchants(owner: string): Promise<MerchantSpendingReport> {
+    return this.repo.transaction(owner, async (c) => {
+      const query = merchantSpendingSql(owner);
+      const { rows } = await c.query<MerchantRow>(query.text, query.values);
+      if (rows.length > 1000) throw new BadRequestException('SPENDING_BUCKET_LIMIT');
+      return {
+        scope: 'all-history',
+        rows: rows.map((row) => {
+          if (BigInt(row.netMinor) < 0n) throw new Error('Spending invariant violated');
+          const count = (value: string): number => {
+            const n = Number(value);
+            if (!Number.isSafeInteger(n) || n < 0) throw new Error('Spending count out of range');
+            return n;
+          };
+          return {
+            currency: row.currency,
+            merchant: row.merchant ?? null,
+            grossMinor: row.grossMinor,
+            refundedMinor: row.refundedMinor,
+            netMinor: row.netMinor,
+            pricedItemCount: count(row.pricedItemCount),
+            unknownPriceCount: count(row.unknownPriceCount),
+            totalItemCount: count(row.totalItemCount),
+          };
+        }),
       };
     });
   }
