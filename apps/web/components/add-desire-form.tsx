@@ -61,6 +61,7 @@ import {
   formatReviewDateTime,
   validateProductUrlString,
 } from './desire-presentation';
+import { randomId } from './random-id';
 
 export function AddDesireForm(): ReactElement {
   const router = useRouter();
@@ -147,7 +148,7 @@ export function AddDesireForm(): ReactElement {
     });
     setStagedPhoto(file);
     setPhotoPreviewUrl(URL.createObjectURL(file));
-    setPhotoUploadId(crypto.randomUUID());
+    setPhotoUploadId(randomId());
   };
 
   const handleRemovePhoto = (): void => {
@@ -278,7 +279,7 @@ export function AddDesireForm(): ReactElement {
         const uploadResult: UploadPhotoOutcome = await uploadDesirePhoto(
           desire.id,
           stagedPhoto,
-          photoUploadId || crypto.randomUUID(),
+          photoUploadId || randomId(),
           (percent) => setPhotoUploadProgress(percent),
         );
 

@@ -31,6 +31,7 @@ import {
   getEffectiveStateLabel,
 } from './desire-presentation';
 import { PageLoadFailure } from './page-load-failure';
+import { randomId } from './random-id';
 const labels: Record<ReviewOutcome, string> = {
   bought: 'Bought',
   delayed: 'Delayed',
@@ -141,7 +142,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
         return;
       }
       pending.current = {
-        commandId: crypto.randomUUID(),
+        commandId: randomId(),
         revision: desire.revision,
         outcome,
         ...(note.trim() ? { note: note.trim() } : {}),

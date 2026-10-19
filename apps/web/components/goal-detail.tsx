@@ -43,6 +43,7 @@ import { goalMessage } from './goals-list';
 import { PageLoadFailure } from './page-load-failure';
 import { calendarDay } from './home-presentation';
 import { amountEntryToMinor, minorToAmountEntry } from './money-entry';
+import { randomId } from './random-id';
 
 type Ledger = 'contribution' | 'correction' | 'reversal' | 'reinstate';
 type Dialog =
@@ -175,7 +176,7 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
         return;
       }
       pending.current = {
-        commandId: crypto.randomUUID(),
+        commandId: randomId(),
         revision: goal.revision,
         kind: d.kind === 'reinstate' ? 'correction' : d.kind,
         amountMinor: minor,

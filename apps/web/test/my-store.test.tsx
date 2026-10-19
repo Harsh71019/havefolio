@@ -281,13 +281,27 @@ describe('My Store page', () => {
       item(7, { name: 'Headphones', ownershipStatus: 'returned' }),
     ];
     render(<MyStore source={source([page(items, uuid(7))])} now={now} />);
-    await screen.findByRole('heading', { level: 2, name: 'Kitchen' });
+    // PER-66: all categories share one grid in taxonomy order; cards name their category.
+    await screen.findByRole('heading', { level: 2, name: 'All items' });
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
-      'Kitchen',
-      'Garden',
-      'Not yet categorised',
+      'All items',
       'Categories with nothing yet',
     ]);
+    expect(document.querySelectorAll('.store-grid')).toHaveLength(1);
+    expect(
+      screen
+        .getAllByRole('link', { name: /no longer owned|Owned/ })
+        .map((c) => c.querySelector('[id$="-name"]')?.textContent),
+    ).toEqual([
+      'Free sample mug',
+      'Kettle',
+      'Old bike',
+      'Broken chair',
+      'Headphones',
+      'Tent',
+      'Umbrella',
+    ]);
+    expect(within(card('Old bike')).getByText('Garden')).toBeVisible();
     const kettle = card('Kettle');
     expect(kettle).toHaveAccessibleName('Kettle Owned');
     expect(within(kettle).getByText('Kitchen › Appliances')).toBeVisible();
@@ -323,9 +337,8 @@ describe('My Store page', () => {
     expect(card('Umbrella')).toHaveAccessibleName('Umbrella Lost, no longer owned');
     expect(card('Headphones')).toHaveAccessibleName('Headphones Returned, no longer owned');
     expect(screen.getByText(/Books\. They appear here once/)).toBeVisible();
-    // While more pages exist, taxonomy's owner-wide count shows the group is partial.
-    expect(screen.getByText('2 of 5 shown')).toBeVisible();
-    expect(screen.getByText('1 item')).toBeVisible();
+    // While more pages exist, the summary says the list is partial.
+    expect(screen.getByText('7 items shown so far')).toBeVisible();
   });
 
   it('places one-item subcategories in one category grid, keeping each card’s subcategory', async () => {
@@ -364,6 +377,8 @@ describe('My Store page', () => {
       item(13, { name: 'Phone', categoryId: electronics, subcategoryId: subs[2]!.id }),
     ];
     const fake = source([page(items)], sparse);
+    // A selected category keeps its section heading; all categories share one grid instead.
+    window.history.replaceState(null, '', `/store?categoryId=${electronics}`);
     render(<MyStore source={fake} now={now} />);
     const section = (await screen.findByRole('heading', { level: 2, name: 'Electronics' }))
       .parentElement!.parentElement!;
@@ -402,6 +417,7 @@ describe('My Store page', () => {
       expect(section.querySelectorAll('.store-grid')).toHaveLength(1);
     }
     expect(fake.loadPage).toHaveBeenCalledTimes(1);
+    window.history.replaceState(null, '', '/');
   });
 
   it('uses fallback alt text, decorative covers and quiet failed-image text', async () => {

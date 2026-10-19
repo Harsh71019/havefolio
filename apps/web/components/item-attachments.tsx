@@ -33,6 +33,7 @@ import {
   documentSize,
 } from './documents-client';
 import { photoAlt, photoSource } from './photos-client';
+import { randomId } from './random-id';
 
 export type Loadable<T> =
   | { kind: 'loading' }
@@ -186,7 +187,7 @@ export function ItemDocuments({
       return;
     }
     if (attempt.current?.file !== file || attempt.current.kind !== kind)
-      attempt.current = { file, kind, uploadId: crypto.randomUUID() };
+      attempt.current = { file, kind, uploadId: randomId() };
     inFlight.current = true;
     setBusy(true);
     setMessage(undefined);

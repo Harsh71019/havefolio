@@ -8,7 +8,7 @@ export default function InventoryLayout({
   children,
 }: Readonly<{ children: ReactNode }>): ReactElement {
   return (
-    <div className="min-h-svh md:grid md:grid-cols-[17rem_minmax(0,1fr)]">
+    <div className="min-h-svh md:grid md:grid-cols-[auto_minmax(0,1fr)]">
       <SkipLink />
       <AppNavigation />
       <div className="min-w-0">

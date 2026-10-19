@@ -68,6 +68,7 @@ import {
   DesireRequestError,
 } from './desires-client';
 import { formatReviewDateTime, validateProductUrlString } from './desire-presentation';
+import { randomId } from './random-id';
 
 export function EditDesireForm({ desireId }: { desireId: string }): ReactElement {
   const router = useRouter();
@@ -343,11 +344,8 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
       // If photo was staged, upload it
       if (stagedPhoto) {
         setPhotoProgress(0);
-        const uploadResult = await uploadDesirePhoto(
-          desire.id,
-          stagedPhoto,
-          crypto.randomUUID(),
-          (pct) => setPhotoProgress(pct),
+        const uploadResult = await uploadDesirePhoto(desire.id, stagedPhoto, randomId(), (pct) =>
+          setPhotoProgress(pct),
         );
 
         if (uploadResult.ok) {

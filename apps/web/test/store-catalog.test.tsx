@@ -131,9 +131,7 @@ describe('My Store catalog', () => {
 
     expect(await screen.findByText('Espresso Maker')).toBeVisible();
     expect(screen.getByText('Showing 1 of 6 items.')).toBeVisible();
-    expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent(
-      'Grouped by category',
-    );
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent('Category');
     const panel = filters();
     expect(within(panel).getByRole('radio', { name: 'Kitchen (5)' })).toBeVisible();
     // Options that would return nothing are not offered.

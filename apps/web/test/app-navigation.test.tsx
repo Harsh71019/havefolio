@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { AppNavigation } from '../components/app-navigation';
@@ -9,6 +9,9 @@ vi.mock('next/navigation', () => ({ usePathname: (): string => pathname }));
 describe('primary navigation', () => {
   afterEach(() => {
     pathname = '/store';
+    delete document.documentElement.dataset.sidebar;
+    window.localStorage.clear();
+    vi.unstubAllGlobals();
   });
   it('keeps the parent destination current on nested journeys in both surfaces (PER-36)', () => {
     pathname = '/wants/d1000000-0000-4000-a000-000000000001/compare';
@@ -87,5 +90,82 @@ describe('primary navigation', () => {
     const desktop = screen.getAllByRole('navigation', { name: 'Primary' })[0];
     if (!desktop) throw new Error('Missing primary navigation');
     expect(within(desktop).getByRole('link', { name: 'Home' })).toHaveFocus();
+  });
+
+  describe('collapsible desktop sidebar (PER-66)', () => {
+    const desktop = (): HTMLElement => screen.getAllByRole('navigation', { name: 'Primary' })[0]!;
+    const viewport = (desktopWidth: boolean): void => {
+      vi.stubGlobal('matchMedia', (query: string) => ({ matches: desktopWidth, media: query }));
+    };
+
+    it('collapses to an icon rail, remembers it and expands again', async () => {
+      const user = userEvent.setup();
+      render(<AppNavigation />);
+      const toggle = screen.getByRole('button', { name: 'Collapse sidebar' });
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(toggle).toHaveAttribute('aria-controls', 'primary-sidebar');
+
+      await user.click(toggle);
+      expect(document.documentElement.dataset.sidebar).toBe('collapsed');
+      expect(window.localStorage.getItem('havefolio:sidebar:v1')).toBe('collapsed');
+      expect(toggle).toHaveAccessibleName('Expand sidebar');
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(within(desktop()).getByRole('link', { name: 'My Store' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+
+      await user.click(toggle);
+      expect(document.documentElement.dataset.sidebar).toBe('expanded');
+      expect(window.localStorage.getItem('havefolio:sidebar:v1')).toBe('expanded');
+      expect(toggle).toHaveAccessibleName('Collapse sidebar');
+    });
+
+    it('starts collapsed from the saved preference', () => {
+      document.documentElement.dataset.sidebar = 'collapsed';
+      render(<AppNavigation />);
+      expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+    });
+
+    it('names collapsed links in a tooltip on keyboard focus only while collapsed', async () => {
+      const user = userEvent.setup();
+      render(<AppNavigation />);
+      await user.tab();
+      await user.tab();
+      expect(within(desktop()).getByRole('link', { name: 'Home' })).toHaveFocus();
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+      await user.tab({ shift: true });
+      expect(within(desktop()).getByRole('link', { name: 'Settings' })).toHaveFocus();
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('Settings');
+    });
+
+    it('toggles with Ctrl or Cmd+B on desktop, but not while typing or on mobile', async () => {
+      const user = userEvent.setup();
+      viewport(true);
+      render(
+        <>
+          <AppNavigation />
+          <input aria-label="Search" />
+        </>,
+      );
+      await user.keyboard('{Control>}b{/Control}');
+      expect(document.documentElement.dataset.sidebar).toBe('collapsed');
+      await user.keyboard('{Meta>}b{/Meta}');
+      expect(document.documentElement.dataset.sidebar).toBe('expanded');
+
+      await user.click(screen.getByRole('textbox', { name: 'Search' }));
+      await user.keyboard('{Control>}b{/Control}');
+      expect(document.documentElement.dataset.sidebar).toBe('expanded');
+
+      await user.click(document.body);
+      viewport(false);
+      await user.keyboard('{Control>}b{/Control}');
+      await waitFor(() => expect(document.documentElement.dataset.sidebar).toBe('expanded'));
+    });
   });
 });

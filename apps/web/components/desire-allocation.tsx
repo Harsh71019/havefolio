@@ -38,6 +38,7 @@ import {
   correctAllocation,
 } from './allocations-client';
 import { DesireRequestError } from './desires-client';
+import { randomId } from './random-id';
 
 const display = (minor: string, currency: string): string =>
   formatMoney({ minor: BigInt(minor), currency: assertCurrency(currency) });
@@ -136,7 +137,7 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
         pending.current = {
           kind: 'allocate',
           body: {
-            commandId: crypto.randomUUID(),
+            commandId: randomId(),
             reviewEventId: state.currentReviewEventId,
             goalId: chosen.id,
             goalRevision: chosen.revision,
@@ -157,7 +158,7 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
             kind: 'correct',
             goalId: goal.id,
             body: {
-              commandId: crypto.randomUUID(),
+              commandId: randomId(),
               revision: goal.revision,
               kind: dialog,
               amountMinor: minor,

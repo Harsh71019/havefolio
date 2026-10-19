@@ -7,6 +7,7 @@ import { Input } from '@havefolio/ui/components/input';
 import { Label } from '@havefolio/ui/components/label';
 import { Progress } from '@havefolio/ui/components/progress';
 import { selectionError, uploadPhoto } from './photos-client';
+import { randomId } from './random-id';
 
 interface Selection {
   /** Stable Upload-Id: kept across uncertain retries, rotated only after confirmed recovery. */
@@ -84,7 +85,7 @@ export function PhotoUploadPanel({
       const error = selectionError(file);
       const preview = error ? '' : URL.createObjectURL(file);
       if (preview) previews.current.add(preview);
-      const id = crypto.randomUUID();
+      const id = randomId();
       return {
         id,
         key: id,
@@ -138,7 +139,7 @@ export function PhotoUploadPanel({
           update(f.key, {
             status: 'failed',
             error: outcome.message,
-            ...(outcome.recovered ? { id: crypto.randomUUID() } : {}),
+            ...(outcome.recovered ? { id: randomId() } : {}),
           });
         }
       }

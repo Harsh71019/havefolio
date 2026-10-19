@@ -14,7 +14,7 @@ import type { InventoryPatch } from './inventory-query-state';
 import { countActiveFilters } from './store-filters';
 
 export const sortOptions = [
-  { value: 'id:asc', label: 'Grouped by category' },
+  { value: 'id:asc', label: 'Category' },
   { value: 'newest:desc', label: 'Newest added' },
   { value: 'oldest:asc', label: 'Oldest added' },
   { value: 'price:asc', label: 'Price: low to high' },

@@ -94,3 +94,33 @@ test('removal and unsupported selection remain accessible', async ({ page }) => 
     page.getByRole('alert').filter({ hasText: 'HEIC/HEIF is not supported' }),
   ).toContainText('JPEG, PNG or WebP');
 });
+
+test('selects and uploads several photos over plain HTTP without crypto.randomUUID', async ({
+  page,
+}) => {
+  // PER-66: the LAN deployment is not a secure context, so randomUUID is undefined there.
+  await page.addInitScript(() => {
+    Object.defineProperty(crypto, 'randomUUID', { value: undefined });
+  });
+  const uploadIds: string[] = [];
+  await page.route(`**/api/v1/items/${item}/photos`, async (route) => {
+    if (route.request().method() === 'GET')
+      return route.fulfill({ json: { revision: 1, photos: [] } });
+    uploadIds.push(route.request().headers()['upload-id']!);
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ results: [{ index: 0, photo: { id: item } }] }),
+    });
+  });
+  await page.goto(`/items/${item}/photos/new`);
+  await page
+    .getByLabel('Choose from gallery or files')
+    .setInputFiles(['1', '2', '3'].map((n) => ({ ...photo, name: `synthetic-${n}.png` })));
+  await expect(
+    page.getByRole('list', { name: 'Selected photos' }).getByRole('listitem'),
+  ).toHaveCount(3);
+  await page.getByRole('button', { name: 'Upload photos', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: '3 of 3 photos saved.' })).toBeVisible();
+  expect(new Set(uploadIds).size).toBe(3);
+});
