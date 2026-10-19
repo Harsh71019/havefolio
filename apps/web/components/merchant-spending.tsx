@@ -30,6 +30,8 @@ export function MerchantSpending(): React.JSX.Element {
     const abort = new AbortController();
     void readMerchantSpending(abort.signal)
       .then((report) => {
+        // A malformed body is treated like an unavailable response, never a page crash.
+        if (!Array.isArray(report?.rows)) throw new Error('Malformed merchant spending');
         if (active) setState({ retry, report });
       })
       .catch((error: unknown) => {

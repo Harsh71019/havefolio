@@ -14,7 +14,7 @@ export default function StorePage(): ReactElement {
     <main className="mx-auto w-full max-w-[112rem] px-4 py-4 sm:px-8 sm:py-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">My Store</h1>
-        <Button asChild className="h-10">
+        <Button asChild className="h-11">
           <Link href="/items/new">
             <Plus aria-hidden="true" className="mr-2 size-4" />
             Add item
