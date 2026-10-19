@@ -158,6 +158,15 @@ test.describe('Fast manual add-item flow', () => {
     // Price: enter explicit price
     await page.getByLabel('Actual amount paid').fill('14999');
 
+    // PER-68: the exact date is typed day-first whatever the browser locale.
+    const exactDate = page.getByLabel('Exact purchase date');
+    await expect(exactDate).toHaveAttribute('placeholder', 'DD/MM/YYYY');
+    await exactDate.pressSequentially('15032024');
+    await expect(exactDate).toHaveValue('15/03/2024');
+    await expect(page.getByRole('button', { name: 'Choose from calendar' })).toBeVisible();
+    await exactDate.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(screenshotsDir, 'per-68-add-item-date-360-dark.png') });
+
     // Date: change to Year only
     await page.getByLabel('Year only').check();
     await page.getByPlaceholder('YYYY (e.g. 2022)').fill('2024');

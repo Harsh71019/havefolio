@@ -38,6 +38,7 @@ import {
 } from '@havefolio/ui/components/card';
 import { Checkbox } from '@havefolio/ui/components/checkbox';
 import { Input } from '@havefolio/ui/components/input';
+import { DateInput } from '@havefolio/ui/components/havefolio/date-input';
 import { Label } from '@havefolio/ui/components/label';
 import { RadioGroup, RadioGroupItem } from '@havefolio/ui/components/radio-group';
 import {
@@ -663,11 +664,10 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
                   {precision === 'exact' ? (
                     <div className="space-y-2">
                       <Label htmlFor={`${formId}-exact`}>Date</Label>
-                      <Input
+                      <DateInput
                         id={`${formId}-exact`}
-                        type="date"
                         value={exactDate}
-                        onChange={(e) => setExactDate(e.target.value)}
+                        onChange={setExactDate}
                         className="min-h-11"
                       />
                     </div>

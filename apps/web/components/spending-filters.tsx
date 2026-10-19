@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { TaxonomySnapshot } from '@havefolio/contracts';
 import { currencyCodes } from '@havefolio/domain';
 import { Button } from '@havefolio/ui/components/button';
-import { Input } from '@havefolio/ui/components/input';
+import { DateInput } from '@havefolio/ui/components/havefolio/date-input';
 import { Label } from '@havefolio/ui/components/label';
 import {
   Select,
@@ -61,6 +61,10 @@ export function SpendingFilters({
         const from = values.get('purchasedFrom');
         const to = values.get('purchasedTo');
         if (typeof from !== 'string' || typeof to !== 'string') return;
+        if ([from, to].some((value) => value && !/^\d{4}-\d{2}-\d{2}$/.test(value))) {
+          setDateError('Enter real dates as DD/MM/YYYY.');
+          return;
+        }
         if (from && to && from > to) {
           setDateError('The From date must be on or before the To date.');
           return;
@@ -141,11 +145,10 @@ export function SpendingFilters({
         <div className="grid items-end gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="spending-from">From</Label>
-            <Input
+            <DateInput
               key={`from-${query.purchasedFrom ?? ''}`}
               id="spending-from"
               name="purchasedFrom"
-              type="date"
               min="0001-01-01"
               max="9999-12-31"
               defaultValue={query.purchasedFrom ?? ''}
@@ -154,11 +157,10 @@ export function SpendingFilters({
           </div>
           <div className="space-y-2">
             <Label htmlFor="spending-to">To</Label>
-            <Input
+            <DateInput
               key={`to-${query.purchasedTo ?? ''}`}
               id="spending-to"
               name="purchasedTo"
-              type="date"
               min="0001-01-01"
               max="9999-12-31"
               defaultValue={query.purchasedTo ?? ''}

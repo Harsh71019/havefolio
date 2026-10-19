@@ -32,6 +32,7 @@ import {
   CardTitle,
 } from '@havefolio/ui/components/card';
 import { Input } from '@havefolio/ui/components/input';
+import { DateInput } from '@havefolio/ui/components/havefolio/date-input';
 import { Label } from '@havefolio/ui/components/label';
 import { Checkbox } from '@havefolio/ui/components/checkbox';
 import { Textarea } from '@havefolio/ui/components/textarea';
@@ -1041,12 +1042,11 @@ export function AddItemForm(): ReactElement {
                     <Label htmlFor={`${formId}-exact-date`} className="sr-only">
                       Exact purchase date
                     </Label>
-                    <Input
+                    <DateInput
                       id={`${formId}-exact-date`}
-                      type="date"
                       value={exactDate}
-                      onChange={(e) => {
-                        setExactDate(e.target.value);
+                      onChange={(next) => {
+                        setExactDate(next);
                         if (validationErrors.date) {
                           setValidationErrors((prev) => {
                             const copy = { ...prev };

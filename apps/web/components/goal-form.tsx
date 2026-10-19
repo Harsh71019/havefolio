@@ -18,6 +18,7 @@ import {
 } from '@havefolio/contracts';
 import { Button } from '@havefolio/ui/components/button';
 import { Input } from '@havefolio/ui/components/input';
+import { DateInput } from '@havefolio/ui/components/havefolio/date-input';
 import { Label } from '@havefolio/ui/components/label';
 import { Textarea } from '@havefolio/ui/components/textarea';
 import {
@@ -348,12 +349,11 @@ export function GoalForm({ goalId }: Readonly<{ goalId?: string }>): ReactElemen
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${id}-targetDate`}>Target date (optional)</Label>
-        <Input
+        <DateInput
           {...field('targetDate')}
-          type="date"
           value={draft.targetDate}
           className="min-h-11 w-full sm:w-56"
-          onChange={(e) => set('targetDate', e.target.value)}
+          onChange={(next) => set('targetDate', next)}
         />
         {help('targetDate', 'Leave empty if there is no date.')}
       </div>

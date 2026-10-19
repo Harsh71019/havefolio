@@ -38,6 +38,7 @@ import {
   DialogTitle,
 } from '@havefolio/ui/components/dialog';
 import { Input } from '@havefolio/ui/components/input';
+import { DateInput } from '@havefolio/ui/components/havefolio/date-input';
 import { Label } from '@havefolio/ui/components/label';
 import { RadioGroup, RadioGroupItem } from '@havefolio/ui/components/radio-group';
 import {
@@ -785,12 +786,11 @@ function EditForm({
               {draft.precision === 'exact' ? (
                 <div className="grid gap-2">
                   <Label htmlFor={`${id}-exactDate`}>Date</Label>
-                  <Input
+                  <DateInput
                     {...fieldProps('exactDate')}
-                    type="date"
-                    className="min-h-11 text-base md:text-sm"
+                    className="min-h-11"
                     value={draft.exactDate}
-                    onChange={(e) => setDraft({ exactDate: e.target.value })}
+                    onChange={(exactDate) => setDraft({ exactDate })}
                   />
                   {fieldError('exactDate')}
                 </div>
