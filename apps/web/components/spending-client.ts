@@ -1,4 +1,4 @@
-import type { SpendingQuery, SpendingReport } from '@havefolio/contracts';
+import type { MerchantSpendingReport, SpendingQuery, SpendingReport } from '@havefolio/contracts';
 import { spendingQueryParams } from './spending-query';
 
 const messages: Record<string, string> = {
@@ -18,13 +18,17 @@ export class SpendingRequestError extends Error {
     super(message);
   }
 }
-export async function readSpending(
-  q: SpendingQuery,
-  signal?: AbortSignal,
-): Promise<SpendingReport> {
+export function readSpending(q: SpendingQuery, signal?: AbortSignal): Promise<SpendingReport> {
+  return readJson<SpendingReport>(`/api/v1/spending?${spendingQueryParams(q)}`, signal);
+}
+/** PER-69: lifetime per-merchant totals for the Insights leaderboard. */
+export function readMerchantSpending(signal?: AbortSignal): Promise<MerchantSpendingReport> {
+  return readJson<MerchantSpendingReport>('/api/v1/spending/merchants', signal);
+}
+async function readJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api/v1/spending?${spendingQueryParams(q)}`, {
+    response = await fetch(url, {
       credentials: 'same-origin',
       cache: 'no-store',
       ...(signal ? { signal } : {}),
@@ -46,7 +50,7 @@ export async function readSpending(
     );
   }
   try {
-    return (await response.json()) as SpendingReport;
+    return (await response.json()) as T;
   } catch {
     throw new SpendingRequestError(
       503,

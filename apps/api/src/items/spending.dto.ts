@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, IsUUID, Length } from 'class-validator';
 import type {
+  MerchantSpendingReport,
+  MerchantSpendingRow,
   SpendingQuery,
   SpendingReport,
   SpendingBucket,
@@ -108,4 +110,29 @@ export class SpendingReportDto implements SpendingReport {
       'Separate currencies and date relations. Never sum spanningRange or unknownDate into a dated total. Empty inventory returns [].',
   })
   buckets!: SpendingBucketDto[];
+}
+
+export class MerchantSpendingRowDto implements MerchantSpendingRow {
+  @ApiProperty() currency!: string;
+  @ApiProperty({
+    type: () => SpendingBucketMerchantDto,
+    nullable: true,
+    description: 'null when no merchant was recorded.',
+  })
+  merchant!: SpendingBucketMerchantDto | null;
+  @ApiProperty({ pattern: '^[0-9]+$' }) grossMinor!: string;
+  @ApiProperty({ pattern: '^[0-9]+$' }) refundedMinor!: string;
+  @ApiProperty({ pattern: '^[0-9]+$' }) netMinor!: string;
+  @ApiProperty({ minimum: 0 }) pricedItemCount!: number;
+  @ApiProperty({ minimum: 0 }) unknownPriceCount!: number;
+  @ApiProperty({ minimum: 0 }) totalItemCount!: number;
+}
+export class MerchantSpendingReportDto implements MerchantSpendingReport {
+  @ApiProperty({ enum: ['all-history'] }) scope!: 'all-history';
+  @ApiProperty({
+    type: [MerchantSpendingRowDto],
+    maxItems: 1000,
+    description: 'Ranked by net spend, highest first, within each original currency.',
+  })
+  rows!: MerchantSpendingRowDto[];
 }

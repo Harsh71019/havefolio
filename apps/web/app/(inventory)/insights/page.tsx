@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { MerchantSpending } from '@/components/merchant-spending';
 import { PageHeading } from '@/components/page-heading';
 import { SpendingInsights } from '@/components/spending-insights';
 export const metadata: Metadata = { title: 'Spending insights' };
@@ -17,6 +18,7 @@ export default function InsightsPage(): React.JSX.Element {
         refunds reduce net recorded spending. Currencies remain separate. Unknown amounts are
         excluded from money totals. Demo items are excluded.
       </p>
+      <MerchantSpending />
       <SpendingInsights />
     </main>
   );

@@ -179,6 +179,29 @@ async function fixture(
         hasMore: !next,
         nextCursor: next ? null : 'v1.synthetic-next-page-cursor-which-is-opaque',
       };
+    } else if (u.pathname === '/api/v1/spending/merchants') {
+      body = {
+        scope: 'all-history',
+        rows: state.empty
+          ? []
+          : [
+              {
+                currency: 'INR',
+                merchant: {
+                  id: merchantAmazon,
+                  displayName: 'Amazon India',
+                  websiteHost: 'amazon.in',
+                  state: 'active',
+                },
+                grossMinor: '125000',
+                refundedMinor: '25000',
+                netMinor: '100000',
+                pricedItemCount: 2,
+                unknownPriceCount: 0,
+                totalItemCount: 2,
+              },
+            ],
+      };
     } else if (u.pathname === '/api/v1/taxonomy') {
       if (state.taxonomyFails) {
         status = 503;

@@ -299,6 +299,24 @@ function body(path: string, search: URLSearchParams, empty: boolean): unknown {
         purchasedTo: null,
         buckets: empty ? [] : [bucket()],
       };
+    case '/api/v1/spending/merchants':
+      return {
+        scope: 'all-history',
+        rows: empty
+          ? []
+          : [
+              {
+                currency: 'INR',
+                merchant: null,
+                grossMinor: '10000',
+                refundedMinor: '0',
+                netMinor: '10000',
+                pricedItemCount: 1,
+                unknownPriceCount: 0,
+                totalItemCount: 1,
+              },
+            ],
+      };
     case '/api/v1/desires':
       return { items: empty ? [] : [desire], nextCursor: null, hasMore: false };
     case want:
