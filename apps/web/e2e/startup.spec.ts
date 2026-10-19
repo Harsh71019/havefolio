@@ -9,7 +9,7 @@ test('starts the production shell and navigates every collection', async ({ page
   );
   const navigation = page.getByRole('navigation', { name: 'Primary' }).filter({ visible: true });
   for (const [name, path, heading] of [
-    ['My Store', '/store', 'The useful things you already own.'],
+    ['My Store', '/store', 'My Store'],
     ['Insights', '/insights', 'Recorded spending'],
     ['Wants', '/wants', 'Make room between wanting and buying.'],
     ['Goals', '/goals', 'Keep the other possibility in view.'],
