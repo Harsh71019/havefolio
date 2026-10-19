@@ -10,18 +10,18 @@ export function parseDensity(value: string | null | undefined): StoreDensity {
 export const densityBootstrap = `try{var d=localStorage.getItem('${densityKey}');document.documentElement.dataset.storeDensity=d==='compact'||d==='large'?d:'comfortable'}catch{document.documentElement.dataset.storeDensity='comfortable'}`;
 
 /**
- * From 1024px the grid auto-fills 11rem, 13rem or 18rem minimum columns with 1rem gaps. Even the
- * narrowest desktop canvas (1280px beside the navigation and filter column) fits three compact or
- * comfortable columns and two large ones, so a card stays under 4/3 (3/2 for large) of its
- * minimum. Below that, two columns share the space left by the navigation (17rem, or 4rem
- * collapsed) and the 2rem gutters.
+ * From 1024px the grid auto-fills 12rem, 15rem or 20rem minimum columns with 1.5rem gaps. Each
+ * hint is the widest a column gets before one more fits — three compact, two comfortable or two
+ * large columns at the narrowest desktop canvas — so it always covers the real slot. Below that,
+ * two columns share the space left by the navigation (17rem, or 4rem collapsed), the page
+ * gutters and the gap between them.
  */
 function imageSizes(nav: number): Record<StoreDensity, string> {
-  const mobile = `(min-width: 768px) calc((100vw - ${nav + 80}px) / 2), (min-width: 640px) calc((100vw - 80px) / 2), (min-width: 520px) calc((100vw - 48px) / 2), calc(100vw - 32px)`;
+  const mobile = `(min-width: 768px) calc((100vw - ${nav + 88}px) / 2), (min-width: 640px) calc((100vw - 88px) / 2), calc((100vw - 48px) / 2)`;
   return {
-    compact: `(min-width: 1024px) 240px, ${mobile}`,
-    comfortable: `(min-width: 1024px) 283px, ${mobile}`,
-    large: `(min-width: 1024px) 440px, ${mobile}`,
+    compact: `(min-width: 1024px) 264px, ${mobile}`,
+    comfortable: `(min-width: 1024px) 372px, ${mobile}`,
+    large: `(min-width: 1024px) 492px, ${mobile}`,
   };
 }
 export const densityImageSizes = imageSizes(272);

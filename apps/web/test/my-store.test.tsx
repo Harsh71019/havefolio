@@ -210,14 +210,14 @@ describe('grouping', () => {
 describe('My Store page', () => {
   it('announces loading once and hides the skeleton from assistive technology', async () => {
     const fake = source([page([])]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     expect(screen.getByTestId('store-skeleton')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByRole('status')).toHaveTextContent('Loading your items.');
     await screen.findByText('Nothing recorded yet');
   });
 
   it('shows a warm empty inventory with a direct add-item action', async () => {
-    render(<MyStore source={source([page([])])} now={now} />);
+    render(<MyStore source={source([page([])])} />);
     expect(await screen.findByText('Nothing recorded yet')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Add your first item' })).toHaveAttribute(
       'href',
@@ -228,7 +228,7 @@ describe('My Store page', () => {
 
   it('reports API failure and recovers on retry', async () => {
     const fake = source([]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('My Store could not load');
     fake.loadPage.mockResolvedValueOnce(page([item(1, { name: 'Lamp' })]));
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -240,13 +240,13 @@ describe('My Store page', () => {
     fake.loadPage.mockRejectedValueOnce(
       new InventoryRequestError(401, 'Your session has ended. Sign in again to see your items.'),
     );
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('Please sign in again');
     expect(within(alert).getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
   });
 
-  it('renders grouped cards with headings, correct facts, lifecycle text and private covers', async () => {
+  it('renders name-only cards with headings, lifecycle badges and private covers', async () => {
     const items = [
       item(1, {
         name: 'Kettle',
@@ -280,8 +280,9 @@ describe('My Store page', () => {
       item(6, { name: 'Umbrella', ownershipStatus: 'lost' }),
       item(7, { name: 'Headphones', ownershipStatus: 'returned' }),
     ];
-    render(<MyStore source={source([page(items, uuid(7))])} now={now} />);
+    render(<MyStore source={source([page(items, uuid(7))])} />);
     // PER-66: all categories share one grid in taxonomy order; cards name their category.
+    // PER-67: the category is announced, not shown; facts stay on the item page.
     await screen.findByRole('heading', { level: 2, name: 'All items' });
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
       'All items',
@@ -301,13 +302,13 @@ describe('My Store page', () => {
       'Tent',
       'Umbrella',
     ]);
-    expect(within(card('Old bike')).getByText('Garden')).toBeVisible();
+    expect(card('Old bike')).toHaveAccessibleDescription('Garden');
     const kettle = card('Kettle');
     expect(kettle).toHaveAccessibleName('Kettle Owned');
-    expect(within(kettle).getByText('Kitchen › Appliances')).toBeVisible();
-    expect(kettle).toHaveAccessibleDescription(
-      'Kitchen › Appliances Paid ₹2,499 Acquired 12 Mar 2024 · 2 years ago Use Often',
-    );
+    expect(kettle).toHaveAccessibleDescription('Kitchen › Appliances');
+    expect(kettle).not.toHaveTextContent(/Paid|Acquired|Use|View details/);
+    // Owned items carry no visible badge; the status is only announced.
+    expect(within(kettle).getByText('Owned').closest('[id$="-status"]')).toHaveClass('sr-only');
     expect(kettle).toHaveAttribute('href', `/items/${uuid(1)}`);
     const image = within(kettle).getByRole('img', { name: 'Steel kettle' });
     expect(image.getAttribute('src')).toBe(
@@ -317,19 +318,13 @@ describe('My Store page', () => {
     expect(image).toHaveAttribute('sizes', densityImageSizes.comfortable);
     expect(image).toHaveAttribute('width', '1600');
     expect(image).toHaveAttribute('loading', 'eager');
-    expect(card('Free sample mug')).toHaveAccessibleDescription(
-      /Paid ₹0 Acquired Apr 2026 · about 6 months ago Use Not recorded/,
-    );
+    expect(card('Free sample mug')).toHaveAccessibleDescription('Kitchen');
     expect(within(card('Free sample mug')).getByText('No photo yet')).toBeVisible();
     expect(card('Old bike')).toHaveAccessibleName('Old bike Sold, no longer owned');
-    expect(card('Old bike')).toHaveAccessibleDescription(
-      /Paid Not recorded Acquired 2019 · about 7 years ago/,
-    );
-    expect(within(card('Old bike')).getByText('No longer in your home')).toBeVisible();
+    expect(card('Old bike').querySelector('[id$="-status"]')).not.toHaveClass('sr-only');
+    expect(within(card('Old bike')).getByText('Sold')).toBeVisible();
     expect(card('Tent')).toHaveAccessibleName('Tent Donated, no longer owned');
-    expect(card('Tent')).toHaveAccessibleDescription(
-      /Paid Gift, no amount Acquired Date not recorded/,
-    );
+    expect(card('Tent')).not.toHaveAccessibleDescription();
     expect(card('Broken chair')).toHaveAccessibleName('Broken chair Disposed, no longer owned');
     const brokenMedia = card('Broken chair').querySelector('[data-slot="owned-item-media"]');
     expect(brokenMedia).not.toHaveClass('grayscale');
@@ -379,7 +374,7 @@ describe('My Store page', () => {
     const fake = source([page(items)], sparse);
     // A selected category keeps its section heading; all categories share one grid instead.
     window.history.replaceState(null, '', `/store?categoryId=${electronics}`);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     const section = (await screen.findByRole('heading', { level: 2, name: 'Electronics' }))
       .parentElement!.parentElement!;
     expect(section.querySelectorAll('.store-grid')).toHaveLength(1);
@@ -402,12 +397,9 @@ describe('My Store page', () => {
     for (const [name, context] of expected) {
       const link = card(name);
       if (context) {
-        expect(within(link).getByText(context)).toBeVisible();
-        expect(link).toHaveAccessibleDescription(
-          new RegExp(`^${context.replace(/[()]/g, '\\$&')} Paid`),
-        );
+        expect(link).toHaveAccessibleDescription(context);
       } else {
-        expect(link).toHaveAccessibleDescription(/^Paid Not recorded/);
+        expect(link).not.toHaveAccessibleDescription();
       }
     }
     // Density changes restyle the same grid without another inventory request.
@@ -447,7 +439,6 @@ describe('My Store page', () => {
             }),
           ]),
         ])}
-        now={now}
       />,
     );
     const desk = await screen.findByRole('link', { name: /^Desk/ });
@@ -475,7 +466,7 @@ describe('My Store page', () => {
         },
       }),
     );
-    render(<MyStore source={source([page(items)])} now={now} />);
+    render(<MyStore source={source([page(items)])} />);
     expect(await screen.findByRole('img', { name: 'Box photo 4' })).toHaveAttribute(
       'loading',
       'eager',
@@ -487,7 +478,6 @@ describe('My Store page', () => {
     render(
       <MyStore
         source={source([page([item(1, { name: 'Lamp', categoryId: kitchen })])], new Error('x'))}
-        now={now}
       />,
     );
     expect(await screen.findByRole('heading', { level: 2, name: 'All items' })).toBeVisible();
@@ -500,7 +490,7 @@ describe('My Store page', () => {
       page([item(1, { name: 'Alpha' }), item(2, { name: 'Beta' })], uuid(2)),
       page([item(2, { name: 'Beta' }), item(3, { name: 'Gamma' })]),
     ]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     expect(await screen.findByText('Showing 2 items so far.')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Show more items' }));
     expect(await screen.findByRole('link', { name: /^Gamma/ })).toBeVisible();
@@ -512,7 +502,7 @@ describe('My Store page', () => {
 
   it('keeps loaded items when a continuation fails and lets the owner retry', async () => {
     const fake = source([page([item(1, { name: 'Alpha' })], uuid(1))]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Show more items' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Items already shown are unchanged.',
@@ -522,7 +512,7 @@ describe('My Store page', () => {
   });
 
   it('shows an offline notice and pauses continuation', async () => {
-    render(<MyStore source={source([page([item(1, { name: 'Alpha' })], uuid(1))])} now={now} />);
+    render(<MyStore source={source([page([item(1, { name: 'Alpha' })], uuid(1))])} />);
     await screen.findByRole('link', { name: /^Alpha/ });
     const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     act(() => {
@@ -551,7 +541,6 @@ describe('My Store page', () => {
             item(2, { name: 'Beta' }),
           ]),
         ])}
-        now={now}
       />,
     );
     await screen.findByRole('link', { name: /^Alpha/ });
@@ -585,24 +574,23 @@ describe('item navigation context', () => {
 
   it('opens item details carrying the sanitized current browse state', async () => {
     window.history.replaceState(null, '', '/store?q=kettle&sort=price&currency=INR&evil=1');
-    render(<MyStore source={source([page([item(1, { name: 'Kettle' })])])} now={now} />);
+    render(<MyStore source={source([page([item(1, { name: 'Kettle' })])])} />);
     await screen.findByRole('link', { name: /^Kettle\b/ });
     expect(card('Kettle')).toHaveAttribute(
       'href',
       `/items/${uuid(1)}?returnTo=${encodeURIComponent('/store?q=kettle&sort=price&currency=INR')}`,
     );
-    expect(card('Kettle')).toHaveTextContent('View details');
   });
 
   it('confirms a deletion once without revealing anything else', async () => {
     window.sessionStorage.setItem('havefolio:item-deleted', 'Old kettle');
-    const { unmount } = render(<MyStore source={source([page([item(2)])])} now={now} />);
+    const { unmount } = render(<MyStore source={source([page([item(2)])])} />);
     expect(
       await screen.findByText('“Old kettle” and its private photos and documents were deleted.'),
     ).toBeInTheDocument();
     expect(window.sessionStorage.getItem('havefolio:item-deleted')).toBeNull();
     unmount();
-    render(<MyStore source={source([page([item(2)])])} now={now} />);
+    render(<MyStore source={source([page([item(2)])])} />);
     await screen.findByRole('link', { name: /^Item 2\b/ });
     expect(screen.queryByText(/were deleted/)).toBeNull();
   });
@@ -615,7 +603,7 @@ describe('desktop density preference', () => {
       if (value !== null) window.localStorage.setItem(densityKey, value);
       // Execute the actual pre-paint script, not a separate test implementation.
       window.eval(densityBootstrap);
-      render(<MyStore source={source([page([item(1)])])} now={now} />);
+      render(<MyStore source={source([page([item(1)])])} />);
       await screen.findByRole('link', { name: /^Item 1/ });
       expect(screen.getByRole('radio', { name: 'Comfortable' })).toBeChecked();
       expect(document.documentElement.dataset.storeDensity).toBe('comfortable');
@@ -623,7 +611,7 @@ describe('desktop density preference', () => {
   );
 
   it.each(storeDensities)(
-    'keeps grouping, facts, pagination and image hints in %s',
+    'keeps grouping, cards, pagination and image hints in %s',
     async (density) => {
       window.localStorage.setItem(densityKey, density);
       window.eval(densityBootstrap);
@@ -653,7 +641,7 @@ describe('desktop density preference', () => {
         ),
         page([item(3, { name: 'Next' })]),
       ]);
-      render(<MyStore source={fake} now={now} />);
+      render(<MyStore source={fake} />);
       await screen.findByRole('link', { name: /^Zero/ });
       expect(
         screen.getByRole('radio', { name: density[0]!.toUpperCase() + density.slice(1) }),
@@ -662,13 +650,8 @@ describe('desktop density preference', () => {
         'sizes',
         densityImageSizes[density],
       );
-      expect(card('Zero')).toHaveAccessibleDescription(
-        /Paid ₹0 Acquired Apr 2026 · about 6 months ago/,
-      );
+      expect(card('Zero')).toHaveAccessibleDescription('Kitchen');
       expect(card('Unknown')).toHaveAccessibleName('Unknown Sold, no longer owned');
-      expect(card('Unknown')).toHaveAccessibleDescription(
-        /Paid Not recorded Acquired 2019 · about 7 years ago/,
-      );
       expect(screen.getByText(/Books. They appear/)).toBeVisible();
       await userEvent.click(screen.getByRole('button', { name: 'Show more items' }));
       await screen.findByRole('link', { name: /^Next/ });
@@ -679,7 +662,7 @@ describe('desktop density preference', () => {
 
   it('selects all modes with arrow keys and restores after remount without fetching on selection', async () => {
     const fake = source([page([item(1)])]);
-    const view = render(<MyStore source={fake} now={now} />);
+    const view = render(<MyStore source={fake} />);
     await screen.findByRole('link', { name: /^Item 1/ });
     const user = userEvent.setup();
     screen.getByRole('radio', { name: 'Comfortable' }).focus();
@@ -694,7 +677,7 @@ describe('desktop density preference', () => {
     expect(window.localStorage.getItem(densityKey)).toBe('large');
     expect(fake.loadPage).toHaveBeenCalledTimes(1);
     view.unmount();
-    render(<MyStore source={source([page([])])} now={now} />);
+    render(<MyStore source={source([page([])])} />);
     await screen.findByText('Nothing recorded yet');
     expect(screen.getByRole('radio', { name: 'Large' })).toBeChecked();
   });
@@ -707,7 +690,7 @@ describe('desktop density preference', () => {
       throw new Error('Full');
     });
     window.eval(densityBootstrap);
-    render(<MyStore source={source([page([item(1)])])} now={now} />);
+    render(<MyStore source={source([page([item(1)])])} />);
     await screen.findByRole('link', { name: /^Item 1/ });
     await userEvent.click(screen.getByRole('radio', { name: 'Compact' }));
     expect(screen.getByRole('radio', { name: 'Compact' })).toBeChecked();
@@ -726,7 +709,7 @@ describe('desktop density preference', () => {
     async (density) => {
       act(() => selectDensity(density));
       const fake = source([], new Error('taxonomy unavailable'));
-      const view = render(<MyStore source={fake} now={now} />);
+      const view = render(<MyStore source={fake} />);
       expect(screen.getByTestId('store-skeleton')).toBeInTheDocument();
       await screen.findByRole('alert');
       fake.loadPage.mockResolvedValueOnce(page([item(1)], uuid(1)));
@@ -739,7 +722,7 @@ describe('desktop density preference', () => {
       });
       expect(screen.getByRole('button', { name: 'Show more items' })).toBeDisabled();
       view.unmount();
-      render(<MyStore source={source([page([])])} now={now} />);
+      render(<MyStore source={source([page([])])} />);
       await screen.findByText('Nothing recorded yet');
       expect(
         screen.getByRole('radio', { name: density[0]!.toUpperCase() + density.slice(1) }),
