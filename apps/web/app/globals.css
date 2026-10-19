@@ -8,10 +8,10 @@
    wider screen adds cards instead of stretching them. */
 @media (min-width: 1024px) {
   .my-store .store-grid {
-    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
   }
   html[data-store-density='compact'] .my-store .store-grid {
-    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
   }
   html[data-store-density='large'] .my-store .store-grid {
     grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));

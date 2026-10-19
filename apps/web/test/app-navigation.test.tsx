@@ -87,6 +87,8 @@ describe('primary navigation', () => {
     await user.tab();
     expect(screen.getByRole('link', { name: /Havefolio/ })).toHaveFocus();
     await user.tab();
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toHaveFocus();
+    await user.tab();
     const desktop = screen.getAllByRole('navigation', { name: 'Primary' })[0];
     if (!desktop) throw new Error('Missing primary navigation');
     expect(within(desktop).getByRole('link', { name: 'Home' })).toHaveFocus();
@@ -135,13 +137,15 @@ describe('primary navigation', () => {
       render(<AppNavigation />);
       await user.tab();
       await user.tab();
+      await user.tab();
       expect(within(desktop()).getByRole('link', { name: 'Home' })).toHaveFocus();
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
+      // The toggle sits at the top, so the first destination follows it.
       await user.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
-      await user.tab({ shift: true });
-      expect(within(desktop()).getByRole('link', { name: 'Settings' })).toHaveFocus();
-      expect(await screen.findByRole('tooltip')).toHaveTextContent('Settings');
+      await user.tab();
+      expect(within(desktop()).getByRole('link', { name: 'Home' })).toHaveFocus();
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('Home');
     });
 
     it('toggles with Ctrl or Cmd+B on desktop, but not while typing or on mobile', async () => {

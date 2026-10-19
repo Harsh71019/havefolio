@@ -50,7 +50,7 @@ export function OwnedItemCard({
           </div>
         )}
       </div>
-      <CardHeader className="gap-2 px-4 pt-4">
+      <CardHeader className="grid-cols-[minmax(0,1fr)] gap-2 px-4 pt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           {context ? (
             <span

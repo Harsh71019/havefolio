@@ -390,13 +390,13 @@ test('PER-58 desktop density geometry, facts, images, keyboard, persistence and 
   await expect(page.getByRole('radio', { name: 'Comfortable' })).toBeChecked();
   await expect(page.getByRole('link', { name: /^Electric kettle Owned/ })).toBeVisible();
   const initialRequests = inventoryRequests;
-  // PER-66: columns auto-fill 9rem, 12rem and 18rem minimums in the space left by the 17rem
+  // PER-66: columns auto-fill 11rem, 13rem and 18rem minimums in the space left by the 17rem
   // navigation, 2rem gutters and, from 1280px, the 15rem filter column and its gap.
   const expected = [
+    [3, 3, 2],
+    [3, 3, 2],
     [4, 3, 2],
-    [4, 3, 2],
-    [5, 4, 2],
-    [8, 6, 4],
+    [6, 5, 4],
   ];
   for (const [index, width] of [1024, 1280, 1440, 1920].entries()) {
     await page.setViewportSize({ width, height: 1000 });
@@ -434,10 +434,10 @@ test('PER-58 desktop density geometry, facts, images, keyboard, persistence and 
         };
       });
       expect(sizing.width).toBeGreaterThan(140);
-      // A fluid column never reaches twice its minimum, so the fixed hint covers the real slot
-      // without asking for more than about twice its pixels.
+      // With at least three columns (two large) a fluid column stays under 4/3 (3/2) of its
+      // minimum, so the fixed hint covers the real slot without over-asking.
       expect(sizing.hintedWidth).toBeGreaterThanOrEqual(sizing.width);
-      expect(sizing.hintedWidth / sizing.width).toBeLessThan(2.1);
+      expect(sizing.hintedWidth / sizing.width).toBeLessThan(1.5);
       expect(sizing.width / sizing.height).toBeCloseTo(mode === 'Compact' ? 16 / 9 : 4 / 3, 1);
       if (width === 1024 && mode === 'Large') {
         await expect
@@ -521,7 +521,7 @@ test('PER-58 restores before paint and mobile ignores every saved desktop densit
     const skeleton = page.getByTestId('store-skeleton');
     await expect(skeleton).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-store-density', density);
-    const expectedColumns = density === 'compact' ? 5 : density === 'large' ? 2 : 4;
+    const expectedColumns = density === 'compact' ? 4 : density === 'large' ? 2 : 3;
     expect(await columns(page)).toBe(expectedColumns);
     await expect(page.locator('html')).toHaveAttribute(
       'data-first-store-columns',
@@ -721,9 +721,9 @@ test('PER-59 sparse subcategories share one category grid at every width and den
       return links.filter((l) => Math.abs(l.getBoundingClientRect().top - top) < 1).length;
     });
   const expected: Record<number, [number, number, number]> = {
-    1280: [4, 3, 2],
-    1512: [5, 4, 3],
-    1920: [6, 6, 4],
+    1280: [3, 3, 2],
+    1512: [4, 4, 3],
+    1920: [6, 5, 4],
   };
   for (const width of [1280, 1512, 1920]) {
     await page.setViewportSize({ width, height: 1000 });

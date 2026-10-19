@@ -98,16 +98,38 @@ export function AppNavigation(): ReactElement {
         id={sidebarId}
         className="sticky top-0 hidden h-svh w-68 flex-col overflow-x-hidden border-r bg-background px-5 py-6 transition-[width,padding] duration-200 ease-out motion-reduce:transition-none md:flex sidebar-collapsed:w-16 sidebar-collapsed:px-2"
       >
-        <Link
-          className="flex min-h-12 items-center gap-3 px-2 sidebar-collapsed:justify-center sidebar-collapsed:px-0"
-          href="/"
-        >
-          <House aria-hidden="true" className="size-5 shrink-0" />
-          <span className="whitespace-nowrap sidebar-collapsed:sr-only">
-            <span className="block text-lg font-semibold leading-none">Havefolio</span>
-            <span className="mt-1 block text-xs text-muted-foreground">Your household index</span>
-          </span>
-        </Link>
+        {/* The rail keeps only the toggle; Home is already the first destination. */}
+        <div className="flex items-center justify-between gap-2 sidebar-collapsed:justify-center">
+          <Link
+            className="flex min-h-12 min-w-0 items-center gap-3 px-2 sidebar-collapsed:hidden"
+            href="/"
+          >
+            <House aria-hidden="true" className="size-5 shrink-0" />
+            <span className="whitespace-nowrap">
+              <span className="block text-lg font-semibold leading-none">Havefolio</span>
+              <span className="mt-1 block text-xs text-muted-foreground">Your household index</span>
+            </span>
+          </Link>
+          <SidebarTooltip
+            enabled
+            label={collapsed ? 'Expand sidebar (Ctrl/⌘ B)' : 'Collapse sidebar (Ctrl/⌘ B)'}
+          >
+            <Button
+              aria-controls={sidebarId}
+              aria-expanded={!collapsed}
+              aria-keyshortcuts="Control+B Meta+B"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="shrink-0"
+              onClick={toggleSidebar}
+              size="icon-lg"
+              type="button"
+              variant="ghost"
+            >
+              <PanelLeftClose aria-hidden="true" className="size-5 sidebar-collapsed:hidden" />
+              <PanelLeftOpen aria-hidden="true" className="hidden size-5 sidebar-collapsed:block" />
+            </Button>
+          </SidebarTooltip>
+        </div>
 
         <nav aria-label="Primary" className="mt-10 grid gap-2">
           {navigationItems.map((item) => {
@@ -131,30 +153,9 @@ export function AppNavigation(): ReactElement {
           })}
         </nav>
 
-        <div className="mt-auto grid gap-3">
-          <div className="flex items-start gap-2 rounded-lg border p-3 text-xs leading-relaxed text-muted-foreground sidebar-collapsed:hidden">
-            <LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            <p>Your inventory stays private. Havefolio has no marketplace or public storefront.</p>
-          </div>
-          <SidebarTooltip
-            enabled
-            label={collapsed ? 'Expand sidebar (Ctrl/⌘ B)' : 'Collapse sidebar (Ctrl/⌘ B)'}
-          >
-            <Button
-              aria-controls={sidebarId}
-              aria-expanded={!collapsed}
-              aria-keyshortcuts="Control+B Meta+B"
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="justify-self-end sidebar-collapsed:justify-self-center"
-              onClick={toggleSidebar}
-              size="icon-lg"
-              type="button"
-              variant="ghost"
-            >
-              <PanelLeftClose aria-hidden="true" className="size-5 sidebar-collapsed:hidden" />
-              <PanelLeftOpen aria-hidden="true" className="hidden size-5 sidebar-collapsed:block" />
-            </Button>
-          </SidebarTooltip>
+        <div className="mt-auto flex items-start gap-2 rounded-lg border p-3 text-xs leading-relaxed text-muted-foreground sidebar-collapsed:hidden">
+          <LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <p>Your inventory stays private. Havefolio has no marketplace or public storefront.</p>
         </div>
       </aside>
 
