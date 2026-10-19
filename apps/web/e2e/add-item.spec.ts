@@ -154,6 +154,8 @@ test.describe('Fast manual add-item flow', () => {
     await expect(subcategoryTrigger).toBeVisible();
     await subcategoryTrigger.click();
     await page.getByRole('option', { name: 'Audio' }).click();
+    // Radix returns focus to the trigger after the close animation; let it settle before typing.
+    await expect(subcategoryTrigger).toBeFocused();
 
     // Price: enter explicit price
     await page.getByLabel('Actual amount paid').fill('14999');
