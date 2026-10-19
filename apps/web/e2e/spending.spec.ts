@@ -316,8 +316,8 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('combobox', { name: 'Breakdown' }).click();
     await page.getByRole('option', { name: 'Yearly trend', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Yearly trend', exact: true })).toBeVisible();
-    await page.getByLabel('From', { exact: true }).fill('2024-02-29');
-    await page.getByLabel('To', { exact: true }).fill('2024-02-29');
+    await page.getByLabel('From', { exact: true }).fill('29/02/2024');
+    await page.getByLabel('To', { exact: true }).fill('29/02/2024');
     await page.getByRole('button', { name: 'Apply date range' }).click();
     await expect(page).toHaveURL(/purchasedFrom=2024-02-29/);
     await expect(
@@ -325,7 +325,7 @@ for (const theme of ['light', 'dark'] as const) {
     ).toContainText('not part of the dated amount');
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Yearly trend', exact: true })).toBeVisible();
-    await expect(page.getByLabel('From', { exact: true })).toHaveValue('2024-02-29');
+    await expect(page.getByLabel('From', { exact: true })).toHaveValue('29/02/2024');
     await page.getByRole('button', { name: 'Reset filters', exact: true }).click();
     await expect(page).toHaveURL(/scope=current-owned&grouping=category$/);
     expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['theme']);

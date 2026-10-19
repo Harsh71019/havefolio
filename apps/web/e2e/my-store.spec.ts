@@ -390,13 +390,13 @@ test('PER-58 desktop density geometry, facts, images, keyboard, persistence and 
   await expect(page.getByRole('radio', { name: 'Comfortable' })).toBeChecked();
   await expect(page.getByRole('link', { name: /^Electric kettle Owned/ })).toBeVisible();
   const initialRequests = inventoryRequests;
-  // PER-66: columns auto-fill 11rem, 13rem and 18rem minimums in the space left by the 17rem
-  // navigation, 2rem gutters and, from 1280px, the 15rem filter column and its gap.
+  // PER-67: columns auto-fill 12rem, 15rem and 20rem minimums with 1.5rem gaps in the space left
+  // by the 17rem navigation, 2rem gutters and, from 1280px, the 15rem filter column and its gap.
   const expected = [
+    [3, 2, 2],
+    [3, 2, 2],
     [3, 3, 2],
-    [3, 3, 2],
-    [4, 3, 2],
-    [6, 5, 4],
+    [6, 5, 3],
   ];
   for (const [index, width] of [1024, 1280, 1440, 1920].entries()) {
     await page.setViewportSize({ width, height: 1000 });
@@ -405,10 +405,11 @@ test('PER-58 desktop density geometry, facts, images, keyboard, persistence and 
       await expect(page.getByRole('radio', { name: mode, exact: true })).toBeChecked();
       expect(await columns(page)).toBe(expected[index]![modeIndex]);
       const first = page.getByRole('link', { name: /^Electric kettle Owned/ });
-      await expect(first).toHaveAccessibleDescription(/Paid ₹0 Acquired Nov 2025/);
+      // PER-67: cards show the name only; facts stay on the item page.
+      await expect(first).not.toContainText(/Paid|Acquired/);
       await expect(
-        page.getByRole('link', { name: /^Household item 02 Sold/ }),
-      ).toHaveAccessibleDescription(/Paid Not recorded Acquired 2019/);
+        page.getByRole('link', { name: /^Household item 02 Sold\s*, no longer owned/ }),
+      ).toContainText('Sold');
       const image = first.locator('img');
       expect(await page.locator('.my-store img[loading="eager"]').count()).toBe(4);
       expect(await page.locator('.my-store img[loading="lazy"]').count()).toBe(8);
@@ -434,11 +435,11 @@ test('PER-58 desktop density geometry, facts, images, keyboard, persistence and 
         };
       });
       expect(sizing.width).toBeGreaterThan(140);
-      // With at least three columns (two large) a fluid column stays under 4/3 (3/2) of its
-      // minimum, so the fixed hint covers the real slot without over-asking.
+      // The fixed hint is the widest a column gets, so it covers the real slot without
+      // over-asking; photos are square in every density.
       expect(sizing.hintedWidth).toBeGreaterThanOrEqual(sizing.width);
-      expect(sizing.hintedWidth / sizing.width).toBeLessThan(1.5);
-      expect(sizing.width / sizing.height).toBeCloseTo(mode === 'Compact' ? 16 / 9 : 4 / 3, 1);
+      expect(sizing.hintedWidth / sizing.width).toBeLessThan(1.6);
+      expect(sizing.width / sizing.height).toBeCloseTo(1, 1);
       if (width === 1024 && mode === 'Large') {
         await expect
           .poll(() => image.evaluate((el) => (el as HTMLImageElement).currentSrc))
@@ -521,7 +522,7 @@ test('PER-58 restores before paint and mobile ignores every saved desktop densit
     const skeleton = page.getByTestId('store-skeleton');
     await expect(skeleton).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-store-density', density);
-    const expectedColumns = density === 'compact' ? 4 : density === 'large' ? 2 : 3;
+    const expectedColumns = density === 'large' ? 2 : 3;
     expect(await columns(page)).toBe(expectedColumns);
     await expect(page.locator('html')).toHaveAttribute(
       'data-first-store-columns',
@@ -533,7 +534,7 @@ test('PER-58 restores before paint and mobile ignores every saved desktop densit
     for (const width of [360, 768]) {
       await page.setViewportSize({ width, height: 1000 });
       await expect(page.getByRole('radiogroup', { name: 'View density' })).toBeHidden();
-      expect(await columns(page)).toBe(width === 360 ? 1 : 2);
+      expect(await columns(page)).toBe(2);
       await expectNoOverflow(page);
       for (const theme of ['light', 'dark'] as const) {
         await setTheme(page, theme);
@@ -710,8 +711,7 @@ test('PER-59 sparse subcategories share one category grid at every width and den
   await expect(section.getByRole('heading', { level: 3 })).toHaveCount(0);
   for (const [n, sub] of sparseSubs.entries()) {
     const link = section.getByRole('link', { name: new RegExp(`^Sample device ${n + 1} Owned`) });
-    await expect(link).toContainText(`Electronics › ${sub.name}`);
-    await expect(link).toHaveAccessibleDescription(new RegExp(`^Electronics › ${sub.name} Paid`));
+    await expect(link).toHaveAccessibleDescription(`Electronics › ${sub.name}`);
   }
   const initialRequests = inventoryRequests;
   // Cards on the first row share its top edge; the row holds as many cards as the grid has columns.
@@ -721,9 +721,9 @@ test('PER-59 sparse subcategories share one category grid at every width and den
       return links.filter((l) => Math.abs(l.getBoundingClientRect().top - top) < 1).length;
     });
   const expected: Record<number, [number, number, number]> = {
-    1280: [3, 3, 2],
-    1512: [4, 4, 3],
-    1920: [6, 5, 4],
+    1280: [3, 2, 2],
+    1512: [4, 3, 2],
+    1920: [6, 5, 3],
   };
   for (const width of [1280, 1512, 1920]) {
     await page.setViewportSize({ width, height: 1000 });
@@ -761,8 +761,9 @@ test('PER-59 sparse subcategories share one category grid at every width and den
   await expect(page.getByRole('radio', { name: 'Compact' })).toBeChecked();
   await expect(section.getByRole('link')).toHaveCount(sparseItems.length);
   expect(await firstRow()).toBe(6);
+  // PER-67: phones show two columns, like tablets.
   for (const [width, perRow] of [
-    [360, 1],
+    [360, 2],
     [768, 2],
   ] as const) {
     await page.setViewportSize({ width, height: 1000 });

@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@havefolio/ui/components/dropdown-menu';
 import { Input } from '@havefolio/ui/components/input';
+import { DateInput } from '@havefolio/ui/components/havefolio/date-input';
 import { Label } from '@havefolio/ui/components/label';
 import { Textarea } from '@havefolio/ui/components/textarea';
 import { lifecycleChoices, type LifecycleChoice } from './item-detail-presentation';
@@ -220,15 +221,14 @@ function LifecycleDialog({
               <legend className="sr-only">Optional details</legend>
               <div className="grid gap-2">
                 <Label htmlFor={`${id}-date`}>When did this happen? (optional)</Label>
-                <Input
+                <DateInput
                   id={`${id}-date`}
-                  type="date"
                   max={today()}
-                  className="min-h-11 text-base md:text-sm"
+                  className="min-h-11"
                   value={date}
                   aria-invalid={dateError ? true : undefined}
                   aria-describedby={dateError ? `${id}-date-error` : `${id}-date-hint`}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={setDate}
                 />
                 {dateError ? (
                   <p id={`${id}-date-error`} className="text-sm text-destructive" role="alert">

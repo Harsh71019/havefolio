@@ -853,7 +853,11 @@ describe('lifecycle actions', () => {
     expect(dialog).toHaveTextContent('nothing is replaced');
     await user.type(
       within(dialog).getByLabelText('When did this happen? (optional)'),
-      '2026-09-12',
+      // PER-68: day-first digits; the separators are inserted while typing.
+      '12092026',
+    );
+    expect(within(dialog).getByLabelText('When did this happen? (optional)')).toHaveValue(
+      '12/09/2026',
     );
     await user.type(within(dialog).getByLabelText('Note (optional, private)'), 'New switch');
     await user.click(within(dialog).getByRole('button', { name: 'Record repair' }));

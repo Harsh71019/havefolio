@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import Link from 'next/link';
 import {
   ArchiveIcon,
-  ArrowRightIcon,
   CircleCheckIcon,
   HandHeartIcon,
   PlusIcon,
@@ -61,14 +60,7 @@ import {
   readInventoryQuery,
   type InventoryPatch,
 } from './inventory-query-state';
-import {
-  acquiredFact,
-  isInactive,
-  itemHref,
-  priceFact,
-  statusLabel,
-  useFact,
-} from './item-presentation';
+import { isInactive, itemHref, statusLabel } from './item-presentation';
 import { deletedFlashKey, storeReturnPath } from './navigation-context';
 import { photoSource } from './photos-client';
 import { groupInventory } from './store-grouping';
@@ -85,7 +77,8 @@ const statusIcons: Record<ItemStatus, LucideIcon> = {
   lost: SearchXIcon,
   returned: Undo2Icon,
 };
-const gridClass = 'store-grid grid grid-cols-1 gap-4 min-[520px]:grid-cols-2';
+// PER-67: roomy catalog spacing — two columns on phones, wider auto-fill columns on desktop.
+const gridClass = 'store-grid grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6';
 
 /** The deleted item's name left by the item page; read once, then cleared. */
 function takeDeletedFlash(): string | undefined {
@@ -125,11 +118,8 @@ const asRequestError = (error: unknown): InventoryRequestError =>
 
 export function MyStore({
   source = apiInventorySource,
-  now,
 }: {
   source?: InventorySource;
-  /** Fixed clock for deterministic age labels in tests. */
-  now?: Date;
 }): React.JSX.Element {
   const density = useStoreDensity();
   const [refresh, setRefresh] = useState(0);
@@ -351,7 +341,6 @@ export function MyStore({
             <StoreContent
               density={density}
               load={load}
-              now={now}
               more={more}
               online={online}
               returnTo={returnTo}
@@ -373,13 +362,9 @@ function StoreSkeleton(): React.JSX.Element {
       <Skeleton className="h-7 w-40 motion-reduce:animate-none" />
       <div className={gridClass}>
         {[0, 1, 2, 3, 4, 5].map((n) => (
-          <div key={n} className="overflow-hidden rounded-xl border">
-            <Skeleton className="store-card-media aspect-[4/3] rounded-none motion-reduce:animate-none" />
-            <div className="store-skeleton-body space-y-3 p-4">
-              <Skeleton className="h-4 w-1/3 motion-reduce:animate-none" />
-              <Skeleton className="h-5 w-2/3 motion-reduce:animate-none" />
-              <Skeleton className="h-10 w-full motion-reduce:animate-none" />
-            </div>
+          <div key={n} className="space-y-2.5">
+            <Skeleton className="aspect-square rounded-lg motion-reduce:animate-none" />
+            <Skeleton className="h-4 w-3/4 motion-reduce:animate-none" />
           </div>
         ))}
       </div>
@@ -447,7 +432,6 @@ function StoreContent({
   density,
   load,
   more,
-  now,
   onLoadMore,
   online,
   returnTo,
@@ -458,7 +442,6 @@ function StoreContent({
   load: Extract<Load, { kind: 'ready' }>;
   returnTo: string;
   more: { busy: boolean; error?: string };
-  now: Date | undefined;
   onLoadMore: (cursor: string) => void;
   online: boolean;
   query: InventoryQuery;
@@ -543,7 +526,6 @@ function StoreContent({
                   item={item}
                   context={resolveItemContext(item, load.taxonomy)}
                   eager={eagerIds.has(item.id)}
-                  now={now}
                   returnTo={returnTo}
                 />
               </li>
@@ -617,7 +599,6 @@ function StoreContent({
                         : undefined
                     }
                     eager={eagerIds.has(item.id)}
-                    now={now}
                     returnTo={returnTo}
                   />
                 </li>
@@ -657,7 +638,6 @@ function StoreCard({
   context,
   eager,
   item,
-  now,
   returnTo,
 }: {
   density: StoreDensity;
@@ -665,7 +645,6 @@ function StoreCard({
   returnTo: string;
   context: string | undefined;
   eager: boolean;
-  now: Date | undefined;
 }): React.JSX.Element {
   const id = `item-${item.id}`;
   const inactive = isInactive(item.ownershipStatus);
@@ -677,14 +656,13 @@ function StoreCard({
     <Link
       href={itemHref(item.id, returnTo)}
       aria-labelledby={`${id}-name ${id}-status`}
-      aria-describedby={context ? `${id}-context ${id}-facts` : `${id}-facts`}
-      className="block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      {...(context ? { 'aria-describedby': `${id}-context` } : {})}
+      className="block h-full rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
     >
       <OwnedItemCard
         className="store-card"
         idPrefix={id}
         name={item.name}
-        {...(context ? { context } : {})}
         status={
           item.isDemo
             ? `Demo · ${statusLabel(item.ownershipStatus)}`
@@ -692,12 +670,9 @@ function StoreCard({
         }
         statusIcon={<Icon aria-hidden="true" />}
         {...(inactive ? { statusNote: ', no longer owned' } : {})}
+        // Owned items need no badge; anything no longer at home, or demo data, says so.
+        showStatus={inactive || item.isDemo}
         inactive={inactive}
-        facts={[
-          item.isDemo ? { ...priceFact(item), label: 'Example amount' } : priceFact(item),
-          acquiredFact(item.purchaseDate, now),
-          useFact(item.useFrequency),
-        ]}
         media={
           cover ? (
             <ItemCover
@@ -716,13 +691,13 @@ function StoreCard({
             <ItemCover className="absolute inset-0 h-full" cover={null} emptyLabel="No photo yet" />
           )
         }
-        footer={
-          <span className="flex min-h-6 items-center justify-between text-sm text-muted-foreground">
-            {inactive ? 'No longer in your home' : 'View details'}
-            <ArrowRightIcon aria-hidden="true" className="size-4" />
-          </span>
-        }
       />
+      {/* The card stays name-only; the category is still announced for context. */}
+      {context ? (
+        <span id={`${id}-context`} className="sr-only">
+          {context}
+        </span>
+      ) : null}
     </Link>
   );
 }

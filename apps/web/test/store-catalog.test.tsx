@@ -5,7 +5,6 @@ import type { InventoryFacets, ItemListEntry, TaxonomySnapshot } from '@havefoli
 import type { InventorySource } from '../components/inventory-source';
 import { MyStore } from '../components/my-store';
 
-const now = new Date(2026, 9, 2);
 const uuid = (n: number): string => `00000000-0000-4000-a000-${String(n).padStart(12, '0')}`;
 const kitchen = uuid(901);
 const garden = uuid(902);
@@ -127,7 +126,7 @@ afterEach(() => {
 describe('My Store catalog', () => {
   it('shows filters with counts beside a sortable result summary', async () => {
     const fake = createSource([item(1, { name: 'Espresso Maker', categoryId: kitchen })]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
 
     expect(await screen.findByText('Espresso Maker')).toBeVisible();
     expect(screen.getByText('Showing 1 of 6 items.')).toBeVisible();
@@ -144,7 +143,7 @@ describe('My Store catalog', () => {
 
   it('keeps every option without counts when facets are unavailable', async () => {
     const fake = createSource([item(1, { name: 'Tent' })], false);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     await screen.findByText('Tent');
     const panel = filters();
     expect(within(panel).getByRole('radio', { name: 'Kitchen (5)' })).toBeVisible();
@@ -157,7 +156,7 @@ describe('My Store catalog', () => {
     const fake = createSource([
       item(1, { name: 'Blender', categoryId: kitchen, subcategoryId: appliances }),
     ]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     await screen.findByText('Blender');
     const user = userEvent.setup();
 
@@ -180,7 +179,7 @@ describe('My Store catalog', () => {
 
   it('filters by ownership and how often things are used', async () => {
     const fake = createSource([item(1, { name: 'Tent' })]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     await screen.findByText('Tent');
     const user = userEvent.setup();
 
@@ -195,7 +194,7 @@ describe('My Store catalog', () => {
 
   it('previews common brands, finds the rest by search and filters by one', async () => {
     const fake = createSource([item(1, { name: 'Cooker', brand: 'Prestige' })]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     await screen.findByText('Cooker');
     const user = userEvent.setup();
     const panel = filters();
@@ -219,7 +218,7 @@ describe('My Store catalog', () => {
 
   it('narrows to a known price range with the slider and resets to any price', async () => {
     const fake = createSource([item(1, { name: 'Chair', pricePaidMinor: '150000' })]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     await screen.findByText('Chair');
     const user = userEvent.setup();
     const panel = filters();
@@ -247,7 +246,7 @@ describe('My Store catalog', () => {
   it('sorts by price in one currency and keeps the order when filters are cleared', async () => {
     window.history.replaceState(null, '', '/store?ownershipStatus=owned');
     const fake = createSource([item(1, { name: 'Desk' })]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     await screen.findByText('Desk');
     const user = userEvent.setup();
 
@@ -278,7 +277,7 @@ describe('My Store catalog', () => {
       `/store?q=kettle&categoryId=${kitchen}&brand=Prestige&useFrequency=often`,
     );
     const fake = createSource([item(1, { name: 'Steel Kettle', categoryId: kitchen })]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
     await screen.findByText('Steel Kettle');
     const user = userEvent.setup();
     const chips = screen.getByTestId('store-active-chips');
@@ -308,7 +307,7 @@ describe('My Store catalog', () => {
   it('offers to clear filters when nothing matches', async () => {
     window.history.replaceState(null, '', '/store?q=nonexistent');
     const fake = createSource([]);
-    render(<MyStore source={fake} now={now} />);
+    render(<MyStore source={fake} />);
 
     expect(await screen.findByText('No items match your filters')).toBeVisible();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Clear all filters' }));
