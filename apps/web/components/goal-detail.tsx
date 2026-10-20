@@ -506,7 +506,10 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
       </Card>
 
       <AlertDialog open={dialog !== null} onOpenChange={(o) => (o ? undefined : close())}>
+        {/* PER-86: capped and scrollable so Confirm stays reachable on short or keyboard-reduced
+            viewports instead of being clipped off-screen. */}
         <AlertDialogContent
+          className="max-h-[92svh] overflow-y-auto"
           onCloseAutoFocus={(e) => {
             e.preventDefault();
             if (opener.current?.isConnected) opener.current.focus();
