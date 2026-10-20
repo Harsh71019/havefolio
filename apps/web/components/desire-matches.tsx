@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactElement } from 'react';
 import Link from 'next/link';
-import type { Desire, DesireMatch, MatchCandidateItem, MatchRelevance } from '@havefolio/contracts';
+import type {
+  Desire,
+  DesireMatch,
+  DesireSuggestionItem,
+  MatchCandidateItem,
+  MatchRelevance,
+} from '@havefolio/contracts';
 import { Badge } from '@havefolio/ui/components/badge';
 import { Button } from '@havefolio/ui/components/button';
 import {
@@ -57,10 +63,13 @@ import {
   addDesireMatch,
   classificationInfo,
   deleteDesireMatch,
+  deleteSuggestionFeedback,
   DesireRequestError,
   getDesire,
   getDesireMatches,
+  getDesireSuggestions,
   getMatchCandidates,
+  recordSuggestionFeedback,
   updateDesireMatch,
 } from './desires-client';
 import {
@@ -105,6 +114,15 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
   const [candidates, setCandidates] = useState<MatchCandidateItem[]>([]);
   const [isLoadingCandidates, setIsLoadingCandidates] = useState(true);
   const [candidatesError, setCandidatesError] = useState<string | null>(null);
+
+  // Suggestions state (PER-46)
+  const [suggestions, setSuggestions] = useState<DesireSuggestionItem[]>([]);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<DesireSuggestionItem[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
+  const [showDismissed, setShowDismissed] = useState(false);
+  const [feedbackInProgressId, setFeedbackInProgressId] = useState<string | null>(null);
+  const [undoInProgressId, setUndoInProgressId] = useState<string | null>(null);
 
   // Add match form state (per candidate itemId -> reason text)
   const [candidateReasons, setCandidateReasons] = useState<Record<string, string>>({});
@@ -192,12 +210,51 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
     [desireId, debouncedQuery, includeUnavailable],
   );
 
+  // Load Suggestions (PER-46)
+  const loadSuggestionsData = useCallback(
+    (signal?: AbortSignal): void => {
+      getDesireSuggestions(desireId, { limit: 20, signal })
+        .then((res) => {
+          setSuggestions(res.items);
+          setSuggestionsError(null);
+          setIsLoadingSuggestions(false);
+        })
+        .catch((err: unknown) => {
+          if (signal?.aborted) return;
+          if (err instanceof DesireRequestError) {
+            setSuggestionsError(err.message);
+          } else {
+            setSuggestionsError('Could not load suggestions.');
+          }
+          setIsLoadingSuggestions(false);
+        });
+    },
+    [desireId],
+  );
+
+  const loadDismissedSuggestionsData = useCallback(
+    (signal?: AbortSignal): void => {
+      getDesireSuggestions(desireId, { limit: 20, includeDismissed: true, signal })
+        .then((res) => {
+          setDismissedSuggestions(
+            res.items.filter((item) => item.feedback?.feedbackType === 'dismissed'),
+          );
+        })
+        .catch(() => {
+          // Keep quiet on background dismissed fetch
+        });
+    },
+    [desireId],
+  );
+
   useEffect(() => {
     const controller = new AbortController();
     loadDesireData(controller.signal);
     loadMatchesData(controller.signal);
+    loadSuggestionsData(controller.signal);
+    loadDismissedSuggestionsData(controller.signal);
     return () => controller.abort();
-  }, [loadDesireData, loadMatchesData]);
+  }, [loadDesireData, loadMatchesData, loadSuggestionsData, loadDismissedSuggestionsData]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -230,6 +287,74 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
       }
     } finally {
       setAddingItemId(null);
+    }
+  };
+
+  // Handle Add Suggestion Match (PER-46)
+  const handleAddSuggestionMatch = async (suggestion: DesireSuggestionItem): Promise<void> => {
+    setAddingItemId(suggestion.item.id);
+    setAddError(null);
+    setStatusMessage(null);
+    try {
+      const newMatch = await addDesireMatch(desireId, {
+        itemId: suggestion.item.id,
+        reason: suggestion.explanation,
+      });
+
+      setMatches((prev) => [newMatch, ...prev.filter((m) => m.id !== newMatch.id)]);
+      setSuggestions((prev) => prev.filter((s) => s.item.id !== suggestion.item.id));
+      setCandidates((prev) =>
+        prev.map((c) => (c.id === suggestion.item.id ? { ...c, isAlreadyMatched: true } : c)),
+      );
+      setStatusMessage(`Connected “${suggestion.item.name}” to this want.`);
+    } catch (err) {
+      if (err instanceof DesireRequestError) {
+        setAddError(err.message);
+      } else {
+        setAddError('Could not connect this possession. Try again.');
+      }
+    } finally {
+      setAddingItemId(null);
+    }
+  };
+
+  // Handle Dismiss Suggestion (PER-46)
+  const handleDismissSuggestion = async (suggestion: DesireSuggestionItem): Promise<void> => {
+    setFeedbackInProgressId(suggestion.item.id);
+    setStatusMessage(null);
+    try {
+      const fb = await recordSuggestionFeedback(desireId, {
+        itemId: suggestion.item.id,
+        feedbackType: 'dismissed',
+        scope: 'desire',
+      });
+      setSuggestions((prev) => prev.filter((s) => s.item.id !== suggestion.item.id));
+      setDismissedSuggestions((prev) => [
+        { ...suggestion, feedback: fb },
+        ...prev.filter((s) => s.item.id !== suggestion.item.id),
+      ]);
+      setStatusMessage(`Dismissed “${suggestion.item.name}” for this want.`);
+    } catch {
+      setStatusMessage('Could not dismiss suggestion. Try again.');
+    } finally {
+      setFeedbackInProgressId(null);
+    }
+  };
+
+  // Handle Undo Dismissal (PER-46)
+  const handleUndoDismissal = async (suggestion: DesireSuggestionItem): Promise<void> => {
+    if (!suggestion.feedback) return;
+    setUndoInProgressId(suggestion.feedback.id);
+    setStatusMessage(null);
+    try {
+      await deleteSuggestionFeedback(desireId, suggestion.feedback.id);
+      setDismissedSuggestions((prev) => prev.filter((s) => s.item.id !== suggestion.item.id));
+      setSuggestions((prev) => [{ ...suggestion, feedback: null }, ...prev]);
+      setStatusMessage(`Restored “${suggestion.item.name}” to suggestions.`);
+    } catch {
+      setStatusMessage('Could not undo dismissal. Try again.');
+    } finally {
+      setUndoInProgressId(null);
     }
   };
 
@@ -810,7 +935,249 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
         )}
       </section>
 
-      {/* Section 2: Search Inventory & Connect */}
+      {/* Section 2: Suggested Possessions (PER-46) */}
+      <section
+        aria-labelledby={`${componentId}-suggestions-heading`}
+        className="space-y-4 pt-4 border-t"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-5 text-primary" aria-hidden="true" />
+              <h3
+                id={`${componentId}-suggestions-heading`}
+                className="text-lg font-semibold tracking-tight"
+              >
+                Suggested possessions
+              </h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Explainable suggestions based on your recorded possessions, categories, and purposes.
+            </p>
+          </div>
+          {dismissedSuggestions.length > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="min-h-11 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setShowDismissed(!showDismissed)}
+              aria-expanded={showDismissed}
+            >
+              {showDismissed
+                ? 'Hide dismissed suggestions'
+                : `View dismissed (${dismissedSuggestions.length})`}
+            </Button>
+          ) : null}
+        </div>
+
+        {suggestionsError ? (
+          <div
+            role="alert"
+            className="rounded-lg border border-destructive/30 bg-card p-4 text-sm text-destructive"
+          >
+            <p>{suggestionsError}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 min-h-11"
+              onClick={() => {
+                setIsLoadingSuggestions(true);
+                loadSuggestionsData();
+              }}
+            >
+              <RotateCcw className="mr-1.5 size-3.5" aria-hidden="true" />
+              Retry loading suggestions
+            </Button>
+          </div>
+        ) : null}
+
+        {isLoadingSuggestions ? (
+          <div className="space-y-3">
+            <Skeleton className="h-28 w-full rounded-lg" />
+            <Skeleton className="h-28 w-full rounded-lg" />
+          </div>
+        ) : suggestions.length === 0 ? (
+          <Card className="border-dashed bg-muted/10">
+            <Empty className="py-6">
+              <EmptyHeader>
+                <EmptyTitle className="text-sm font-medium">No automatic suggestions</EmptyTitle>
+                <EmptyDescription className="text-xs">
+                  We didn&apos;t find any automatic suggestions based on recorded categories or
+                  purpose. Search your inventory below to link an alternative manually.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {suggestions.map((suggestion) => {
+              const isConnecting = addingItemId === suggestion.id;
+              const isDismissing = feedbackInProgressId === suggestion.id;
+
+              return (
+                <Card
+                  key={suggestion.id}
+                  className="border-border bg-card shadow-sm hover:border-foreground/20 transition-colors"
+                >
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row gap-4 items-start justify-between">
+                      <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
+                        {/* Cover thumbnail */}
+                        <div className="relative size-16 sm:size-20 shrink-0 overflow-hidden rounded-md border bg-muted">
+                          <ItemCover
+                            cover={
+                              suggestion.item.cover
+                                ? photoSource(
+                                    suggestion.item.id,
+                                    {
+                                      id: suggestion.item.cover.photoId,
+                                      width: suggestion.item.cover.width,
+                                      height: suggestion.item.cover.height,
+                                    },
+                                    suggestion.item.cover.decorative
+                                      ? ''
+                                      : (suggestion.item.cover.altText ?? suggestion.item.name),
+                                    '(max-width: 640px) 64px, 80px',
+                                  )
+                                : null
+                            }
+                            emptyLabel="No photo"
+                            className="size-full aspect-square"
+                          />
+                        </div>
+
+                        {/* Details */}
+                        <div className="space-y-2 flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="font-semibold text-base sm:text-lg leading-tight break-words">
+                              {suggestion.item.name}
+                            </h4>
+                            {suggestion.item.brand || suggestion.item.model ? (
+                              <span className="text-xs text-muted-foreground">
+                                {[suggestion.item.brand, suggestion.item.model]
+                                  .filter(Boolean)
+                                  .join(' • ')}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          {/* Badges */}
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                            {suggestion.isUsableAlternative ? (
+                              <Badge
+                                variant="outline"
+                                className="border-emerald-600/40 text-emerald-700 dark:text-emerald-400 font-medium"
+                              >
+                                Usable alternative
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="secondary"
+                                className="text-muted-foreground font-normal"
+                              >
+                                Unavailable ({suggestion.item.ownershipStatus})
+                              </Badge>
+                            )}
+
+                            {suggestion.workingRarelyUsed ? (
+                              <Badge
+                                variant="secondary"
+                                className="border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 font-medium"
+                              >
+                                Working condition · Rarely used
+                              </Badge>
+                            ) : null}
+
+                            {suggestion.factors?.map((factor) => (
+                              <Badge key={factor.kind} variant="secondary" className="font-normal">
+                                {factor.label}
+                              </Badge>
+                            ))}
+                          </div>
+
+                          {/* Plain-language explanation */}
+                          <p className="text-xs sm:text-sm text-muted-foreground pt-1">
+                            {suggestion.explanation}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex flex-row sm:flex-col gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0">
+                        <Button
+                          size="sm"
+                          className="min-h-11 flex-1 sm:flex-initial"
+                          onClick={() => void handleAddSuggestionMatch(suggestion)}
+                          disabled={isConnecting || isDismissing}
+                        >
+                          <Plus className="mr-1.5 size-4" aria-hidden="true" />
+                          {isConnecting ? 'Connecting...' : 'Connect as alternative'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-11 text-xs text-muted-foreground hover:text-foreground flex-1 sm:flex-initial"
+                          onClick={() => void handleDismissSuggestion(suggestion)}
+                          disabled={isConnecting || isDismissing}
+                          title="Dismiss this suggestion for this want"
+                        >
+                          <X className="mr-1 size-3.5" aria-hidden="true" />
+                          {isDismissing ? 'Dismissing...' : 'Dismiss for this want'}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Dismissed Suggestions Sub-section */}
+        {showDismissed && dismissedSuggestions.length > 0 ? (
+          <div className="space-y-3 pt-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Dismissed for this want ({dismissedSuggestions.length})
+            </h4>
+            <div className="space-y-2">
+              {dismissedSuggestions.map((item) => {
+                const isUndoing = undoInProgressId === item.feedback?.id;
+
+                return (
+                  <Card key={item.id} className="border-dashed bg-muted/20">
+                    <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{item.item.name}</span>
+                          <Badge
+                            variant="outline"
+                            className="text-xs text-muted-foreground font-normal"
+                          >
+                            Dismissed
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{item.explanation}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="min-h-11 text-xs shrink-0"
+                        onClick={() => void handleUndoDismissal(item)}
+                        disabled={isUndoing}
+                      >
+                        <RotateCcw className="mr-1.5 size-3.5" aria-hidden="true" />
+                        {isUndoing ? 'Restoring...' : 'Undo dismissal'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      {/* Section 3: Search Inventory & Connect */}
       <section
         ref={searchSectionRef}
         aria-labelledby={`${componentId}-search-heading`}

@@ -958,6 +958,71 @@ export const desireItemMatches = pgTable(
 );
 
 /**
+ * PER-46: Owner relevance and dismissal feedback on automatic similarity suggestions.
+ * Scoped to desire by default to avoid accidental global suppression.
+ */
+export const desireSuggestionFeedback = pgTable(
+  'desire_suggestion_feedback',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    desireId: uuid('desire_id').notNull(),
+    itemId: uuid('item_id').notNull(),
+    feedbackType: text('feedback_type', {
+      enum: ['dismissed', 'irrelevant', 'relevant'],
+    }).notNull(),
+    scope: text('scope', {
+      enum: ['desire', 'global'],
+    })
+      .notNull()
+      .default('desire'),
+    reason: text('reason'),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.desireId, t.ownerId],
+      foreignColumns: [desires.id, desires.ownerId],
+      name: 'desire_suggestion_feedback_desire_owner_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [t.itemId, t.ownerId],
+      foreignColumns: [items.id, items.ownerId],
+      name: 'desire_suggestion_feedback_item_owner_fk',
+    }).onDelete('cascade'),
+    uniqueIndex('desire_suggestion_feedback_desire_item_unique').on(
+      t.ownerId,
+      t.desireId,
+      t.itemId,
+    ),
+    unique('desire_suggestion_feedback_owner_identity_unique').on(t.id, t.ownerId),
+    check(
+      'desire_suggestion_feedback_type_check',
+      sql`${t.feedbackType} in ('dismissed','irrelevant','relevant')`,
+    ),
+    check('desire_suggestion_feedback_scope_check', sql`${t.scope} in ('desire','global')`),
+    check(
+      'desire_suggestion_feedback_reason_check',
+      sql`${t.reason} is null or (length(btrim(${t.reason})) between 1 and 500 and ${t.reason} = btrim(${t.reason}))`,
+    ),
+    check(
+      'desire_suggestion_feedback_times_check',
+      sql`isfinite(${t.createdAt}) and isfinite(${t.updatedAt}) and ${t.createdAt} <= ${t.updatedAt}`,
+    ),
+    index('desire_suggestion_feedback_owner_desire_idx').on(
+      t.ownerId,
+      t.desireId,
+      t.createdAt,
+      t.id,
+    ),
+    index('desire_suggestion_feedback_owner_item_idx').on(t.ownerId, t.itemId, t.createdAt, t.id),
+  ],
+);
+
+/**
  * PER-29: the optional link from a desire's effective bought outcome to the owned item the owner
  * confirmed from it. At most one per desire; retries resolve by command ID. Identity is immutable;
  * only resumable photo-copy progress changes. Insert-time bought-outcome checks are SQL triggers.

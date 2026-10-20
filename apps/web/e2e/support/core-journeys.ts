@@ -323,6 +323,8 @@ function body(path: string, search: URLSearchParams, empty: boolean): unknown {
       return desire;
     case `${want}/matches`:
       return { items: [], nextCursor: null, hasMore: false, totalCount: 0 };
+    case `${want}/matches/suggestions`:
+      return { items: [], nextCursor: null, hasMore: false, totalCount: 0 };
     case `${want}/matches/candidates`:
       return { items: [], nextCursor: null, hasMore: false };
     case `${want}/reviews`:

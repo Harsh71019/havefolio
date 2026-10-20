@@ -885,6 +885,159 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       }).expect(201);
       expect(((await get(`/${desire.id}`).expect(200)).body as DesireDto).status).toBe('declined');
     });
+
+    it('PER-46: returns explainable automatic similarity suggestions with correctable relevance feedback', async () => {
+      // 1. Create desires
+      const desireA = await createMinimal('Sony WH-1000XM5 Wireless Headphones');
+      await run.runtime.query(
+        "UPDATE desires SET reason='Need quiet focus in noisy environments' WHERE id=$1",
+        [desireA.id],
+      );
+
+      const desireB = await createMinimal('Studio Monitoring Over-Ear Headphones');
+
+      // 2. Insert items for owner:
+      const catId = (
+        await run.runtime.query<{ id: string }>(
+          "INSERT INTO categories(owner_id, name) VALUES($1, 'Electronics') RETURNING id",
+          [owner],
+        )
+      ).rows[0]!.id;
+      const subcatId = (
+        await run.runtime.query<{ id: string }>(
+          "INSERT INTO subcategories(owner_id, category_id, name) VALUES($1, $2, 'Headphones') RETURNING id",
+          [owner, catId],
+        )
+      ).rows[0]!.id;
+
+      const sonyXm4Id = (
+        await run.runtime.query<{ id: string }>(
+          `INSERT INTO items(owner_id, name, brand, model, notes, category_id, subcategory_id, condition, use_frequency, ownership_status, currency, original_entry, original_source)
+           VALUES($1, 'Sony WH-1000XM4', 'Sony', 'WH-1000XM4', 'Daily quiet focus tool', $2, $3, 'working', 'rarely', 'owned', 'INR', '{}', 'manual')
+           RETURNING id`,
+          [owner, catId, subcatId],
+        )
+      ).rows[0]!.id;
+
+      const brokenHeadphonesId = (
+        await run.runtime.query<{ id: string }>(
+          `INSERT INTO items(owner_id, name, brand, category_id, subcategory_id, condition, ownership_status, currency, original_entry, original_source)
+           VALUES($1, 'Old Broken Sony Cords', 'Sony', $2, $3, 'broken', 'owned', 'INR', '{}', 'manual')
+           RETURNING id`,
+          [owner, catId, subcatId],
+        )
+      ).rows[0]!.id;
+
+      // Other owner's item (isolation check)
+      const foreignCatId = (
+        await run.runtime.query<{ id: string }>(
+          "INSERT INTO categories(owner_id, name) VALUES($1, 'Electronics') RETURNING id",
+          [other],
+        )
+      ).rows[0]!.id;
+      const foreignItemId = (
+        await run.runtime.query<{ id: string }>(
+          `INSERT INTO items(owner_id, name, brand, category_id, condition, ownership_status, currency, original_entry, original_source)
+           VALUES($1, 'Sony Foreign Headphones', 'Sony', $2, 'working', 'owned', 'INR', '{}', 'manual')
+           RETURNING id`,
+          [other, foreignCatId],
+        )
+      ).rows[0]!.id;
+
+      // 3. Query suggestions for desireA
+      const sugRes = (await get(`/${desireA.id}/matches/suggestions`).expect(200)).body as {
+        items: Array<{
+          id: string;
+          score: number;
+          explanation: string;
+          workingRarelyUsed: boolean;
+          conditionContext: string | null;
+          item: { name: string; brand: string | null };
+        }>;
+        totalCount: number;
+      };
+
+      expect(sugRes.totalCount).toBeGreaterThanOrEqual(1);
+      // Top 1 must be sonyXm4Id
+      expect(sugRes.items[0]?.id).toBe(sonyXm4Id);
+      expect(sugRes.items[0]?.workingRarelyUsed).toBe(true);
+      expect(sugRes.items[0]?.conditionContext).toBe('Working condition · Recorded usage: rarely');
+      expect(sugRes.items[0]?.explanation).toContain('Headphones');
+      expect(sugRes.items[0]?.explanation).toContain('Sony');
+
+      // Foreign item must NEVER appear
+      expect(sugRes.items.map((i) => i.id)).not.toContain(foreignItemId);
+
+      // Broken item ranks lower than working item
+      const brokenIndex = sugRes.items.findIndex((i) => i.id === brokenHeadphonesId);
+      if (brokenIndex !== -1) {
+        expect(brokenIndex).toBeGreaterThan(0);
+      }
+
+      // 4. Record dismissal feedback for desireA (scope: desire)
+      const feedbackCreated = (
+        await http()
+          .post(`/api/v1/desires/${desireA.id}/matches/suggestions/feedback`)
+          .set('Cookie', `havefolio_session=${token}`)
+          .send({
+            itemId: sonyXm4Id,
+            feedbackType: 'dismissed',
+            scope: 'desire',
+            reason: 'Not an alternative for this specific want',
+          })
+          .expect(201)
+      ).body as { id: string; feedbackType: string; scope: string; reason: string };
+
+      expect(feedbackCreated.feedbackType).toBe('dismissed');
+      expect(feedbackCreated.scope).toBe('desire');
+
+      // 5. Query suggestions again: sonyXm4Id is excluded by default
+      const afterDismissal = (await get(`/${desireA.id}/matches/suggestions`).expect(200)).body as {
+        items: Array<{ id: string }>;
+      };
+      expect(afterDismissal.items.map((i) => i.id)).not.toContain(sonyXm4Id);
+
+      // 6. With includeDismissed=true, it is returned with feedback attached
+      const withDismissed = (
+        await get(`/${desireA.id}/matches/suggestions?includeDismissed=true`).expect(200)
+      ).body as {
+        items: Array<{ id: string; feedback: { feedbackType: string } | null }>;
+      };
+      expect(
+        withDismissed.items.some(
+          (i) => i.id === sonyXm4Id && i.feedback?.feedbackType === 'dismissed',
+        ),
+      ).toBe(true);
+
+      // 7. Cross-desire scoping: desireB STILL suggests sonyXm4Id (not globally suppressed!)
+      const desireBSuggestions = (await get(`/${desireB.id}/matches/suggestions`).expect(200))
+        .body as {
+        items: Array<{ id: string }>;
+      };
+      expect(desireBSuggestions.items.map((i) => i.id)).toContain(sonyXm4Id);
+
+      // 8. List feedback endpoint returns the feedback record
+      const feedbackList = (await get(`/${desireA.id}/matches/suggestions/feedback`).expect(200))
+        .body as Array<{
+        id: string;
+        itemId: string;
+        feedbackType: string;
+      }>;
+      expect(feedbackList).toHaveLength(1);
+      expect(feedbackList[0]?.id).toBe(feedbackCreated.id);
+
+      // 9. Reset / delete feedback
+      await http()
+        .delete(`/api/v1/desires/${desireA.id}/matches/suggestions/feedback/${feedbackCreated.id}`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .expect(204);
+
+      // 10. Suggestions now restore sonyXm4Id to top ranking
+      const restored = (await get(`/${desireA.id}/matches/suggestions`).expect(200)).body as {
+        items: Array<{ id: string }>;
+      };
+      expect(restored.items.map((i) => i.id)).toContain(sonyXm4Id);
+    });
   });
 
   it('publishes complete OpenAPI contract without exposing sensitive or avoided-spend fields', () => {
@@ -913,6 +1066,10 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       ['/api/v1/desires/{id}/matches/candidates', 'get'],
       ['/api/v1/desires/{id}/matches/{matchId}', 'patch'],
       ['/api/v1/desires/{id}/matches/{matchId}', 'delete'],
+      ['/api/v1/desires/{id}/matches/suggestions', 'get'],
+      ['/api/v1/desires/{id}/matches/suggestions/feedback', 'get'],
+      ['/api/v1/desires/{id}/matches/suggestions/feedback', 'post'],
+      ['/api/v1/desires/{id}/matches/suggestions/feedback/{feedbackId}', 'delete'],
     ] as const) {
       const operation = document.paths[path]?.[method];
       expect(operation).toBeDefined();
@@ -937,6 +1094,10 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       'DesireMatchDto',
       'DesireMatchesPageDto',
       'MatchCandidatesPageDto',
+      'DesireSuggestionsPageDto',
+      'DesireSuggestionItemDto',
+      'DesireSuggestionFeedbackDto',
+      'CreateSuggestionFeedbackDto',
     ]) {
       expect(schemas[name]).toBeDefined();
     }
