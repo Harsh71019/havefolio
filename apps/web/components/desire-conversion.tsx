@@ -61,6 +61,7 @@ import {
 import { formatLikelyPrice } from './desire-presentation';
 import { amountEntryToMinor } from './money-entry';
 import { randomId } from './random-id';
+import { pageTitleClassName } from './page-heading';
 
 const statusLabels: Record<ItemStatus, string> = {
   owned: 'Currently owned',
@@ -348,7 +349,7 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
   if (!state)
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-semibold">Add to your inventory</h1>
+        <h1 className={pageTitleClassName}>Add to your inventory</h1>
         <Alert variant="destructive">
           <AlertTitle>Could not load this want</AlertTitle>
           <AlertDescription>{loadError}</AlertDescription>
@@ -380,7 +381,7 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
         Back to decision history
       </Link>
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Add to your inventory</h1>
+        <h1 className={pageTitleClassName}>Add to your inventory</h1>
         <p className="break-words text-lg">{s.name}</p>
         <p className="text-sm text-muted-foreground">
           This is optional. Your bought decision is already recorded whether or not you add an item.

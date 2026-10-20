@@ -306,3 +306,4 @@ See [private Cloudinary operations](../operations/cloudinary-media.md) and [ADR-
 
 - [PER-43 correctable enrichment](correctable-enrichment.md): private typed inputs, durable bounded work, explicit field review, correction history and disabled-provider behavior.
 - [PER-45 photo and receipt OCR](photo-receipt-ocr.md): opt-in local Tesseract reading in sandboxed worker children, receipt price/date review fields, honest confidence/caveats, retention and labelled synthetic evaluation.
+- [PER-75 shared left-rail page shell](page-shell.md): one `PageShell`/`PageHeading` composition, rail widths, geometry tests and the reconciled blueprint differences.

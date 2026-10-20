@@ -32,6 +32,7 @@ import {
 } from './desire-presentation';
 import { PageLoadFailure } from './page-load-failure';
 import { randomId } from './random-id';
+import { pageTitleClassName } from './page-heading';
 const labels: Record<ReviewOutcome, string> = {
   bought: 'Bought',
   delayed: 'Delayed',
@@ -218,7 +219,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
         Back to Wants
       </Link>
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Decision history</h1>
+        <h1 className={pageTitleClassName}>Decision history</h1>
         <h2 className="text-lg break-words">{desire.name}</h2>
         <p>{getEffectiveStateLabel(desire.effectiveState)}</p>
         <p className="text-sm text-muted-foreground">

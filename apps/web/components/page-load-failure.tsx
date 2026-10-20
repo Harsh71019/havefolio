@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState, type ReactElement } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@havefolio/ui/components/alert';
 import { Button } from '@havefolio/ui/components/button';
+import { pageTitleClassName } from './page-heading';
 
 /**
  * PER-36: page-level read failure. Keeps the page's level-one heading, explains that nothing
@@ -27,7 +28,7 @@ export function PageLoadFailure({
   const [retrying, setRetrying] = useState(false);
   return (
     <div className="space-y-6">
-      {heading ? <h1 className="text-3xl font-semibold tracking-tight">{heading}</h1> : null}
+      {heading ? <h1 className={pageTitleClassName}>{heading}</h1> : null}
       <Alert variant="destructive">
         <AlertCircle aria-hidden="true" />
         <AlertTitle>Could not load</AlertTitle>

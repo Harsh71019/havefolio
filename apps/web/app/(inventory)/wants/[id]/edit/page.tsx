@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import type { ReactElement } from 'react';
 import { PageHeading } from '@/components/page-heading';
+import { PageShell } from '@/components/page-shell';
 import { EditDesireForm } from '@/components/edit-desire-form';
 
 export const metadata: Metadata = {
@@ -20,15 +21,16 @@ export default async function EditDesirePage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-12 lg:px-12">
-      <div className="mx-auto mb-6 max-w-xl">
-        <PageHeading
-          eyebrow="Wants"
-          title="Review and update desire"
-          description="Adjust your thoughts, change waiting periods or remove what you decided against."
-        />
+    <PageShell width="form">
+      <PageHeading
+        eyebrow="Wants"
+        title="Review and update desire"
+        description="Adjust your thoughts, change waiting periods or remove what you decided against."
+      />
+      {/* PER-75: the form centres each of its states; pin them to the rail without touching it. */}
+      <div className="*:mx-0">
+        <EditDesireForm desireId={id} />
       </div>
-      <EditDesireForm desireId={id} />
-    </main>
+    </PageShell>
   );
 }

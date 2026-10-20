@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import { AppNavigation } from '@/components/app-navigation';
 import { HeaderSearch } from '@/components/header-search';
+import { pageGutterClassName } from '@/components/page-shell';
 import { mainContentId, SkipLink } from '@/components/skip-link';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -14,7 +15,8 @@ export default function InventoryLayout({
       {/* PER-85: page overflow is clipped on phones so it cannot widen the layout viewport, which
           zooms out and moves the fixed bottom navigation. */}
       <div className="min-w-0 max-md:overflow-x-clip">
-        <div className="flex h-14 items-center gap-3 border-b px-4 sm:px-6">
+        {/* PER-75: the header shares the page gutter so search starts on the content rail. */}
+        <div className={`flex h-14 items-center gap-3 border-b ${pageGutterClassName}`}>
           <HeaderSearch />
           <div className="ml-auto shrink-0">
             <ThemeToggle />
