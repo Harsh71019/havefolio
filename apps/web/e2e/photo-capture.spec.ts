@@ -90,9 +90,14 @@ test('removal and unsupported selection remain accessible', async ({ page }) => 
     mimeType: 'image/heic',
     buffer: Buffer.from('synthetic unsupported'),
   });
+  // PER-47: Chromium has no HEIC decoder, so the owner gets guidance and a working alternative.
   await expect(
-    page.getByRole('alert').filter({ hasText: 'HEIC/HEIF is not supported' }),
-  ).toContainText('JPEG, PNG or WebP');
+    page.getByRole('alert').filter({ hasText: 'can’t convert HEIC/HEIF' }),
+  ).toContainText('save the item now and add photos later');
+  await expect(page.getByLabel('Choose from gallery or files')).toHaveAttribute(
+    'accept',
+    'image/jpeg,image/png,image/webp',
+  );
 });
 
 test('selects and uploads several photos over plain HTTP without crypto.randomUUID', async ({
