@@ -3,6 +3,24 @@
 /* PER-66: the desktop navigation's saved width is set on <html> before first paint. */
 @custom-variant sidebar-collapsed (html[data-sidebar='collapsed'] &);
 
+/* PER-85: the one mobile navigation geometry contract, shared with page and keyboard work.
+   The bar sits at least 0.75rem above the viewport edge, or above the device safe area when that
+   is larger (max, never added, so the inset is not doubled). Content clearance and focus scroll
+   padding are derived from the same values. Insets are 0 unless the browser reports one. */
+:root {
+  --mobile-nav-height: 4.375rem;
+  --mobile-nav-offset: max(0.75rem, env(safe-area-inset-bottom));
+  --mobile-nav-inset-left: max(0.75rem, env(safe-area-inset-left));
+  --mobile-nav-inset-right: max(0.75rem, env(safe-area-inset-right));
+  --mobile-nav-clearance: calc(var(--mobile-nav-height) + var(--mobile-nav-offset) + 0.75rem);
+}
+/* Keyboard focus and in-page links scroll controls clear of the bar instead of under it. */
+@media (max-width: 767.98px) {
+  html {
+    scroll-padding-bottom: var(--mobile-nav-clearance);
+  }
+}
+
 /* PER-58: geometry is scoped to My Store; mobile/tablet ignores desktop preferences.
    PER-66: columns fill the space the navigation and filters leave, so a collapsed sidebar or a
    wider screen adds cards instead of stretching them.
