@@ -1,5 +1,5 @@
 {
-  "id": "90ea2b4a-af15-42fe-a4e2-5eb0c778c70c",
+  "id": "95034c96-0148-4239-a336-ce5c400883ba",
   "prevId": "b1de7338-b6ad-4347-ba9f-29c480597ec5",
   "version": "7",
   "dialect": "postgresql",
@@ -2199,7 +2199,7 @@
       "checkConstraints": {
         "enrichment_review_field_check": {
           "name": "enrichment_review_field_check",
-          "value": "\"enrichment_reviews\".\"field\" in ('name','brand','model','description','image') or \"enrichment_reviews\".\"field\" ~ '^specification:[a-zA-Z0-9][a-zA-Z0-9 _-]{0,63}$'"
+          "value": "\"enrichment_reviews\".\"field\" in ('name','brand','model','description','pricePaid','purchaseDate')"
         },
         "enrichment_review_decision_check": {
           "name": "enrichment_review_decision_check",

@@ -1,0 +1,104 @@
+{
+  "$comment": "PER-45 ground truth per synthetic fixture, in candidate order. A null field means the image does not support any value for it, so a suggestion counts as an error. Dates use the precision the image proves.",
+  "receipt-multi-clean": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Steel Water Bottle 1L", "pricePaid": "INR 89900", "purchaseDate": "2026-08-14" },
+      { "name": "Cotton Bath Towel", "pricePaid": "INR 119800", "purchaseDate": "2026-08-14" },
+      { "name": "Bamboo Cutting Board", "pricePaid": "INR 64900", "purchaseDate": "2026-08-14" }
+    ]
+  },
+  "receipt-single-total": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Ceramic Teapot", "pricePaid": "INR 151000", "purchaseDate": "2026-09-03" }
+    ]
+  },
+  "receipt-ambiguous-date": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Brass Desk Lamp", "pricePaid": "INR 235000", "purchaseDate": "2026" },
+      { "name": "Lamp Shade Linen", "pricePaid": "INR 78000", "purchaseDate": "2026" }
+    ]
+  },
+  "receipt-textual-date": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Hardcover Atlas", "pricePaid": "INR 129900", "purchaseDate": "2026-09-12" }
+    ]
+  },
+  "receipt-month-only": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Wool Throw Blanket", "pricePaid": "INR 340000", "purchaseDate": "2026-08" }
+    ]
+  },
+  "receipt-dollar": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Canvas Tote", "pricePaid": null, "purchaseDate": null },
+      { "name": "Water Flask", "pricePaid": null, "purchaseDate": null }
+    ]
+  },
+  "receipt-long": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Glass Tumbler", "pricePaid": "INR 12000", "purchaseDate": "2026-07-21" },
+      { "name": "Steel Spoon Set", "pricePaid": "INR 24000", "purchaseDate": "2026-07-21" },
+      { "name": "Cotton Napkins", "pricePaid": "INR 31000", "purchaseDate": "2026-07-21" },
+      { "name": "Clay Planter", "pricePaid": "INR 45000", "purchaseDate": "2026-07-21" },
+      { "name": "Jute Doormat", "pricePaid": "INR 52000", "purchaseDate": "2026-07-21" }
+    ]
+  },
+  "receipt-noisy": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Steel Water Bottle 1L", "pricePaid": "INR 89900", "purchaseDate": "2026-08-14" },
+      { "name": "Cotton Bath Towel", "pricePaid": "INR 119800", "purchaseDate": "2026-08-14" }
+    ]
+  },
+  "receipt-indian-grouping": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Refrigerator 340L", "pricePaid": "INR 11980000", "purchaseDate": "2026" }
+    ]
+  },
+  "receipt-no-items": {
+    "kind": "receipt",
+    "candidates": [{ "name": null, "pricePaid": "INR 450000", "purchaseDate": "2026-08-30" }]
+  },
+  "receipt-proportional-font": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Linen Cushion Cover", "pricePaid": "INR 115000", "purchaseDate": "2026-09-19" }
+    ]
+  },
+  "photo-label-model": {
+    "kind": "photo",
+    "candidates": [{ "name": null, "brand": "Aurora Home", "model": "AX-200" }]
+  },
+  "photo-no-text": { "kind": "photo", "candidates": [] },
+  "heldout-courier-multiply": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Enamel Mug", "pricePaid": "INR 45000", "purchaseDate": "2026-09-03" },
+      { "name": "Tea Strainer", "pricePaid": "INR 18000", "purchaseDate": "2026-09-03" }
+    ]
+  },
+  "heldout-noisy-single": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Table Fan 400mm", "pricePaid": "INR 279900", "purchaseDate": "2026-08-28" }
+    ]
+  },
+  "heldout-euro": {
+    "kind": "receipt",
+    "candidates": [
+      { "name": "Oak Side Table", "pricePaid": "EUR 18900", "purchaseDate": "2026-07-15" }
+    ]
+  },
+  "heldout-photo-plain": {
+    "kind": "photo",
+    "candidates": [{ "name": null, "model": "KX-90 Pro" }]
+  }
+}

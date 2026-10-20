@@ -29,7 +29,8 @@ import {
 @ApiTags('enrichment')
 @ApiCookieAuth('ownerSession')
 @ApiBadRequestResponse({
-  description: 'Invalid input or unsupported field; purchase money/date are never reviewable.',
+  description:
+    'Invalid input, unsupported field or attachment (ENRICHMENT_ATTACHMENT_UNSUPPORTED for PDFs). Money/date fields are reviewable only from receipt work.',
 })
 @ApiUnauthorizedResponse({
   description: 'Authentication required; existing origin/CSRF policy applies.',

@@ -64,16 +64,20 @@ export class EnrichmentReviewDto implements EnrichmentReview {
   candidateId!: string;
   @ApiProperty({
     example: 'specification:Capacity',
-    description: 'name, brand, model, description, image or specification:<key>',
+    description:
+      'name, brand, model, description, receipt-only pricePaid/purchaseDate, image or specification:<key>',
   })
-  @Matches(/^(?:name|brand|model|description|image|specification:[a-zA-Z0-9][a-zA-Z0-9 _-]{0,63})$/)
+  @Matches(
+    /^(?:name|brand|model|description|pricePaid|purchaseDate|image|specification:[a-zA-Z0-9][a-zA-Z0-9 _-]{0,63})$/,
+  )
   field!: EnrichmentField;
   @ApiProperty({ enum: ['accept', 'reject', 'correct'] })
   @IsIn(['accept', 'reject', 'correct'])
   decision!: EnrichmentReview['decision'];
   @ApiPropertyOptional({
     maxLength: 5000,
-    description: 'Required only for correct; name/brand/model limited to 300.',
+    description:
+      'Required only for correct; name/brand/model limited to 300. pricePaid is "<ISO 4217> <integer minor units>" (e.g. "INR 89900"); purchaseDate is YYYY, YYYY-MM or YYYY-MM-DD.',
   })
   @ValidateIf((_o, v) => v !== undefined)
   @IsString()

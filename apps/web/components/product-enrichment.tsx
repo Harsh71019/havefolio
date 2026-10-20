@@ -251,144 +251,147 @@ export function ProductEnrichment({
             is always available.
           </p>
         ) : null}
-        {works.map((w) => (
-          <Card key={w.id}>
-            <CardContent className="space-y-4">
-              <p>
-                Request {new Date(w.createdAt).toLocaleString()} · {w.state}
-              </p>
-              {w.state === 'succeeded' && !w.candidates.length ? (
-                <p>No matching product found. Try another source or edit your item manually.</p>
-              ) : null}
-              {['pending', 'processing', 'retry'].includes(w.state) ? (
-                <p>Suggestions are being checked. Refresh to see progress.</p>
-              ) : null}
-              {['failed', 'unconfigured', 'stale'].includes(w.state) ? (
+        {works
+          .filter((w) => w.inputKind === 'url' || w.inputKind === 'barcode')
+          .map((w) => (
+            <Card key={w.id}>
+              <CardContent className="space-y-4">
                 <p>
-                  This request is unavailable or out of date. Refresh the item, then make a new
-                  explicit request. Manual editing remains available.
+                  Request {new Date(w.createdAt).toLocaleString()} · {w.state}
                 </p>
-              ) : null}
-              {w.candidates.length ? (
-                <fieldset className="space-y-3">
-                  <legend className="font-medium">
-                    Choose the matching product ({w.candidates.length} candidates)
-                  </legend>
-                  {w.candidates.map((c, index) => (
-                    <Label key={c.id} className="flex min-h-11 items-center gap-3 break-words">
-                      <input
-                        type="radio"
-                        name={`candidate-${w.id}`}
-                        checked={selected[w.id] === c.id}
-                        onChange={() => setSelected((p) => ({ ...p, [w.id]: c.id }))}
-                      />
-                      <span>
-                        Candidate {index + 1}:{' '}
-                        {c.fields.find((f) => f.field === 'name')?.value ?? 'Product details'}
-                      </span>
-                    </Label>
-                  ))}
-                </fieldset>
-              ) : null}
-              {w.candidates
-                .find((c) => c.id === selected[w.id])
-                ?.fields.map((f) => {
-                  const key = `${w.id}:${selected[w.id]}:${f.field}`;
-                  const current = f.field.startsWith('specification:')
-                    ? item?.specifications?.[f.field.slice(14)]
-                    : f.field === 'image'
-                      ? null
-                      : item?.[f.field as 'name' | 'brand' | 'model' | 'description'];
-                  return (
-                    <div key={f.field} className="space-y-3 rounded-md border p-4">
-                      <h3 className="font-semibold">{label(f.field)}</h3>
-                      <p className="break-words text-sm text-muted-foreground">
-                        Current:{' '}
-                        {current === null || current === undefined
-                          ? 'Not recorded'
-                          : typeof current === 'string'
-                            ? current
-                            : JSON.stringify(current)}
-                      </p>
-                      <p className="break-all whitespace-pre-wrap">{f.value}</p>
-                      <p className="break-all text-sm text-muted-foreground">
-                        Source: {f.source.provider} · confidence {Math.round(f.confidence * 100)}%
-                        (estimate)
-                        <br />
-                        {f.source.reference}
-                      </p>
-                      {f.source.provider === 'open-food-facts' ? (
-                        <p className="text-sm">
-                          <a
-                            className="underline"
-                            href="https://world.openfoodfacts.org/terms-of-use"
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open Food Facts contributors · ODbL / DbCL; images CC BY-SA
-                          </a>
+                {w.state === 'succeeded' && !w.candidates.length ? (
+                  <p>No matching product found. Try another source or edit your item manually.</p>
+                ) : null}
+                {['pending', 'processing', 'retry'].includes(w.state) ? (
+                  <p>Suggestions are being checked. Refresh to see progress.</p>
+                ) : null}
+                {['failed', 'unconfigured', 'stale'].includes(w.state) ? (
+                  <p>
+                    This request is unavailable or out of date. Refresh the item, then make a new
+                    explicit request. Manual editing remains available.
+                  </p>
+                ) : null}
+                {w.candidates.length ? (
+                  <fieldset className="space-y-3">
+                    <legend className="font-medium">
+                      Choose the matching product ({w.candidates.length} candidates)
+                    </legend>
+                    {w.candidates.map((c, index) => (
+                      <Label key={c.id} className="flex min-h-11 items-center gap-3 break-words">
+                        <input
+                          type="radio"
+                          name={`candidate-${w.id}`}
+                          checked={selected[w.id] === c.id}
+                          onChange={() => setSelected((p) => ({ ...p, [w.id]: c.id }))}
+                        />
+                        <span>
+                          Candidate {index + 1}:{' '}
+                          {c.fields.find((f) => f.field === 'name')?.value ?? 'Product details'}
+                        </span>
+                      </Label>
+                    ))}
+                  </fieldset>
+                ) : null}
+                {w.candidates
+                  .find((c) => c.id === selected[w.id])
+                  ?.fields.map((f) => {
+                    const key = `${w.id}:${selected[w.id]}:${f.field}`;
+                    const current = f.field.startsWith('specification:')
+                      ? item?.specifications?.[f.field.slice(14)]
+                      : f.field === 'image'
+                        ? null
+                        : item?.[f.field as 'name' | 'brand' | 'model' | 'description'];
+                    return (
+                      <div key={f.field} className="space-y-3 rounded-md border p-4">
+                        <h3 className="font-semibold">{label(f.field)}</h3>
+                        <p className="break-words text-sm text-muted-foreground">
+                          Current:{' '}
+                          {current === null || current === undefined
+                            ? 'Not recorded'
+                            : typeof current === 'string'
+                              ? current
+                              : JSON.stringify(current)}
                         </p>
-                      ) : null}
-                      {f.field !== 'image' ? (
-                        <>
-                          <Label htmlFor={`edit-${encodeURIComponent(key)}`}>
-                            Correct {label(f.field)}
-                          </Label>
-                          <Textarea
-                            id={`edit-${encodeURIComponent(key)}`}
-                            maxLength={
-                              f.field === 'description'
-                                ? 5000
-                                : f.field.startsWith('specification:')
-                                  ? 1000
-                                  : 300
-                            }
-                            value={edits[key] ?? f.value}
-                            onChange={(e) => setEdits((p) => ({ ...p, [key]: e.target.value }))}
-                          />
-                        </>
-                      ) : (
-                        <p className="text-sm">
-                          No remote preview is loaded. Import validates and stores a private photo.
+                        <p className="break-all whitespace-pre-wrap">{f.value}</p>
+                        <p className="break-all text-sm text-muted-foreground">
+                          Source: {f.source.provider} · confidence {Math.round(f.confidence * 100)}%
+                          (estimate)
+                          <br />
+                          {f.source.reference}
                         </p>
-                      )}
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          className="min-h-11"
-                          disabled={busy}
-                          onClick={() => void act(() => decide(w, f.field, 'accept'))}
-                        >
-                          {f.field === 'image'
-                            ? 'Import private image'
-                            : `Accept ${label(f.field)}`}
-                        </Button>
+                        {f.source.provider === 'open-food-facts' ? (
+                          <p className="text-sm">
+                            <a
+                              className="underline"
+                              href="https://world.openfoodfacts.org/terms-of-use"
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Open Food Facts contributors · ODbL / DbCL; images CC BY-SA
+                            </a>
+                          </p>
+                        ) : null}
                         {f.field !== 'image' ? (
+                          <>
+                            <Label htmlFor={`edit-${encodeURIComponent(key)}`}>
+                              Correct {label(f.field)}
+                            </Label>
+                            <Textarea
+                              id={`edit-${encodeURIComponent(key)}`}
+                              maxLength={
+                                f.field === 'description'
+                                  ? 5000
+                                  : f.field.startsWith('specification:')
+                                    ? 1000
+                                    : 300
+                              }
+                              value={edits[key] ?? f.value}
+                              onChange={(e) => setEdits((p) => ({ ...p, [key]: e.target.value }))}
+                            />
+                          </>
+                        ) : (
+                          <p className="text-sm">
+                            No remote preview is loaded. Import validates and stores a private
+                            photo.
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            className="min-h-11"
+                            disabled={busy}
+                            onClick={() => void act(() => decide(w, f.field, 'accept'))}
+                          >
+                            {f.field === 'image'
+                              ? 'Import private image'
+                              : `Accept ${label(f.field)}`}
+                          </Button>
+                          {f.field !== 'image' ? (
+                            <Button
+                              className="min-h-11"
+                              disabled={busy}
+                              variant="outline"
+                              onClick={() =>
+                                void act(() => decide(w, f.field, 'correct', edits[key] ?? f.value))
+                              }
+                            >
+                              Save correction
+                            </Button>
+                          ) : null}
                           <Button
                             className="min-h-11"
                             disabled={busy}
                             variant="outline"
-                            onClick={() =>
-                              void act(() => decide(w, f.field, 'correct', edits[key] ?? f.value))
-                            }
+                            onClick={() => void act(() => decide(w, f.field, 'reject'))}
                           >
-                            Save correction
+                            Reject {label(f.field)}
                           </Button>
-                        ) : null}
-                        <Button
-                          className="min-h-11"
-                          disabled={busy}
-                          variant="outline"
-                          onClick={() => void act(() => decide(w, f.field, 'reject'))}
-                        >
-                          Reject {label(f.field)}
-                        </Button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-            </CardContent>
-          </Card>
-        ))}
+                    );
+                  })}
+              </CardContent>
+            </Card>
+          ))}
         {before ? (
           <Button
             className="min-h-11"

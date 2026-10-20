@@ -143,7 +143,12 @@ describe('PER-43 private correctable enrichment', () => {
     await expect(service.list(other, item, { limit: 10 })).rejects.toThrow('ITEM_NOT_FOUND');
     await auth(http().get(path()))
       .expect(200)
-      .expect((r) => expect(r.body.providerStatus).toBe('available'));
+      .expect((r) =>
+        expect(r.body).toMatchObject({
+          providerStatus: 'available',
+          availableKinds: ['url', 'barcode'],
+        }),
+      );
   });
   it('persists idempotent bounded requests, private URL provenance and unavailable status without fetching', async () => {
     await auth(http().post(path()))
@@ -223,11 +228,11 @@ describe('PER-43 private correctable enrichment', () => {
           item,
           kind,
           'synthetic/private/' + attachment,
-          kind === 'photo' ? 'image' : 'raw',
-          kind === 'photo' ? 'webp' : 'pdf',
+          'image',
+          'webp',
           randomUUID(),
-          kind === 'photo' ? 'sample.webp' : 'receipt.pdf',
-          kind === 'photo' ? 'image/webp' : 'application/pdf',
+          'sanitized.webp',
+          'image/webp',
         ],
       );
       const result = await auth(http().post(path()))

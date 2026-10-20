@@ -15,6 +15,8 @@ const item = {
 const work: EnrichmentWork = {
   id: 'work',
   itemId: item.id,
+  inputKind: 'url',
+  attachmentId: null,
   baseRevision: 1,
   state: 'succeeded',
   attempts: 1,
@@ -86,6 +88,18 @@ describe('PER-44 source-specific review', () => {
     expect(api.request).not.toHaveBeenCalled();
     expect(api.list).not.toHaveBeenCalled();
     expect(screen.getByText(/Requesting sends this barcode to Open Food Facts/)).toBeVisible();
+  });
+  it('keeps merged receipt OCR work on its own review page', async () => {
+    const { api, user } = fixture();
+    api.list.mockResolvedValue({
+      providerStatus: 'available',
+      items: [{ ...work, id: 'receipt-work', inputKind: 'receipt' }, work],
+      nextBefore: null,
+    });
+    await screen.findByText(item.name);
+    await user.click(screen.getByRole('button', { name: 'Refresh suggestions' }));
+    await screen.findByText(/Choose the matching product/);
+    expect(screen.getAllByText(/Choose the matching product/)).toHaveLength(1);
   });
   it('sends only an explicit product URL after owner request', async () => {
     const { api, user } = fixture();

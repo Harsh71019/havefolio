@@ -64,7 +64,8 @@ deletion admission are rechecked at publication. Refresh resolves known active r
 PER-45. New fields use existing private work/review tables and existing item/media exports
 and account/item erasure; no additional private table or provider cleanup policy.
 
-Production rollout requires the additive review-field constraint migration before API/worker
+Production rollout requires additive migration `0025_product_link_barcode_review` after merged
+`0024_receipt_review_fields` and before API/worker
 images. No automatic startup migration. Web/API/worker change; shared services do not.
 Telemetry continues using fixed error codes without remote URLs, metadata, barcodes or
 provider exceptions. OFF requests identify Havefolio and are limited to one per two seconds

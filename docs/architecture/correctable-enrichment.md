@@ -33,7 +33,7 @@ The existing same-origin `/api/v1/items/:path*` allowlist covers these routes.
   and confirmed values. Both lists use `limit` 1–20 (default 10) and descending UUID
   `before` cursors. UUID ordering is stable, not chronological; timestamps remain visible.
 
-Only name, brand, model and description are reviewable. No provider command can change
+Only name, brand, model and description are reviewable (PER-45 later adds receipt-only `pricePaid` and `purchaseDate`; see [photo-receipt-ocr.md](photo-receipt-ocr.md)). No provider command can change
 actual price paid, currency, purchase date or precision, taxonomy, media, lifecycle or
 notes. Specifications/image review awaits its own supported contract; no remote image is
 imported here. Name/brand/model are bounded to 300 characters; description to 5,000.

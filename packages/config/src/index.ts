@@ -92,6 +92,8 @@ export const apiEnvironmentSchema = z
     CLOUDINARY_CLOUD_NAME: optionalEnvironmentString,
     CLOUDINARY_API_KEY: optionalEnvironmentString,
     CLOUDINARY_API_SECRET: optionalEnvironmentString,
+    /** PER-45: advertises local photo/receipt OCR; must match the worker's OCR_ENABLED. */
+    ENRICHMENT_OCR_ENABLED: booleanFromEnvironment.default(false),
     DATABASE_URL: optionalEnvironmentString,
     AUTH_REGISTRATION_ENABLED: z.preprocess(
       (v) => (v === undefined ? false : v),
@@ -297,9 +299,36 @@ export const workerEnvironmentSchema = z
       z.string().url().max(512).optional(),
     ),
     NTFY_TOKEN: optionalEnvironmentString,
+    /** PER-45: local OCR of owner-requested photos/receipts. Off unless explicitly enabled. */
+    OCR_ENABLED: booleanFromEnvironment.default(false),
+    CLOUDINARY_CLOUD_NAME: optionalEnvironmentString,
+    CLOUDINARY_API_KEY: optionalEnvironmentString,
+    CLOUDINARY_API_SECRET: optionalEnvironmentString,
   })
   .superRefine((config, context) => {
     const environment = config.NODE_ENV === 'development' ? 'dev' : config.NODE_ENV;
+    if (config.OCR_ENABLED) {
+      // The worker only reads exact owner-authorised originals; it needs the media identity
+      // and the runtime database role, never the migration role.
+      for (const key of [
+        'CLOUDINARY_CLOUD_NAME',
+        'CLOUDINARY_API_KEY',
+        'CLOUDINARY_API_SECRET',
+        'DATABASE_URL',
+      ] as const)
+        if (!config[key])
+          context.addIssue({
+            code: 'custom',
+            path: [key],
+            message: 'Local OCR requires private media access and the runtime database',
+          });
+      if (config.CLOUDINARY_CLOUD_NAME && !/^[a-z0-9_-]+$/.test(config.CLOUDINARY_CLOUD_NAME))
+        context.addIssue({
+          code: 'custom',
+          path: ['CLOUDINARY_CLOUD_NAME'],
+          message: 'Invalid media cloud name',
+        });
+    }
     if (config.NTFY_ENDPOINT) {
       try {
         const url = new URL(config.NTFY_ENDPOINT);

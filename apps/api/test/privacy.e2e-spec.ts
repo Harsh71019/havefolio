@@ -158,6 +158,11 @@ describe('PER-35 private export and account erasure', () => {
         `INSERT INTO enrichment_reviews(owner_id,item_id,work_id,command_id,request_hash,candidate_id,field,decision,previous_value,confirmed_value,revision,resulting_revision) VALUES($1,$2,$3,$4,repeat('c',64),'fixture',$5,'accept',null,$6,2,3)`,
         [owner, item, enrichment, randomUUID(), field, confirmed],
       );
+    // PER-45 receipt fields live in the same private history and export exactly.
+    await run.runtime.query(
+      `INSERT INTO enrichment_reviews(owner_id,item_id,work_id,command_id,request_hash,candidate_id,field,decision,value,previous_value,confirmed_value,revision,resulting_revision) VALUES($1,$2,$3,$4,repeat('c',64),'receipt-line-2','pricePaid','correct','INR 9007199254740993',NULL,'INR 9007199254740993',2,3)`,
+      [owner, item, enrichment, randomUUID()],
+    );
     await media(ready);
     for (const [id, variant, parent] of [
       [photo, 'original', null],
@@ -225,6 +230,20 @@ describe('PER-35 private export and account erasure', () => {
     expect(data.enrichment_reviews!.find((r) => r.field === 'image')).toMatchObject({
       confirmed_value: photo,
     });
+    expect(data.enrichment_reviews).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          decision: 'correct',
+          previous_value: 'Private manual',
+          confirmed_value: 'Private correction',
+        }),
+        expect.objectContaining({
+          field: 'pricePaid',
+          previous_value: null,
+          confirmed_value: 'INR 9007199254740993',
+        }),
+      ]),
+    );
     expect(data.goal_contributions).toHaveLength(3);
     expect(data.goal_contributions!.some((r) => r.supersedes_id === contribution)).toBe(true);
     expect(data.desire_goal_allocations).toHaveLength(1);

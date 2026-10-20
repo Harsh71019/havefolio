@@ -1,2 +1,0 @@
-ALTER TABLE "enrichment_reviews" DROP CONSTRAINT "enrichment_review_field_check";--> statement-breakpoint
-ALTER TABLE "enrichment_reviews" ADD CONSTRAINT "enrichment_review_field_check" CHECK ("enrichment_reviews"."field" in ('name','brand','model','description','image') or "enrichment_reviews"."field" ~ '^specification:[a-zA-Z0-9][a-zA-Z0-9 _-]{0,63}$');

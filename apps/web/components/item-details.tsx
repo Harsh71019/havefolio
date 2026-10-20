@@ -17,6 +17,7 @@ import {
   HandHeartIcon,
   ListPlusIcon,
   PencilIcon,
+  ScanTextIcon,
   SearchXIcon,
   TagIcon,
   Trash2Icon,
@@ -101,6 +102,7 @@ import {
   deletedFlashKey,
   itemDetailHref,
   itemPhotosHref,
+  itemTextSuggestionsHref,
   safeReturnPath,
 } from './navigation-context';
 import { fetchPhotos, PhotoRequestError } from './photos-client';
@@ -769,6 +771,21 @@ export function ItemDetails({
                   }
                 }}
               />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="space-y-3">
+              <h2 className="text-lg font-semibold">Suggestions from photos and receipts</h2>
+              <p className="text-sm text-muted-foreground">
+                Optional. Havefolio can read text from an image you added and suggest details. You
+                choose what to use; nothing changes on its own.
+              </p>
+              <Button asChild variant="outline" className="min-h-11">
+                <Link href={itemTextSuggestionsHref(current.id, returnTo)}>
+                  <ScanTextIcon aria-hidden="true" />
+                  Review suggestions
+                </Link>
+              </Button>
             </CardContent>
           </Card>
           {related?.items.length ? (

@@ -3,6 +3,8 @@ import { enrichmentQueue } from '@havefolio/domain';
 import { EnrichmentRepository } from './enrichment/enrichment.repository.js';
 import { EnrichmentWorkerService, ENRICHMENT_PROVIDERS } from './enrichment/enrichment.service.js';
 import { EnrichmentRuntime } from './enrichment/enrichment.runtime.js';
+import { LocalOcrProvider } from './enrichment/ocr/local-ocr.provider.js';
+import { CloudinaryImageReader } from './enrichment/ocr/media-reader.js';
 import { EnrichmentProcessor } from './enrichment/enrichment.processor.js';
 import { TelemetryModule } from '@havefolio/logging';
 import type { WorkerEnvironment } from '@havefolio/config';
@@ -71,7 +73,25 @@ export class WorkerModule {
         EnrichmentRuntime,
         {
           provide: ENRICHMENT_PROVIDERS,
-          useFactory: () => [new ProductLinkProvider(), new FoodBarcodeProvider()],
+          inject: [EnrichmentRepository],
+          // Only explicit OCR_ENABLED adds the local adapter to product-link/barcode providers; environment
+          // validation has already required media credentials and the runtime database.
+          useFactory: (repository: EnrichmentRepository) =>
+            environment.OCR_ENABLED && repository.store
+              ? [
+                  new ProductLinkProvider(),
+                  new FoodBarcodeProvider(),
+                  new LocalOcrProvider(
+                    repository.store,
+                    new CloudinaryImageReader({
+                      NODE_ENV: environment.NODE_ENV,
+                      CLOUDINARY_CLOUD_NAME: environment.CLOUDINARY_CLOUD_NAME!,
+                      CLOUDINARY_API_KEY: environment.CLOUDINARY_API_KEY!,
+                      CLOUDINARY_API_SECRET: environment.CLOUDINARY_API_SECRET!,
+                    }),
+                  ),
+                ]
+              : [new ProductLinkProvider(), new FoodBarcodeProvider()],
         },
         ...(environment.WORKER_QUEUE_ENABLED
           ? [

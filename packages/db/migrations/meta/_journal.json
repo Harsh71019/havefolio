@@ -173,8 +173,15 @@
     {
       "idx": 24,
       "version": "7",
-      "when": 1792482479089,
-      "tag": "0024_product_link_barcode_review",
+      "when": 1792483004414,
+      "tag": "0024_receipt_review_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792487512381,
+      "tag": "0025_product_link_barcode_review",
       "breakpoints": true
     }
   ]

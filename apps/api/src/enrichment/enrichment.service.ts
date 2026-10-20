@@ -12,14 +12,24 @@ import {
   Inject,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { PoolClient } from 'pg';
 import type { EnrichmentWork, EnrichmentPage, EnrichmentReviewEvent } from '@havefolio/contracts';
 import {
+  approximateDate,
+  formatPurchaseDateValue,
+  parsePricePaidValue,
+  parsePurchaseDateValue,
+  receiptOnlyFields,
+  refundTotals,
   validEnrichmentValue,
   validBarcode,
+  type AcquisitionType,
   type EnrichmentInput,
   type EnrichmentCandidate,
+  type KnownDate,
 } from '@havefolio/domain';
+import { domain, refundConstraintException } from '../items/financial-errors.js';
 import { ItemsRepository } from '../items/items.repository.js';
 import type {
   EnrichmentRequestDto,
@@ -42,11 +52,39 @@ interface Item {
   description: string | null;
   purchase_url: string | null;
   specifications: Record<string, unknown> | null;
+  price_paid_minor: string | null;
+  currency: string;
+  acquisition_type: AcquisitionType;
+  purchase_date_precision: 'exact' | 'month' | 'year' | 'unknown';
+  purchase_year: number | null;
+  purchase_month: number | null;
+  purchase_day: number | null;
+}
+/** Canonical review forms of the receipt fields; `null` is "not recorded". */
+function pricePaidValue(item: Item): string | null {
+  return item.price_paid_minor === null ? null : `${item.currency} ${item.price_paid_minor}`;
+}
+function purchaseDateValue(item: Item): string | null {
+  if (item.purchase_date_precision === 'unknown') return null;
+  return formatPurchaseDateValue(
+    approximateDate({
+      precision: item.purchase_date_precision,
+      year: item.purchase_year,
+      month: item.purchase_month,
+      day: item.purchase_day,
+    }) as KnownDate,
+  );
+}
+function currentValue(item: Item, field: EnrichmentReviewDto['field']): string | null {
+  if (field === 'pricePaid') return pricePaidValue(item);
+  if (field === 'purchaseDate') return purchaseDateValue(item);
+  return item[field as keyof typeof fields];
 }
 interface WorkRow {
   id: string;
   item_id: string;
   base_revision: number;
+  input: EnrichmentInput;
   state: EnrichmentWork['state'];
   attempts: number;
   failure_code: EnrichmentWork['failureCode'];
@@ -76,6 +114,9 @@ function work(r: WorkRow): EnrichmentWork {
   return {
     id: r.id,
     itemId: r.item_id,
+    inputKind: r.input.kind,
+    // Only the owner's own opaque attachment ID; URLs, barcodes and names are not echoed.
+    attachmentId: 'attachmentId' in r.input ? r.input.attachmentId : null,
     baseRevision: r.base_revision,
     state: r.state,
     attempts: r.attempts,
@@ -102,6 +143,7 @@ function review(r: ReviewRow): EnrichmentReviewEvent {
 }
 @Injectable()
 export class EnrichmentService {
+  private readonly availableKinds: EnrichmentPage['availableKinds'];
   private importingImage = false;
   constructor(
     private readonly repository: ItemsRepository,
@@ -110,7 +152,16 @@ export class EnrichmentService {
     @Optional()
     @Inject('ENRICHMENT_FETCHER')
     private readonly fetcher: PublicFetcher = new PublicFetcher(),
-  ) {}
+    @Optional() config?: ConfigService,
+  ) {
+    this.availableKinds = [
+      'url',
+      'barcode',
+      ...(config?.get<boolean>('ENRICHMENT_OCR_ENABLED', false)
+        ? (['photo', 'receipt'] as const)
+        : []),
+    ];
+  }
   private async item(c: PoolClient, owner: string, id: string, revision?: number): Promise<Item> {
     const active = (
       await c.query('SELECT id FROM users WHERE id=$1 AND deletion_requested_at IS NULL', [owner])
@@ -185,18 +236,20 @@ export class EnrichmentService {
             throw new BadRequestException('ENRICHMENT_BARCODE_REQUIRED');
           input = { kind: 'barcode', barcode: dto.barcode, consent: 'open-food-facts-v1' };
           break;
-        default:
+        default: {
           if (!dto.attachmentId) throw new BadRequestException('ENRICHMENT_ATTACHMENT_REQUIRED');
-          if (
-            (
-              await c.query(
-                `SELECT id FROM media_attachments WHERE id=$1 AND owner_id=$2 AND item_id=$3 AND kind=$4 AND variant='original' AND state='ready'`,
-                [dto.attachmentId, owner, id, dto.kind],
-              )
-            ).rowCount !== 1
-          )
-            throw new NotFoundException('ENRICHMENT_ATTACHMENT_NOT_FOUND');
+          const media = (
+            await c.query<{ resource_type: string }>(
+              `SELECT resource_type FROM media_attachments WHERE id=$1 AND owner_id=$2 AND item_id=$3 AND kind=$4 AND variant='original' AND state='ready'`,
+              [dto.attachmentId, owner, id, dto.kind],
+            )
+          ).rows[0];
+          if (!media) throw new NotFoundException('ENRICHMENT_ATTACHMENT_NOT_FOUND');
+          // PER-45 reads sanitized images only; PDF receipts are never rendered or parsed here.
+          if (media.resource_type !== 'image')
+            throw new BadRequestException('ENRICHMENT_ATTACHMENT_UNSUPPORTED');
           input = { kind: dto.kind, attachmentId: dto.attachmentId };
+        }
       }
       const counts = (
         await c.query<{ total: number; active: number }>(
@@ -212,6 +265,8 @@ export class EnrichmentService {
         model: item.model,
         description: item.description,
         specifications: item.specifications,
+        pricePaid: pricePaidValue(item),
+        purchaseDate: purchaseDateValue(item),
       };
       const row = (
         await c.query<WorkRow>(
@@ -240,7 +295,8 @@ export class EnrichmentService {
         )
       ).rows;
       return {
-        providerStatus: 'available',
+        providerStatus: this.availableKinds.length ? 'available' : 'unconfigured',
+        availableKinds: [...this.availableKinds],
         items: rows.slice(0, q.limit).map(work),
         nextBefore: rows.length > q.limit ? rows[q.limit - 1]!.id : null,
       };
@@ -323,7 +379,8 @@ export class EnrichmentService {
       const suggestion = job.candidates
         .find((candidate) => candidate.id === dto.candidateId)
         ?.fields.find((f) => f.field === dto.field);
-      if (!suggestion) throw new BadRequestException('ENRICHMENT_FIELD_NOT_FOUND');
+      if (!suggestion || (receiptOnlyFields.includes(dto.field) && job.input.kind !== 'receipt'))
+        throw new BadRequestException('ENRICHMENT_FIELD_NOT_FOUND');
       if (dto.field === 'image' && dto.decision === 'accept' && !imageId) return suggestion.value;
       const key = dto.field.startsWith('specification:') ? dto.field.slice(14) : null;
       const priorImage =
@@ -341,7 +398,7 @@ export class EnrichmentService {
           : null
         : dto.field === 'image'
           ? priorImage
-          : item[dto.field as keyof typeof fields];
+          : currentValue(item, dto.field);
       const previous =
         rawPrevious === null || typeof rawPrevious === 'string'
           ? rawPrevious
@@ -367,6 +424,21 @@ export class EnrichmentService {
         await c.query(
           'UPDATE items SET specifications=$3::jsonb,revision=revision+1,updated_at=now() WHERE owner_id=$1 AND id=$2',
           [owner, id, JSON.stringify(next)],
+        );
+      } else if (dto.field === 'pricePaid') {
+        await this.applyPricePaid(c, owner, item, confirmed!);
+      } else if (dto.field === 'purchaseDate') {
+        const date = parsePurchaseDateValue(confirmed)!;
+        await c.query(
+          `UPDATE items SET purchase_date_precision=$3,purchase_year=$4,purchase_month=$5,purchase_day=$6,revision=revision+1,updated_at=now() WHERE owner_id=$1 AND id=$2`,
+          [
+            owner,
+            id,
+            date.precision,
+            date.year,
+            date.precision === 'year' ? null : date.month,
+            date.precision === 'exact' ? date.day : null,
+          ],
         );
       } else {
         await c.query(
@@ -442,5 +514,42 @@ export class EnrichmentService {
     } finally {
       this.importingImage = false;
     }
+  }
+  /**
+   * The confirmed receipt amount becomes the actual price paid. Recorded refunds keep the
+   * currency fixed and the amount at or above their total, exactly as for manual edits.
+   */
+  private async applyPricePaid(
+    c: PoolClient,
+    owner: string,
+    item: Item,
+    value: string,
+  ): Promise<void> {
+    const paid = parsePricePaidValue(value)!;
+    const refunds = (
+      await c.query<{ currency: string; amountMinor: string }>(
+        'SELECT currency,amount_minor AS "amountMinor" FROM item_refunds WHERE owner_id=$1 AND item_id=$2 LIMIT 51',
+        [owner, item.id],
+      )
+    ).rows;
+    if (refunds.length)
+      domain(() =>
+        refundTotals(
+          {
+            currency: paid.currency,
+            pricePaidMinor: paid.minor.toString(),
+            acquisitionType: item.acquisition_type,
+          },
+          refunds,
+        ),
+      );
+    await c
+      .query(
+        'UPDATE items SET price_paid_minor=$3,currency=$4,revision=revision+1,updated_at=now() WHERE owner_id=$1 AND id=$2',
+        [owner, item.id, paid.minor.toString(), paid.currency],
+      )
+      .catch((error: unknown) => {
+        throw refundConstraintException(error) ?? error;
+      });
   }
 }
