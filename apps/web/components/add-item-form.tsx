@@ -161,9 +161,11 @@ export function AddItemForm(): ReactElement {
   const [model, setModel] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
-  const [acquisitionType, setAcquisitionType] = useState<ItemAcquisition>('bought');
-  const [condition, setCondition] = useState<ItemCondition>('working');
-  const [useFrequency, setUseFrequency] = useState<ItemFrequency>('often');
+  // Undefined means untouched: let the API retain its unknown defaults.
+  // Display defaults and disclosure visibility never imply an owner selection.
+  const [acquisitionType, setAcquisitionType] = useState<ItemAcquisition>();
+  const [condition, setCondition] = useState<ItemCondition>();
+  const [useFrequency, setUseFrequency] = useState<ItemFrequency>();
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
 
   // Submission & Validation State
@@ -295,7 +297,10 @@ export function AddItemForm(): ReactElement {
       !brand &&
       !model &&
       !description &&
-      !notes
+      !notes &&
+      !acquisitionType &&
+      !condition &&
+      !useFrequency
     ) {
       clearItemDraft(owner.id);
       return;
@@ -404,9 +409,9 @@ export function AddItemForm(): ReactElement {
     setModel('');
     setDescription('');
     setNotes('');
-    setAcquisitionType('bought');
-    setCondition('working');
-    setUseFrequency('often');
+    setAcquisitionType(undefined);
+    setCondition(undefined);
+    setUseFrequency(undefined);
     setShowOptionalDetails(false);
     setValidationErrors({});
     setServerError(null);
@@ -446,9 +451,9 @@ export function AddItemForm(): ReactElement {
     setModel('');
     setDescription('');
     setNotes('');
-    setAcquisitionType('bought');
-    setCondition('working');
-    setUseFrequency('often');
+    setAcquisitionType(undefined);
+    setCondition(undefined);
+    setUseFrequency(undefined);
     setShowOptionalDetails(false);
     setValidationErrors({});
     setServerError(null);
@@ -573,9 +578,9 @@ export function AddItemForm(): ReactElement {
       model: model.trim() || null,
       description: description.trim() || null,
       notes: notes.trim() || null,
-      acquisitionType: showOptionalDetails ? acquisitionType : undefined,
-      condition: showOptionalDetails ? condition : undefined,
-      useFrequency: showOptionalDetails ? useFrequency : undefined,
+      acquisitionType,
+      condition,
+      useFrequency,
     };
 
     return { valid: true, payload };
@@ -1365,12 +1370,12 @@ export function AddItemForm(): ReactElement {
                       Acquisition
                     </Label>
                     <Select
-                      value={acquisitionType}
+                      value={acquisitionType ?? ''}
                       onValueChange={(val) => setAcquisitionType(val as ItemAcquisition)}
                       disabled={isSubmitting}
                     >
                       <SelectTrigger id={`${formId}-acquisition`} className="min-h-11 w-full">
-                        <SelectValue />
+                        <SelectValue placeholder="Bought new" />
                       </SelectTrigger>
                       <SelectContent>
                         {itemAcquisitions.map((acq) => (
@@ -1387,12 +1392,12 @@ export function AddItemForm(): ReactElement {
                       Condition
                     </Label>
                     <Select
-                      value={condition}
+                      value={condition ?? ''}
                       onValueChange={(val) => setCondition(val as ItemCondition)}
                       disabled={isSubmitting}
                     >
                       <SelectTrigger id={`${formId}-condition`} className="min-h-11 w-full">
-                        <SelectValue />
+                        <SelectValue placeholder="Working well" />
                       </SelectTrigger>
                       <SelectContent>
                         {itemConditions.map((cond) => (
@@ -1409,12 +1414,12 @@ export function AddItemForm(): ReactElement {
                       Use frequency
                     </Label>
                     <Select
-                      value={useFrequency}
+                      value={useFrequency ?? ''}
                       onValueChange={(val) => setUseFrequency(val as ItemFrequency)}
                       disabled={isSubmitting}
                     >
                       <SelectTrigger id={`${formId}-frequency`} className="min-h-11 w-full">
-                        <SelectValue />
+                        <SelectValue placeholder="Often (daily / weekly)" />
                       </SelectTrigger>
                       <SelectContent>
                         {itemFrequencies.map((freq) => (

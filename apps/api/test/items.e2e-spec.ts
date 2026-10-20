@@ -152,6 +152,47 @@ describe('owned item HTTP, concurrency and media recovery', () => {
     await post('', { ...base, originalSource: 'import' }).expect(400);
     await post('', { ...base, ownershipStatus: undefined }).expect(400);
   });
+  it('PER-73: persists selected metadata and replays the same command without inferred spending', async () => {
+    const input = {
+      ...base,
+      name: 'Synthetic gifted jacket',
+      commandId: randomUUID(),
+      acquisitionType: 'gift',
+      condition: 'worn_out',
+      useFrequency: 'rarely',
+      pricePaidMinor: null,
+      purchaseDate: { precision: 'unknown' },
+    };
+    const first = (await post('', input).expect(201)).body as ItemDto;
+    const retry = (await post('', input).expect(201)).body as ItemDto;
+    expect(retry.id).toBe(first.id);
+    const saved = (await get('/' + first.id).expect(200)).body as ItemDto;
+    expect(saved).toMatchObject({
+      acquisitionType: 'gift',
+      condition: 'worn_out',
+      useFrequency: 'rarely',
+      pricePaidMinor: null,
+    });
+    const rows = await run.runtime.query(
+      'SELECT acquisition_type, condition, use_frequency, price_paid_minor FROM items WHERE id=$1 AND owner_id=$2',
+      [first.id, owner],
+    );
+    expect(rows.rows).toEqual([
+      {
+        acquisition_type: 'gift',
+        condition: 'worn_out',
+        use_frequency: 'rarely',
+        price_paid_minor: null,
+      },
+    ]);
+    const untouched = await create();
+    expect((await get('/' + untouched.id).expect(200)).body).toMatchObject({
+      acquisitionType: 'unknown',
+      condition: 'unknown',
+      useFrequency: 'unknown',
+      pricePaidMinor: null,
+    });
+  });
   it('creates manually without dependencies, preserves unknown/zero/bigint and original provenance', async () => {
     const minimal = await create();
     expect(minimal).toMatchObject({
