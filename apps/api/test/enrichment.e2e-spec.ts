@@ -1,3 +1,5 @@
+import sharp from 'sharp';
+import { PrivateMediaStorage, type StoreInput } from '../src/media/storage.js';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
@@ -24,6 +26,17 @@ describe('PER-43 private correctable enrichment', () => {
     token = newToken(),
     otherToken = newToken();
   let service: EnrichmentService;
+  let imageBytes: Buffer;
+  let fetchCount = 0;
+  let duringFetch: (() => Promise<void>) | undefined;
+  const put = jest.fn((input: StoreInput) =>
+    Promise.resolve({
+      assetId: input.key,
+      version: 1,
+      width: 80,
+      height: 60,
+    }),
+  );
   let app: NestExpressApplication,
     pool: Pool,
     store: EnrichmentStore,
@@ -53,11 +66,31 @@ describe('PER-43 private correctable enrichment', () => {
         new ConfigService({
           ...validateApiEnvironment({ NODE_ENV: 'test' }),
           DATABASE_URL: url.toString(),
+          MEDIA_STORAGE_ENABLED: true,
         }),
       )
+      .overrideProvider(PrivateMediaStorage)
+      .useValue({ put, delete: () => Promise.resolve(undefined) })
+      .overrideProvider('ENRICHMENT_FETCHER')
+      .useValue({
+        fetch: async () => {
+          fetchCount++;
+          await duringFetch?.();
+          return {
+            url: 'https://images.example.org/a.png',
+            mime: 'image/png',
+            bytes: Buffer.from(imageBytes),
+          };
+        },
+      })
       .overrideProvider(AuthRateService)
       .useValue({ check: jest.fn<() => Promise<void>>().mockResolvedValue(undefined) })
       .compile();
+    imageBytes = await sharp({
+      create: { width: 80, height: 60, channels: 3, background: '#abcdef' },
+    })
+      .png()
+      .toBuffer();
     service = module.get(EnrichmentService);
     app = module.createNestApplication<NestExpressApplication>({ logger: false });
     configureApplication(app);
@@ -111,11 +144,31 @@ describe('PER-43 private correctable enrichment', () => {
     await auth(http().get(path()))
       .expect(200)
       .expect((r) =>
-        expect(r.body).toMatchObject({ providerStatus: 'unconfigured', availableKinds: [] }),
+        expect(r.body).toMatchObject({
+          providerStatus: 'available',
+          availableKinds: ['url', 'barcode'],
+        }),
       );
   });
   it('persists idempotent bounded requests, private URL provenance and unavailable status without fetching', async () => {
-    const command = { commandId: randomUUID(), revision, kind: 'url' };
+    await auth(http().post(path()))
+      .send({ commandId: randomUUID(), revision, kind: 'url' })
+      .expect(400);
+    await auth(http().post(path()))
+      .send({
+        commandId: randomUUID(),
+        revision,
+        kind: 'url',
+        providerConsent: 'public-product-metadata-v1',
+      })
+      .expect(400);
+    const command = {
+      commandId: randomUUID(),
+      revision,
+      kind: 'url',
+      providerConsent: 'public-product-metadata-v1',
+      url: 'https://shop.example.org/product',
+    };
     const first = await auth(http().post(path())).send(command).expect(201);
     workId = first.body.id;
     expect((await auth(http().post(path())).send(command).expect(201)).body.id).toBe(workId);
@@ -124,7 +177,11 @@ describe('PER-43 private correctable enrichment', () => {
       .expect(409);
     expect(await store.due()).toContain(workId);
     const claim = await store.claim(workId);
-    expect(claim?.input).toEqual({ kind: 'url', url: 'http://127.0.0.1/private-never-fetched' });
+    expect(claim?.input).toEqual({
+      kind: 'url',
+      url: 'https://shop.example.org/product',
+      consent: 'public-product-metadata-v1',
+    });
     await store.finish(claim!, 'unconfigured');
     expect((await auth(http().get(path())).expect(200)).body.items[0]).toMatchObject({
       state: 'unconfigured',
@@ -146,10 +203,20 @@ describe('PER-43 private correctable enrichment', () => {
   });
   it('accepts typed barcode and ready private attachment references without reading or forwarding content', async () => {
     const barcode = await auth(http().post(path()))
-      .send({ commandId: randomUUID(), revision, kind: 'barcode', barcode: '8901234567890' })
+      .send({
+        commandId: randomUUID(),
+        revision,
+        kind: 'barcode',
+        barcode: '3017620422003',
+        providerConsent: 'open-food-facts-v1',
+      })
       .expect(201);
     let claim = await store.claim(barcode.body.id);
-    expect(claim?.input).toEqual({ kind: 'barcode', barcode: '8901234567890' });
+    expect(claim?.input).toEqual({
+      kind: 'barcode',
+      barcode: '3017620422003',
+      consent: 'open-food-facts-v1',
+    });
     await store.finish(claim!, 'unconfigured');
     for (const kind of ['photo', 'receipt']) {
       const attachment = randomUUID();
@@ -367,6 +434,130 @@ describe('PER-43 private correctable enrichment', () => {
     ).toBe('stale');
     const final = await auth(http().get(`/api/v1/items/${item}`)).expect(200);
     expect(final.body.name).toBe('Ordinary edit');
+  });
+  it('PER-44 reviews individual specifications and imports images only through validated private media with revision and retry safety', async () => {
+    const created = await auth(http().post('/api/v1/items'))
+      .send({
+        name: 'Original kettle',
+        currency: 'INR',
+        ownershipStatus: 'owned',
+        specifications: { Existing: 'kept' },
+      })
+      .expect(201);
+    const imageItem = created.body.id;
+    const base = `/api/v1/items/${imageItem}/enrichment`;
+    const response = await auth(http().post(base))
+      .send({
+        commandId: randomUUID(),
+        revision: 1,
+        kind: 'url',
+        providerConsent: 'public-product-metadata-v1',
+        url: 'https://shop.example.org/kettle',
+      })
+      .expect(201);
+    const imageWork = response.body.id;
+    const claim = await store.claim(imageWork);
+    await store.finish(claim!, 'succeeded', [
+      {
+        id: 'product',
+        fields: [
+          {
+            field: 'specification:Capacity',
+            value: '1.5 L',
+            confidence: 0.5,
+            source: { provider: 'fixture', inputKind: 'url', reference: 'controlled' },
+          },
+          {
+            field: 'image',
+            value: 'https://images.example.org/a.png',
+            confidence: 0.5,
+            source: { provider: 'fixture', inputKind: 'url', reference: 'controlled' },
+          },
+        ],
+      },
+    ]);
+    expect(fetchCount).toBe(0);
+    const spec = await auth(http().post(`${base}/${imageWork}/reviews`))
+      .send({
+        commandId: randomUUID(),
+        revision: 1,
+        candidateId: 'product',
+        field: 'specification:Capacity',
+        decision: 'accept',
+      })
+      .expect(201);
+    expect(spec.body).toMatchObject({
+      previousValue: null,
+      confirmedValue: '1.5 L',
+      resultingRevision: 2,
+    });
+    expect(
+      (await auth(http().get(`/api/v1/items/${imageItem}`)).expect(200)).body.specifications,
+    ).toEqual({ Existing: 'kept', Capacity: '1.5 L' });
+    const command = {
+      commandId: randomUUID(),
+      revision: 2,
+      candidateId: 'product',
+      field: 'image',
+      decision: 'accept',
+    };
+    await expect(service.decide(other, imageItem, imageWork, command as never)).rejects.toThrow(
+      'ITEM_NOT_FOUND',
+    );
+    expect(fetchCount).toBe(0);
+    const imported = await auth(http().post(`${base}/${imageWork}/reviews`))
+      .send(command)
+      .expect(201);
+    expect(imported.body.confirmedValue).toMatch(/^[a-f0-9-]{36}$/);
+    expect(imported.body.resultingRevision).toBe(3);
+    expect(fetchCount).toBe(1);
+    expect(put).toHaveBeenCalledTimes(3);
+    const rows = await pool.query('SELECT * FROM media_attachments WHERE item_id=$1', [imageItem]);
+    expect(rows.rows).toHaveLength(3);
+    expect(rows.rows.every((r) => r.state === 'ready' && r.mime_type === 'image/webp')).toBe(true);
+    const retried = await auth(http().post(`${base}/${imageWork}/reviews`))
+      .send(command)
+      .expect(201);
+    expect(retried.body.id).toBe(imported.body.id);
+    expect(fetchCount).toBe(1);
+    await auth(http().post(`${base}/${imageWork}/reviews`))
+      .send({
+        ...command,
+        commandId: randomUUID(),
+        revision: 3,
+        decision: 'correct',
+        value: 'http://127.0.0.1',
+      })
+      .expect(400);
+    const originalImage = imageBytes;
+    imageBytes = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg"><script>hostile</script></svg>',
+    );
+    await auth(http().post(`${base}/${imageWork}/reviews`))
+      .send({ ...command, commandId: randomUUID(), revision: 3 })
+      .expect(409);
+    imageBytes = originalImage;
+    const before = put.mock.calls.length;
+    duringFetch = async () => {
+      await pool.query('UPDATE items SET revision=revision+1 WHERE id=$1', [imageItem]);
+    };
+    await auth(http().post(`${base}/${imageWork}/reviews`))
+      .send({ ...command, commandId: randomUUID(), revision: 3 })
+      .expect(409);
+    duringFetch = undefined;
+    expect(put).toHaveBeenCalledTimes(before);
+    expect(
+      (await pool.query('SELECT id FROM enrichment_reviews WHERE item_id=$1', [imageItem]))
+        .rowCount,
+    ).toBe(2);
+    // Controlled provider resources are removed through the existing media/item cascade.
+    await auth(http().delete(`/api/v1/items/${imageItem}`))
+      .send({ revision: 4 })
+      .expect(204);
+    expect(
+      (await pool.query('SELECT id FROM enrichment_reviews WHERE item_id=$1', [imageItem]))
+        .rowCount,
+    ).toBe(0);
   });
   it('caps pending work, validates pagination and cascades histories only on parent erasure', async () => {
     for (let i = 0; i < 3; i++)

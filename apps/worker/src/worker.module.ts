@@ -1,3 +1,4 @@
+import { ProductLinkProvider, FoodBarcodeProvider } from '@havefolio/enrichment';
 import { enrichmentQueue } from '@havefolio/domain';
 import { EnrichmentRepository } from './enrichment/enrichment.repository.js';
 import { EnrichmentWorkerService, ENRICHMENT_PROVIDERS } from './enrichment/enrichment.service.js';
@@ -73,11 +74,13 @@ export class WorkerModule {
         {
           provide: ENRICHMENT_PROVIDERS,
           inject: [EnrichmentRepository],
-          // PER-45: only an explicit OCR_ENABLED registers the local adapter; environment
+          // Only explicit OCR_ENABLED adds the local adapter to product-link/barcode providers; environment
           // validation has already required media credentials and the runtime database.
           useFactory: (repository: EnrichmentRepository) =>
             environment.OCR_ENABLED && repository.store
               ? [
+                  new ProductLinkProvider(),
+                  new FoodBarcodeProvider(),
                   new LocalOcrProvider(
                     repository.store,
                     new CloudinaryImageReader({
@@ -88,7 +91,7 @@ export class WorkerModule {
                     }),
                   ),
                 ]
-              : [],
+              : [new ProductLinkProvider(), new FoodBarcodeProvider()],
         },
         ...(environment.WORKER_QUEUE_ENABLED
           ? [

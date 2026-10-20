@@ -205,6 +205,9 @@ importers:
       '@havefolio/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@havefolio/enrichment':
+        specifier: workspace:*
+        version: link:../../packages/enrichment
       '@havefolio/logging':
         specifier: workspace:*
         version: link:../../packages/logging
@@ -402,6 +405,9 @@ importers:
       '@havefolio/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@havefolio/enrichment':
+        specifier: workspace:*
+        version: link:../../packages/enrichment
       '@havefolio/logging':
         specifier: workspace:*
         version: link:../../packages/logging
@@ -513,6 +519,25 @@ importers:
 
   packages/domain:
     devDependencies:
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+  packages/enrichment:
+    dependencies:
+      '@havefolio/domain':
+        specifier: workspace:*
+        version: link:../domain
+      htmlparser2:
+        specifier: 12.0.0
+        version: 12.0.0
+      ipaddr.js:
+        specifier: 2.5.0
+        version: 2.5.0
+    devDependencies:
+      '@types/node':
+        specifier: 26.6.3
+        version: 26.6.3
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -4437,6 +4462,22 @@ packages:
   dom-accessibility-api@0.6.3:
     resolution: {integrity: sha512-7ZgogeTnjuHbo+ct10G9Ffp0mif17idi0IyWNVA/wcwcm7NPOD/WEHVP3n7n3MhXqxoIYm8d6MuZohYWIZ4T3w==}
 
+  dom-serializer@3.1.1:
+    resolution: {integrity: sha512-4MEa38/QexBob6gFNwu+EGdWvhJ1OKuNwdYY3Y3NyeWDQfnGeDYQUDfIRzWu5B5gsv03so2Uxd28YC6zrsx3Lw==}
+    engines: {node: '>=20.19.0'}
+
+  domelementtype@3.0.0:
+    resolution: {integrity: sha512-umCQid3jKbDmVjx8jGaW7uUykm4DEUeyV21hPxNMo2nV955DhUThwqyOIDtreepP31hl84X7G5U9ZfsWvIB3Pg==}
+    engines: {node: '>=20.19.0'}
+
+  domhandler@6.0.1:
+    resolution: {integrity: sha512-gYzvtM72ZtxQO0T048kd6HWSbbGCNOUwcnfQ01cqIJ4X2IYKFFHZ5mKvrQETcFXxsRObZulDaKmy//R7TPtsBg==}
+    engines: {node: '>=20.19.0'}
+
+  domutils@4.0.2:
+    resolution: {integrity: sha512-qI4JLRKnSzqFqr7hAlS5xQDusBCjKSEG4t4+7aNrIQMHBcsC2TGEhuyABJdYkgSewL57PNLYEiibY2iPKhKpaA==}
+    engines: {node: '>=20.19.0'}
+
   dotenv-expand@13.0.0:
     resolution: {integrity: sha512-aBfBS8eYIeXmpHI9ThIlA7/WLq+SLt18iXUZhb52rW89QLKQFoIpPG1bPeewoPZsTyjSSO3T7234FBVUM1V2rA==}
     engines: {node: '>=12'}
@@ -5074,6 +5115,10 @@ packages:
   html-escaper@2.0.2:
     resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
 
+  htmlparser2@12.0.0:
+    resolution: {integrity: sha512-Tz7u1i95/g2x2jz81+x0FBVhBhY5aRTvD3tXXdFaljuNdzDLJ8UGNRrTcj2cgQvAg3iW/h77Fz15nLW0L0CrZw==}
+    engines: {node: '>=20.19.0'}
+
   http-errors@2.0.1:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
     engines: {node: '>= 0.8'}
@@ -5131,6 +5176,10 @@ packages:
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
+
+  ipaddr.js@2.5.0:
+    resolution: {integrity: sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==}
+    engines: {node: '>= 10'}
 
   is-array-buffer@3.0.5:
     resolution: {integrity: sha512-DDfANUiiG2wC1qawP66qlTugJeL5HyzMpfr8lLK+jMQirGzNod0B12cFB/9q838Ru27sBwfw78/rdoU7RERz6A==}
@@ -10615,6 +10664,24 @@ snapshots:
 
   dom-accessibility-api@0.6.3: {}
 
+  dom-serializer@3.1.1:
+    dependencies:
+      domelementtype: 3.0.0
+      domhandler: 6.0.1
+      entities: 8.1.0
+
+  domelementtype@3.0.0: {}
+
+  domhandler@6.0.1:
+    dependencies:
+      domelementtype: 3.0.0
+
+  domutils@4.0.2:
+    dependencies:
+      dom-serializer: 3.1.1
+      domelementtype: 3.0.0
+      domhandler: 6.0.1
+
   dotenv-expand@13.0.0:
     dependencies:
       dotenv: 17.4.2
@@ -11416,6 +11483,13 @@ snapshots:
 
   html-escaper@2.0.2: {}
 
+  htmlparser2@12.0.0:
+    dependencies:
+      domelementtype: 3.0.0
+      domhandler: 6.0.1
+      domutils: 4.0.2
+      entities: 8.1.0
+
   http-errors@2.0.1:
     dependencies:
       depd: 2.0.0
@@ -11473,6 +11547,8 @@ snapshots:
       - supports-color
 
   ipaddr.js@1.9.1: {}
+
+  ipaddr.js@2.5.0: {}
 
   is-array-buffer@3.0.5:
     dependencies:

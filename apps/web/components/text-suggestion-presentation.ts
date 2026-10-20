@@ -13,14 +13,21 @@ import {
 } from '@havefolio/domain';
 import { formatMoney, purchaseDateText } from './item-detail-presentation';
 
-export const fieldLabels: Record<EnrichmentField, string> = {
+const fixedFieldLabels = {
   name: 'Name',
   brand: 'Brand',
   model: 'Model',
   description: 'Description',
   pricePaid: 'Price paid',
   purchaseDate: 'Purchase date',
+  image: 'Product image',
 };
+
+export function fieldLabel(field: EnrichmentField): string {
+  return field.startsWith('specification:')
+    ? field.slice(14)
+    : fixedFieldLabels[field as keyof typeof fixedFieldLabels];
+}
 
 export const bandLabels = {
   clear: 'Clearly read',
@@ -89,7 +96,16 @@ export function currentValue(item: ItemResponse, field: EnrichmentField): string
     if (precision === 'month' && month) return `${year}-${pad(month)}`;
     return month && day ? `${year}-${pad(month)}-${pad(day)}` : String(year);
   }
-  return item[field];
+  if (field === 'image') return null;
+  if (field.startsWith('specification:')) {
+    const value = item.specifications?.[field.slice(14)];
+    return value === null || value === undefined
+      ? null
+      : typeof value === 'string'
+        ? value
+        : JSON.stringify(value);
+  }
+  return item[field as 'name' | 'brand' | 'model' | 'description'];
 }
 
 export interface Evidence {

@@ -69,7 +69,7 @@ import {
   currentValue,
   displayValue,
   evidence,
-  fieldLabels,
+  fieldLabel,
   latestDecisions,
   workIsCurrent,
 } from './text-suggestion-presentation';
@@ -313,8 +313,8 @@ export function TextSuggestions({
         error: false,
         text:
           decision === 'reject'
-            ? `${fieldLabels[field]} kept as it was.`
-            : `${fieldLabels[field]} updated. The earlier value is kept in your decisions.`,
+            ? `${fieldLabel(field)} kept as it was.`
+            : `${fieldLabel(field)} updated. The earlier value is kept in your decisions.`,
       });
       return true;
     } catch (error) {
@@ -654,7 +654,7 @@ function FieldReview({
 }): ReactElement {
   const [editing, setEditing] = useState(false);
   const shown = evidence(confidence, reference);
-  const label = fieldLabels[field];
+  const label = fieldLabel(field);
   const decided = decision
     ? decision.decision === 'reject'
       ? 'You kept your value'
@@ -784,7 +784,7 @@ function CorrectionForm({
   const [month, setMonth] = useState(date && date.precision !== 'year' ? String(date.month) : '');
   const [year, setYear] = useState(date ? String(date.year) : '');
   const [error, setError] = useState<string | undefined>();
-  const label = fieldLabels[field];
+  const label = fieldLabel(field);
 
   function value(): string | undefined {
     if (field === 'pricePaid') {
@@ -981,7 +981,7 @@ function DecisionHistory({ decisions }: { decisions: EnrichmentReviewEvent[] }):
           {ordered.map((event) => (
             <li key={event.id} className="space-y-1 p-3 text-sm">
               <p className="font-medium">
-                {fieldLabels[event.field]}:{' '}
+                {fieldLabel(event.field)}:{' '}
                 {event.decision === 'reject'
                   ? 'kept your value'
                   : event.decision === 'correct'
