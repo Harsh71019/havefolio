@@ -12,6 +12,9 @@ export const metadata: Metadata = {
     template: '%s | Havefolio',
   },
   description: 'Shop your own home before buying something new.',
+  // PER-47: Add to Home Screen metadata; the manifest is linked automatically from app/manifest.ts.
+  appleWebApp: { capable: true, title: 'Havefolio', statusBarStyle: 'default' },
+  icons: { icon: '/icons/icon-192.png', apple: '/icons/apple-touch-icon.png' },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>): ReactElement {
