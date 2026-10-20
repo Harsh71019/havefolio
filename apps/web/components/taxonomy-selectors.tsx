@@ -19,14 +19,19 @@ export function CategorySelector({
   subcategoryId,
   onChange,
   disabled = false,
+  idPrefix,
+  errorId,
 }: {
+  idPrefix?: string;
+  errorId?: string | undefined;
   taxonomy: TaxonomySnapshot;
   categoryId?: string | undefined;
   subcategoryId?: string | undefined;
   disabled?: boolean;
   onChange: (categoryId?: string, subcategoryId?: string) => void;
 }): ReactElement {
-  const id = useId();
+  const generatedId = useId();
+  const id = idPrefix ?? generatedId;
   const category = taxonomy.categories.find((row) => row.id === categoryId);
   const subcategory = taxonomy.subcategories.find((row) => row.id === subcategoryId);
   const retiredCategory = Boolean(category?.retiredAt);
@@ -45,6 +50,8 @@ export function CategorySelector({
         >
           <SelectTrigger
             id={`${id}-category`}
+            aria-invalid={Boolean(errorId)}
+            aria-describedby={errorId}
             className="min-h-11 w-full min-w-0 [&>span]:truncate"
           >
             <SelectValue placeholder="Uncategorised" />

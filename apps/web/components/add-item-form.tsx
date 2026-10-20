@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactElement } from 'react';
 import Link from 'next/link';
+import { flushSync } from 'react-dom';
+import { focusValidationControl } from './focus-validation-control';
 import {
   type CreateItemRequest,
   type DatePrecision,
@@ -188,6 +190,16 @@ export function AddItemForm(): ReactElement {
 
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  function validationTarget(key: string): string {
+    if (key === 'date') {
+      if (datePrecision === 'exact') return `${formId}-exact-date`;
+      if (datePrecision === 'year') return `${formId}-year-only`;
+      const year = Number.parseInt(purchaseYear, 10);
+      return `${formId}-${!purchaseYear || Number.isNaN(year) || year < 1 || year > 9999 ? 'year' : 'month'}`;
+    }
+    return `${formId}-${key}`;
+  }
 
   function applyDraft(draft: ItemDraftFields): void {
     setName(draft.name || '');
@@ -594,16 +606,15 @@ export function AddItemForm(): ReactElement {
 
     setServerError(null);
 
-    const check = validate();
+    // Commit the summary before focus; a delayed callback can steal focus from its links.
+    const check = flushSync(() => validate());
     if (!check.valid || !check.payload) {
       // Focus error summary
-      setTimeout(() => {
-        if (errorSummaryRef.current) {
-          errorSummaryRef.current.focus();
-        } else {
-          nameInputRef.current?.focus();
-        }
-      }, 50);
+      if (errorSummaryRef.current) {
+        errorSummaryRef.current.focus();
+      } else {
+        nameInputRef.current?.focus();
+      }
       return;
     }
 
@@ -883,13 +894,14 @@ export function AddItemForm(): ReactElement {
                 {Object.entries(validationErrors).map(([key, err]) => (
                   <li key={key}>
                     <a
-                      href={`#${formId}-${key}`}
+                      href={`#${validationTarget(key)}`}
                       className="underline underline-offset-2 hover:opacity-80"
                       onClick={(e) => {
                         e.preventDefault();
-                        const el = document.getElementById(`${formId}-${key}`);
-                        el?.focus();
-                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        if (['brand', 'model', 'description', 'notes'].includes(key)) {
+                          flushSync(() => setShowOptionalDetails(true));
+                        }
+                        focusValidationControl(validationTarget(key));
                       }}
                     >
                       {err}
@@ -944,10 +956,14 @@ export function AddItemForm(): ReactElement {
           </div>
 
           {/* 2. Category & Subcategory */}
-          {taxonomy ? (
+          {taxonomy || validationErrors.category ? (
             <div className="space-y-2">
               <CategorySelector
-                taxonomy={taxonomy}
+                idPrefix={formId}
+                errorId={validationErrors.category ? `${formId}-category-error` : undefined}
+                taxonomy={
+                  taxonomy ?? { categories: [], subcategories: [], tags: [], defaultsSeeded: false }
+                }
                 categoryId={categoryId}
                 subcategoryId={subcategoryId}
                 disabled={isSubmitting}
@@ -963,13 +979,20 @@ export function AddItemForm(): ReactElement {
                   }
                 }}
               />
+              {!taxonomy ? (
+                <p className="text-xs text-muted-foreground">
+                  Categories are unavailable. Choose Uncategorised to clear the unmatched
+                  subcategory, or try loading categories again below.
+                </p>
+              ) : null}
               {validationErrors.category ? (
                 <p id={`${formId}-category-error`} className="text-xs text-destructive">
                   {validationErrors.category}
                 </p>
               ) : null}
             </div>
-          ) : taxonomyError ? (
+          ) : null}
+          {!taxonomy && taxonomyError ? (
             <div className="rounded-md border p-3 text-sm text-muted-foreground">
               <p>{taxonomyError}</p>
               <Button
@@ -1162,6 +1185,8 @@ export function AddItemForm(): ReactElement {
                     </Label>
                     <DateInput
                       id={`${formId}-exact-date`}
+                      aria-invalid={Boolean(validationErrors.date)}
+                      aria-describedby={validationErrors.date ? `${formId}-date-error` : undefined}
                       value={exactDate}
                       onChange={(next) => {
                         setExactDate(next);
@@ -1188,7 +1213,14 @@ export function AddItemForm(): ReactElement {
                         onValueChange={(val) => setPurchaseMonth(val)}
                         disabled={isSubmitting}
                       >
-                        <SelectTrigger id={`${formId}-month`} className="min-h-11 w-full">
+                        <SelectTrigger
+                          id={`${formId}-month`}
+                          aria-invalid={Boolean(validationErrors.date)}
+                          aria-describedby={
+                            validationErrors.date ? `${formId}-date-error` : undefined
+                          }
+                          className="min-h-11 w-full"
+                        >
                           <SelectValue placeholder="Month" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1206,6 +1238,10 @@ export function AddItemForm(): ReactElement {
                       </Label>
                       <Input
                         id={`${formId}-year`}
+                        aria-invalid={Boolean(validationErrors.date)}
+                        aria-describedby={
+                          validationErrors.date ? `${formId}-date-error` : undefined
+                        }
                         type="text"
                         inputMode="numeric"
                         maxLength={4}
@@ -1233,6 +1269,8 @@ export function AddItemForm(): ReactElement {
                     </Label>
                     <Input
                       id={`${formId}-year-only`}
+                      aria-invalid={Boolean(validationErrors.date)}
+                      aria-describedby={validationErrors.date ? `${formId}-date-error` : undefined}
                       type="text"
                       inputMode="numeric"
                       maxLength={4}
@@ -1291,6 +1329,8 @@ export function AddItemForm(): ReactElement {
           </div>
 
           <PurchaseSourceFields
+            idPrefix={formId}
+            urlError={validationErrors.purchaseUrl ?? ''}
             merchant={merchant}
             merchantId={merchant?.id ?? null}
             purchaseUrl={purchaseUrl}
@@ -1298,7 +1338,11 @@ export function AddItemForm(): ReactElement {
             onUrl={setPurchaseUrl}
             disabled={isSubmitting}
           />
-          {validationErrors.purchaseUrl ? <p role="alert">{validationErrors.purchaseUrl}</p> : null}
+          {validationErrors.purchaseUrl ? (
+            <p id={`${formId}-purchaseUrl-error`} className="text-xs text-destructive">
+              {validationErrors.purchaseUrl}
+            </p>
+          ) : null}
           {/* 6. Expandable Optional Details */}
           <div className="rounded-lg border p-4 space-y-4">
             <button
@@ -1337,6 +1381,10 @@ export function AddItemForm(): ReactElement {
                     </Label>
                     <Input
                       id={`${formId}-brand`}
+                      aria-invalid={Boolean(validationErrors.brand)}
+                      aria-describedby={
+                        validationErrors.brand ? `${formId}-brand-error` : undefined
+                      }
                       type="text"
                       maxLength={300}
                       placeholder="e.g. Apple, Sony, IKEA"
@@ -1345,6 +1393,11 @@ export function AddItemForm(): ReactElement {
                       disabled={isSubmitting}
                       className="min-h-11"
                     />
+                    {validationErrors.brand ? (
+                      <p id={`${formId}-brand-error`} className="text-xs text-destructive">
+                        {validationErrors.brand}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor={`${formId}-model`} className="text-xs font-medium">
@@ -1352,6 +1405,10 @@ export function AddItemForm(): ReactElement {
                     </Label>
                     <Input
                       id={`${formId}-model`}
+                      aria-invalid={Boolean(validationErrors.model)}
+                      aria-describedby={
+                        validationErrors.model ? `${formId}-model-error` : undefined
+                      }
                       type="text"
                       maxLength={300}
                       placeholder="e.g. WH-1000XM4, M2 Air"
@@ -1360,6 +1417,11 @@ export function AddItemForm(): ReactElement {
                       disabled={isSubmitting}
                       className="min-h-11"
                     />
+                    {validationErrors.model ? (
+                      <p id={`${formId}-model-error`} className="text-xs text-destructive">
+                        {validationErrors.model}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 
@@ -1432,6 +1494,30 @@ export function AddItemForm(): ReactElement {
                   </div>
                 </div>
 
+                {/* Restored descriptions must also be editable when validation fails. */}
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${formId}-description`} className="text-xs font-medium">
+                    Description
+                  </Label>
+                  <Textarea
+                    id={`${formId}-description`}
+                    value={description}
+                    maxLength={5000}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={isSubmitting}
+                    aria-invalid={Boolean(validationErrors.description)}
+                    aria-describedby={
+                      validationErrors.description ? `${formId}-description-error` : undefined
+                    }
+                    rows={3}
+                  />
+                  {validationErrors.description ? (
+                    <p id={`${formId}-description-error`} className="text-xs text-destructive">
+                      {validationErrors.description}
+                    </p>
+                  ) : null}
+                </div>
+
                 {/* Notes */}
                 <div className="space-y-1.5">
                   <Label htmlFor={`${formId}-notes`} className="text-xs font-medium">
@@ -1439,6 +1525,8 @@ export function AddItemForm(): ReactElement {
                   </Label>
                   <Textarea
                     id={`${formId}-notes`}
+                    aria-invalid={Boolean(validationErrors.notes)}
+                    aria-describedby={validationErrors.notes ? `${formId}-notes-error` : undefined}
                     maxLength={10000}
                     placeholder="Where you keep it, warranty details, or repair history"
                     value={notes}
@@ -1446,6 +1534,11 @@ export function AddItemForm(): ReactElement {
                     disabled={isSubmitting}
                     rows={3}
                   />
+                  {validationErrors.notes ? (
+                    <p id={`${formId}-notes-error`} className="text-xs text-destructive">
+                      {validationErrors.notes}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             ) : null}
