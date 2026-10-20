@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { InventoryFacets, ItemListEntry } from '@havefolio/contracts';
 import { emptyHomeFixture } from '../test/home-fixture';
+import { addHiddenStoreSegment } from './fixtures/streamed-store';
 
 test.beforeEach(async ({ page }) => {
   // These tests isolate browse behaviour; PER-19's dedicated journeys cover welcome help.
@@ -491,7 +492,9 @@ test('PER-58 restores before paint and mobile ignores every saved desktop densit
   await mock(page, densityItems);
   await page.addInitScript(() => {
     const record = (): void => {
-      const grid = document.querySelector('.store-grid');
+      const grid = Array.from(
+        document.querySelectorAll('section[aria-label="Your items"] .store-grid'),
+      ).find((candidate) => candidate.getBoundingClientRect().width > 0);
       if (grid && grid.getBoundingClientRect().width > 0) {
         document.documentElement.dataset.firstStoreColumns = String(
           getComputedStyle(grid).gridTemplateColumns.split(' ').length,
@@ -519,18 +522,41 @@ test('PER-58 restores before paint and mobile ignores every saved desktop densit
       await route.fulfill({ json: { items: densityItems, nextCursor: null, hasMore: false } });
     });
     await page.reload();
-    const skeleton = page.getByTestId('store-skeleton');
+    // Roles exclude React's hidden streamed segments; test IDs alone do not.
+    const region = page.getByRole('region', { name: 'Your items', exact: true });
+    const skeleton = region.getByTestId('store-skeleton');
+    await expect(region).toHaveCount(1);
+    await expect(skeleton).toHaveCount(1);
     await expect(skeleton).toBeVisible();
-    await expect(page.locator('html')).toHaveAttribute('data-store-density', density);
-    const expectedColumns = density === 'large' ? 2 : 3;
-    expect(await columns(page)).toBe(expectedColumns);
-    await expect(page.locator('html')).toHaveAttribute(
-      'data-first-store-columns',
-      String(expectedColumns),
-    );
-    await page.screenshot({ path: densityShot(`loading-${density}`), animations: 'disabled' });
-    release();
-    await expect(page.getByRole('link', { name: /^Electric kettle/ })).toBeVisible();
+    const segment = await addHiddenStoreSegment(region);
+    try {
+      // Prove the fixture recreates the original ambiguity, regardless of DOM order.
+      await expect(page.getByTestId('store-skeleton').isVisible()).rejects.toThrow(
+        /strict mode violation/,
+      );
+      await expect(segment).toBeHidden();
+      await expect(region).toHaveCount(1);
+      await expect(skeleton).toHaveCount(1);
+      await expect(skeleton).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-store-density', density);
+      const expectedColumns = density === 'large' ? 2 : 3;
+      expect(
+        await skeleton
+          .locator('.store-grid')
+          .evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length),
+      ).toBe(expectedColumns);
+      await expect(page.locator('html')).toHaveAttribute('data-first-store-density', density);
+      await expect(page.locator('html')).toHaveAttribute(
+        'data-first-store-columns',
+        String(expectedColumns),
+      );
+      await page.screenshot({ path: densityShot(`loading-${density}`), animations: 'disabled' });
+    } finally {
+      await segment.evaluate((element) => element.remove());
+      release();
+    }
+    await expect(skeleton).toHaveCount(0);
+    await expect(region.getByRole('link', { name: /^Electric kettle/ })).toBeVisible();
     for (const width of [360, 768]) {
       await page.setViewportSize({ width, height: 1000 });
       await expect(page.getByRole('radiogroup', { name: 'View density' })).toBeHidden();
