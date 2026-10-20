@@ -4,7 +4,8 @@ const uuid: SchemaObject = { type: 'string', format: 'uuid' };
 const nullable: SchemaObject = { type: 'string', nullable: true };
 const field: SchemaObject = {
   type: 'string',
-  enum: ['name', 'brand', 'model', 'description', 'pricePaid', 'purchaseDate'],
+  pattern:
+    '^(name|brand|model|description|pricePaid|purchaseDate|image|specification:[a-zA-Z0-9][a-zA-Z0-9 _-]{0,63})$',
 };
 const candidate: SchemaObject = {
   type: 'object',
@@ -13,7 +14,7 @@ const candidate: SchemaObject = {
     id: text,
     fields: {
       type: 'array',
-      maxItems: 4,
+      maxItems: 16,
       items: {
         type: 'object',
         required: ['field', 'value', 'confidence', 'source'],

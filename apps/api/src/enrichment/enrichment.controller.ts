@@ -51,7 +51,7 @@ export class EnrichmentController {
   @Header('Cache-Control', 'no-store')
   @ApiOperation({
     summary:
-      'Request private asynchronous enrichment after manual capture. No production provider is configured; input URLs are never fetched.',
+      'Request private asynchronous enrichment after manual capture. Public URLs use bounded static extraction; food barcodes use Open Food Facts only after explicit request.',
   })
   @ApiCreatedResponse({ schema: enrichmentWorkSchema })
   request(

@@ -7,7 +7,7 @@ import { EventLogger, jobContext, logContext } from '@havefolio/logging';
 import { Inject, Injectable } from '@nestjs/common';
 import { EnrichmentRepository } from './enrichment.repository.js';
 export const ENRICHMENT_PROVIDERS = 'ENRICHMENT_PROVIDERS';
-/** Empty unless explicitly enabled; PER-45 registers only the local photo/receipt OCR adapter. */
+/** Production adapters are registered explicitly by WorkerModule. */
 @Injectable()
 export class EnrichmentWorkerService {
   private busy = false;
@@ -27,7 +27,9 @@ export class EnrichmentWorkerService {
     try {
       const claim = await this.repository.store.claim(id);
       if (!claim) return;
-      const provider = this.providers.find((p) => p.kinds.includes(claim.input.kind));
+      const provider = this.providers.find(
+        (p) => p.kinds.includes(claim.input.kind) && (p.supports?.(claim.input) ?? true),
+      );
       if (!provider) {
         await this.repository.store.finish(claim, 'unconfigured');
         return;
