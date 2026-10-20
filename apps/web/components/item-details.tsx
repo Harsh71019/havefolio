@@ -484,7 +484,7 @@ export function ItemDetails({
             Add details ({missing.length} optional)
           </Button>
         ) : null}
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="min-h-11">
           <Link href={`/items/${current.id}/enrichment`}>Product link or barcode suggestions</Link>
         </Button>
       </header>

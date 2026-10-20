@@ -130,7 +130,12 @@ export function BarcodeCamera({
       <p className="text-sm text-muted-foreground" role="status">
         {message}
       </p>
-      <Button type="button" variant="outline" onClick={() => (active ? stop() : void start())}>
+      <Button
+        className="min-h-11"
+        type="button"
+        variant="outline"
+        onClick={() => (active ? stop() : void start())}
+      >
         {active ? 'Stop camera' : 'Scan barcode'}
       </Button>
       <video
