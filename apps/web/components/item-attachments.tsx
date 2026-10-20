@@ -163,6 +163,7 @@ export function ItemDocuments({
   const [removing, setRemoving] = useState<ItemDocument | undefined>();
   const [removeError, setRemoveError] = useState<string | undefined>();
   const fileInput = useRef<HTMLInputElement>(null);
+  const removeTrigger = useRef<HTMLButtonElement | null>(null);
   // Retrying the same file reuses its Upload-Id so a completed upload is recovered, not duplicated.
   const attempt = useRef<{ file: File; kind: ItemDocumentKind; uploadId: string } | undefined>(
     undefined,
@@ -234,7 +235,7 @@ export function ItemDocuments({
   return (
     <section aria-labelledby="documents-heading" className="space-y-3">
       <div>
-        <h2 id="documents-heading" className="text-lg font-semibold">
+        <h2 id="documents-heading" tabIndex={-1} className="text-lg font-semibold outline-none">
           Receipts and warranties
         </h2>
         <p className="text-sm text-muted-foreground">
@@ -293,7 +294,8 @@ export function ItemDocuments({
                         className="min-h-11"
                         aria-label={`Remove ${label}`}
                         disabled={!online || busy}
-                        onClick={() => {
+                        onClick={(event) => {
+                          removeTrigger.current = event.currentTarget;
                           setRemoveError(undefined);
                           setRemoving(doc);
                         }}
@@ -374,7 +376,15 @@ export function ItemDocuments({
         open={Boolean(removing)}
         onOpenChange={(open) => (!open && !busy ? setRemoving(undefined) : undefined)}
       >
-        <AlertDialogContent className="motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none">
+        <AlertDialogContent
+          className="motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none"
+          // PER-87: return to the row's Remove button, or to the section once that row is gone.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            const target = removeTrigger.current;
+            (target?.isConnected ? target : document.getElementById('documents-heading'))?.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>
               Remove this {removing ? kindLabels[removing.kind].toLowerCase() : 'document'}?

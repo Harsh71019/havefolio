@@ -159,9 +159,12 @@ export function AppNavigation(): ReactElement {
         </div>
       </aside>
 
+      {/* PER-87: a modal overlay hides a classic scrollbar and gives the body a matching right
+          margin; `width-before-scroll-bar` gives this fixed bar the same margin so it does not
+          widen meanwhile. It is a no-op with overlay scrollbars. */}
       <nav
         aria-label="Primary"
-        className="fixed right-(--mobile-nav-inset-right) bottom-(--mobile-nav-offset) left-(--mobile-nav-inset-left) z-50 grid h-(--mobile-nav-height) grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
+        className="width-before-scroll-bar fixed right-(--mobile-nav-inset-right) bottom-(--mobile-nav-offset) left-(--mobile-nav-inset-left) z-50 grid h-(--mobile-nav-height) grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
       >
         {navigationItems.slice(0, 4).map((item) => {
           const active = isItemActive(item.href);
