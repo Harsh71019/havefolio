@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import Image from 'next/image';
 import type { ItemPhoto } from '@havefolio/contracts';
 import { Button } from '@havefolio/ui/components/button';
@@ -49,6 +49,8 @@ function statusText(f: Selection): string {
   return f.converted ? 'Converted from HEIC to JPEG · Ready to upload' : 'Ready to upload';
 }
 
+const noSubscribe = (): (() => void) => () => undefined;
+
 export function PhotoUploadPanel({
   children,
   disabled = false,
@@ -60,6 +62,12 @@ export function PhotoUploadPanel({
   remaining,
   uploadLabel = 'Upload photos',
 }: PhotoUploadPanelProps): React.JSX.Element {
+  // File selections made before handlers are attached cannot be replayed reliably.
+  const ready = useSyncExternalStore(
+    noSubscribe,
+    () => true,
+    () => false,
+  );
   const [files, setFiles] = useState<Selection[]>([]);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -204,7 +212,7 @@ export function PhotoUploadPanel({
   const failedCount = files.filter((f) => f.status === 'failed').length;
   const uploading = files.find((f) => f.status === 'uploading');
   const counted = files.filter((f) => f.status !== 'rejected').length;
-  const blocked = disabled || busy;
+  const blocked = !ready || disabled || busy;
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">

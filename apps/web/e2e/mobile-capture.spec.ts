@@ -49,6 +49,7 @@ test('PER-47 unsupported HEIC guidance on the capture page', async ({ page }, te
     route.fulfill({ json: { revision: 1, photos: [] } }),
   );
   await page.goto(`/items/${item}/photos/new`);
+  await expect(page.getByLabel('Choose from gallery or files')).toBeEnabled();
   await page.getByLabel('Choose from gallery or files').setInputFiles({
     name: 'IMG_0047.HEIC',
     mimeType: '',

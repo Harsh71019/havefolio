@@ -276,6 +276,7 @@ test.describe('failed writes keep what the owner entered', () => {
       route.request().method() === 'POST' ? route.abort('internetdisconnected') : route.fallback(),
     );
     await page.goto(`/items/${itemId}/photos/new`);
+    await expect(page.getByLabel('Choose from gallery or files')).toBeEnabled();
     await page.getByLabel('Choose from gallery or files').setInputFiles({
       name: 'synthetic.png',
       mimeType: 'image/png',

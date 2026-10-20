@@ -37,6 +37,7 @@ test('capture preview, partial failure, retry and neutral 360px themes', async (
     });
   });
   await page.goto(`/items/${item}/photos/new`);
+  await expect(page.getByLabel('Choose from gallery or files')).toBeEnabled();
   await expect(page.getByLabel('Take a photo')).toHaveAttribute('capture', 'environment');
   await page
     .getByLabel('Choose from gallery or files')
@@ -82,6 +83,7 @@ test('removal and unsupported selection remain accessible', async ({ page }) => 
     route.fulfill({ json: { revision: 1, photos: [] } }),
   );
   await page.goto(`/items/${item}/photos/new`);
+  await expect(page.getByLabel('Choose from gallery or files')).toBeEnabled();
   await page.getByLabel('Choose from gallery or files').setInputFiles(photo);
   await page.getByRole('button', { name: 'Remove photo 1' }).click();
   await expect(page.getByRole('img')).toHaveCount(0);
@@ -119,6 +121,7 @@ test('selects and uploads several photos over plain HTTP without crypto.randomUU
     });
   });
   await page.goto(`/items/${item}/photos/new`);
+  await expect(page.getByLabel('Choose from gallery or files')).toBeEnabled();
   await page
     .getByLabel('Choose from gallery or files')
     .setInputFiles(['1', '2', '3'].map((n) => ({ ...photo, name: `synthetic-${n}.png` })));
@@ -128,4 +131,32 @@ test('selects and uploads several photos over plain HTTP without crypto.randomUU
   await page.getByRole('button', { name: 'Upload photos', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: '3 of 3 photos saved.' })).toBeVisible();
   expect(new Set(uploadIds).size).toBe(3);
+});
+
+test('photo pickers wait for handlers when JavaScript hydration is delayed', async ({ page }) => {
+  let release!: () => void;
+  const scripts = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/_next/static/chunks/**', async (route) => {
+    await scripts;
+    await route.continue();
+  });
+  await page.route(`**/api/v1/items/${item}/photos`, (route) =>
+    route.fulfill({ json: { revision: 1, photos: [] } }),
+  );
+  await page.goto(`/items/${item}/photos/new`, { waitUntil: 'commit' });
+  const gallery = page.getByLabel('Choose from gallery or files');
+  const camera = page.getByLabel('Take a photo');
+  try {
+    await expect(gallery).toBeVisible();
+    await expect(gallery).toBeDisabled();
+    await expect(camera).toBeDisabled();
+  } finally {
+    release();
+  }
+  await expect(gallery).toBeEnabled();
+  await expect(camera).toBeEnabled();
+  await gallery.setInputFiles([photo, { ...photo, name: 'synthetic-2.png' }]);
+  await expect(page.getByRole('img', { name: /Preview of selected photo/ })).toHaveCount(2);
 });
