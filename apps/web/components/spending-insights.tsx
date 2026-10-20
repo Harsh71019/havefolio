@@ -165,12 +165,19 @@ function SpendingInsightsContent(): React.JSX.Element {
       abort.abort();
     };
   }, [queryKey, retry, search, waitingForTaxonomy]);
-  const current = load.key === queryKey ? load : undefined;
+  const isUpdating = Boolean(load.key && load.key !== queryKey && load.summary);
+  const activeReport = load.key === queryKey ? load : load.summary ? load : undefined;
+  const current = activeReport;
   const change = (patch: InsightsPatch): void => saveLocation(changeSpendingQuery(query, patch));
   const currencies = [...new Set(current?.summary?.buckets.map((b) => b.currency) ?? [])];
   const auth = current?.error?.status === 401 || taxonomyAuth;
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" aria-busy={isUpdating}>
+      {isUpdating ? (
+        <p role="status" aria-live="polite" className="sr-only">
+          Updating recorded spending…
+        </p>
+      ) : null}
       <SpendingFilters
         key={filterReset}
         query={query}
@@ -208,11 +215,28 @@ function SpendingInsightsContent(): React.JSX.Element {
           </AlertDescription>
         </Alert>
       ) : !current ? (
-        <div>
+        <div data-testid="spending-skeleton">
           <p role="status">Loading recorded spending…</p>
-          <div aria-hidden="true" className="mt-4 space-y-3">
-            <Skeleton className="h-32 w-full motion-reduce:animate-none" />
-            <Skeleton className="h-48 w-full motion-reduce:animate-none" />
+          <div aria-hidden="true" className="mt-4 space-y-6">
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-48 motion-reduce:animate-none" />
+              <div className="rounded-lg border p-4 space-y-4">
+                <Skeleton className="h-5 w-40 motion-reduce:animate-none" />
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Skeleton className="h-16 rounded-md motion-reduce:animate-none" />
+                  <Skeleton className="h-16 rounded-md motion-reduce:animate-none" />
+                  <Skeleton className="h-16 rounded-md motion-reduce:animate-none" />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-36 motion-reduce:animate-none" />
+              <div className="rounded-lg border p-4 space-y-3">
+                <Skeleton className="h-10 w-full motion-reduce:animate-none" />
+                <Skeleton className="h-12 w-full motion-reduce:animate-none" />
+                <Skeleton className="h-12 w-full motion-reduce:animate-none" />
+              </div>
+            </div>
           </div>
         </div>
       ) : current.error ? (

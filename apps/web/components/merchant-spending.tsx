@@ -62,11 +62,24 @@ export function MerchantSpending(): React.JSX.Element {
         </p>
       </div>
       {!current ? (
-        <div>
+        <div data-testid="merchant-spending-skeleton">
           <p role="status" className="sr-only">
             Loading merchant spending…
           </p>
-          <Skeleton aria-hidden="true" className="h-32 w-full motion-reduce:animate-none" />
+          <div aria-hidden="true" className="rounded-lg border divide-y">
+            {[0, 1].map((i) => (
+              <div key={i} className="space-y-2 px-4 py-3">
+                <div className="flex items-baseline justify-between gap-4">
+                  <div className="space-y-1">
+                    <Skeleton className="h-5 w-32 motion-reduce:animate-none" />
+                    <Skeleton className="h-3.5 w-24 motion-reduce:animate-none" />
+                  </div>
+                  <Skeleton className="h-6 w-24 motion-reduce:animate-none" />
+                </div>
+                <Skeleton className="h-1.5 w-full rounded-full motion-reduce:animate-none" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : current.error ? (
         <Alert role="alert">
