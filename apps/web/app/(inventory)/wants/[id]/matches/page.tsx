@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import type { ReactElement } from 'react';
 import { PageHeading } from '@/components/page-heading';
+import { PageShell } from '@/components/page-shell';
 import { DesireMatches } from '@/components/desire-matches';
 
 export const metadata: Metadata = {
@@ -20,15 +21,13 @@ export default async function DesireMatchesPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-8 sm:py-12 lg:px-12">
-      <div className="mb-6">
-        <PageHeading
-          eyebrow="Wants"
-          title="Consider your possessions"
-          description="Explore items you already own that may fulfill the same purpose without assuming equivalence."
-        />
-      </div>
+    <PageShell width="content">
+      <PageHeading
+        eyebrow="Wants"
+        title="Consider your possessions"
+        description="Explore items you already own that may fulfill the same purpose without assuming equivalence."
+      />
       <DesireMatches desireId={id} />
-    </main>
+    </PageShell>
   );
 }

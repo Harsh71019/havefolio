@@ -5,12 +5,13 @@ import type { ReactElement } from 'react';
 import { Button } from '@havefolio/ui/components/button';
 import { GoalsList } from '@/components/goals-list';
 import { PageHeading } from '@/components/page-heading';
+import { PageShell } from '@/components/page-shell';
 
 export const metadata: Metadata = { title: 'Goals' };
 
 export default function GoalsPage(): ReactElement {
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-12 lg:px-12">
+    <PageShell width="wide">
       <PageHeading
         eyebrow="Goals"
         title="Keep the other possibility in view."
@@ -24,9 +25,9 @@ export default function GoalsPage(): ReactElement {
           </Button>
         }
       />
-      <section className="mt-10" aria-label="Goals">
+      <section aria-label="Goals">
         <GoalsList />
       </section>
-    </main>
+    </PageShell>
   );
 }

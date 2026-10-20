@@ -3,19 +3,19 @@ import type { ReactElement } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@havefolio/ui/components/button';
+import { PageHeading } from '@/components/page-heading';
+import { PageShell } from '@/components/page-shell';
 import { SettingsView } from '@/components/settings-view';
 
 export const metadata: Metadata = { title: 'Settings' };
 
 export default function SettingsPage(): ReactElement {
   return (
-    <main className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your defaults, notification channels, sessions and private deployment.
-        </p>
-      </header>
+    <PageShell width="content">
+      <PageHeading
+        title="Settings"
+        description="Manage your defaults, notification channels, sessions and private deployment."
+      />
       <section
         aria-labelledby="merchant-settings-title"
         className="space-y-3 rounded-lg border p-6"
@@ -33,6 +33,6 @@ export default function SettingsPage(): ReactElement {
       </section>
       <SettingsView />
       <PrivacyControls />
-    </main>
+    </PageShell>
   );
 }

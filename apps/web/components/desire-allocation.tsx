@@ -39,6 +39,7 @@ import {
 } from './allocations-client';
 import { DesireRequestError } from './desires-client';
 import { randomId } from './random-id';
+import { pageTitleClassName } from './page-heading';
 
 const display = (minor: string, currency: string): string =>
   formatMoney({ minor: BigInt(minor), currency: assertCurrency(currency) });
@@ -206,7 +207,7 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
       >
         Back to decision history
       </Link>
-      <h1 className="text-2xl font-semibold">Goal allocation</h1>
+      <h1 className={pageTitleClassName}>Goal allocation</h1>
       <p ref={notice} role={error ? 'alert' : 'status'} tabIndex={-1}>
         {error || success}
       </p>

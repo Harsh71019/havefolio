@@ -52,14 +52,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@havefolio/ui/components/dialog';
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@havefolio/ui/components/empty';
 import { Pill } from '@havefolio/ui/components/kibo-ui/pill';
 import { Skeleton } from '@havefolio/ui/components/skeleton';
 import { toast } from '@havefolio/ui/components/sonner';
@@ -107,6 +99,8 @@ import {
 } from './navigation-context';
 import { fetchPhotos, PhotoRequestError } from './photos-client';
 import { taxonomyRequest } from './taxonomy-client';
+import { PageHeading, pageTitleClassName } from './page-heading';
+import { PageShell } from './page-shell';
 
 /** Injectable seam so component tests exercise real UI against a fake API. */
 export interface ItemDetailsApi {
@@ -423,7 +417,7 @@ export function ItemDetails({
   const date = purchaseDateText(current.purchaseDate);
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-8 sm:py-10 lg:px-12">
+    <PageShell width="wide">
       <p role="status" aria-live="polite" className="sr-only">
         {announcement}
       </p>
@@ -456,7 +450,7 @@ export function ItemDetails({
           <h1
             id="item-heading"
             tabIndex={-1}
-            className="text-3xl font-semibold tracking-tight break-words outline-none sm:text-4xl"
+            className={`${pageTitleClassName} break-words outline-none`}
           >
             {current.name}
           </h1>
@@ -910,7 +904,7 @@ export function ItemDetails({
           </ul>
         </DialogContent>
       </Dialog>
-    </main>
+    </PageShell>
   );
 }
 
@@ -962,7 +956,7 @@ function Facts({ facts }: { facts: [string, Shown][] }): ReactElement {
 
 function DetailSkeleton({ returnTo }: { returnTo: string }): ReactElement {
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-8 sm:py-10 lg:px-12">
+    <PageShell width="wide">
       <p role="status" className="sr-only">
         Loading item.
       </p>
@@ -981,7 +975,7 @@ function DetailSkeleton({ returnTo }: { returnTo: string }): ReactElement {
           <Skeleton className="h-64 motion-reduce:animate-none" />
         </div>
       </div>
-    </main>
+    </PageShell>
   );
 }
 
@@ -996,44 +990,36 @@ function DetailFailure({
 }): ReactElement {
   const notFound = error.status === 404;
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-8">
-      <Card className="border-dashed py-0">
-        <Empty className="min-h-80">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <SearchXIcon aria-hidden="true" />
-            </EmptyMedia>
-            <EmptyTitle>
-              <h1>
-                {notFound
-                  ? 'This item is not in your inventory'
-                  : error.unauthenticated
-                    ? 'Please sign in again'
-                    : 'This item could not load'}
-              </h1>
-            </EmptyTitle>
-            <EmptyDescription role="alert">
-              {notFound
-                ? 'It may have been deleted, or the link is out of date.'
-                : `${error.message} Nothing has been changed.`}
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent className="flex-row flex-wrap justify-center">
-            {error.unauthenticated ? (
-              <Button asChild className="min-h-11">
-                <Link href="/login">Sign in</Link>
-              </Button>
-            ) : notFound ? null : (
-              <Button className="min-h-11" onClick={onRetry}>
-                Try again
-              </Button>
-            )}
-            <Button asChild variant="outline" className="min-h-11">
-              <Link href={returnTo}>Back to My Store</Link>
-            </Button>
-          </EmptyContent>
-        </Empty>
-      </Card>
-    </main>
+    <PageShell width="form">
+      <PageHeading
+        title={
+          notFound
+            ? 'This item is not in your inventory'
+            : error.unauthenticated
+              ? 'Please sign in again'
+              : 'This item could not load'
+        }
+      />
+      <p role="alert" className="flex items-start gap-3 text-sm leading-6 text-muted-foreground">
+        <SearchXIcon aria-hidden="true" className="mt-1 size-4 shrink-0" />
+        {notFound
+          ? 'It may have been deleted, or the link is out of date.'
+          : `${error.message} Nothing has been changed.`}
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {error.unauthenticated ? (
+          <Button asChild className="min-h-11">
+            <Link href="/login">Sign in</Link>
+          </Button>
+        ) : notFound ? null : (
+          <Button className="min-h-11" onClick={onRetry}>
+            Try again
+          </Button>
+        )}
+        <Button asChild variant="outline" className="min-h-11">
+          <Link href={returnTo}>Back to My Store</Link>
+        </Button>
+      </div>
+    </PageShell>
   );
 }

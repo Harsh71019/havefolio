@@ -68,6 +68,8 @@ import {
   photoSource,
   reorderPhotos,
 } from './photos-client';
+import { PageShell } from './page-shell';
+import { pageTitleClassName } from './page-heading';
 
 const limit = itemPhotoLimits.maxPhotosPerItem;
 const tileSizes = '(min-width: 1024px) 14rem, (min-width: 640px) 30vw, 45vw';
@@ -380,10 +382,10 @@ export function PhotoGallery({
   const activeIndex = active ? photos.findIndex((p) => p.id === active.id) : -1;
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-6">
+    <PageShell width="wide">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Item photos</h1>
+          <h1 className={pageTitleClassName}>Item photos</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Private to you. The first photo is the cover shown on My Store and the item page.
           </p>
@@ -737,6 +739,6 @@ export function PhotoGallery({
           ) : null}
         </DialogContent>
       </Dialog>
-    </main>
+    </PageShell>
   );
 }

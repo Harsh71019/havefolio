@@ -80,6 +80,7 @@ import {
   reviewSuggestion,
   SuggestionRequestError,
 } from './text-suggestions-client';
+import { pageTitleClassName } from './page-heading';
 
 /** Injectable seam so component tests exercise the real UI against a fake API. */
 export interface TextSuggestionsApi {
@@ -241,7 +242,7 @@ export function TextSuggestions({
   if (state.kind === 'failed')
     return (
       <div role="alert" className="space-y-3">
-        <h1 className="text-2xl font-semibold">Suggestions from photos and receipts</h1>
+        <h1 className={pageTitleClassName}>Suggestions from photos and receipts</h1>
         <p>{state.message}</p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -339,7 +340,7 @@ export function TextSuggestions({
             Back to item
           </Link>
         </Button>
-        <h1 className="text-2xl font-semibold">Suggestions from photos and receipts</h1>
+        <h1 className={pageTitleClassName}>Suggestions from photos and receipts</h1>
         <p className="text-muted-foreground">{item.name}</p>
         <Alert role="note">
           <ShieldCheckIcon aria-hidden="true" />
