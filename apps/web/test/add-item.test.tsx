@@ -819,11 +819,167 @@ describe('fast manual add-item flow component', () => {
         model: 'WH-1000XM4',
         notes: 'Desk drawer',
         tagIds: ['tag-daily'],
-        acquisitionType: 'bought',
-        condition: 'working',
-        useFrequency: 'often',
       });
     });
+  });
+
+  it('PER-73: preserves selected metadata across collapse and a lost-response retry', async () => {
+    const user = userEvent.setup();
+    const requests: Record<string, unknown>[] = [];
+    const originalFetch = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((input, init) => {
+      if (
+        (typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url
+        ).endsWith('/api/v1/items')
+      ) {
+        requests.push(JSON.parse(init?.body as string) as Record<string, unknown>);
+        return requests.length === 1
+          ? Promise.reject(new TypeError('Failed to fetch'))
+          : Promise.resolve(jsonResponse({ ...createdItemResponse, ...requests[0] }, 201));
+      }
+      return originalFetch(input, init);
+    });
+    render(<AddItemForm />);
+    await user.type(await screen.findByLabelText(/Item name/), 'Synthetic gifted jacket');
+    await user.click(screen.getByLabelText('Price unknown'));
+    await user.click(screen.getByLabelText('Date unknown'));
+    const disclosure = screen.getByRole('button', { name: /Additional details/ });
+    disclosure.focus();
+    await user.keyboard('{Enter}');
+    expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+    for (const [label, value] of [
+      ['Acquisition', 'Gift'],
+      ['Condition', 'Worn out'],
+      ['Use frequency', 'Rarely (a few times a year)'],
+    ] as const) {
+      screen.getByRole('combobox', { name: label }).focus();
+      await user.keyboard('{Enter}');
+      (await screen.findByRole('option', { name: value })).focus();
+      await user.keyboard('{Enter}');
+    }
+    disclosure.focus();
+    await user.keyboard(' ');
+    expect(disclosure).toHaveFocus();
+    expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/not confirmed saved/);
+    expect(requests[0]).toMatchObject({
+      acquisitionType: 'gift',
+      condition: 'worn_out',
+      useFrequency: 'rarely',
+      pricePaidMinor: null,
+    });
+    await user.click(disclosure);
+    expect(screen.getByRole('combobox', { name: 'Acquisition' })).toHaveTextContent('Gift');
+    expect(screen.getByRole('combobox', { name: 'Condition' })).toHaveTextContent('Worn out');
+    expect(screen.getByRole('combobox', { name: 'Use frequency' })).toHaveTextContent('Rarely');
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+    expect(await screen.findByText(/saved to your home/)).toBeInTheDocument();
+    expect(requests).toHaveLength(2);
+    expect(requests[1]).toEqual(requests[0]);
+    expect(requests[0]?.commandId).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it.each([0, 1, 2])(
+    'PER-73: untouched fields are omitted after %i disclosure toggles',
+    async (toggles) => {
+      const user = userEvent.setup();
+      render(<AddItemForm />);
+      await user.type(await screen.findByLabelText(/Item name/), 'Synthetic untouched item');
+      await user.click(screen.getByLabelText('Price unknown'));
+      await user.click(screen.getByLabelText('Date unknown'));
+      for (let i = 0; i < toggles; i++)
+        await user.click(screen.getByRole('button', { name: /Additional details/ }));
+      await user.click(screen.getByRole('button', { name: 'Save item' }));
+      expect(await screen.findByText(/saved to your home/)).toBeInTheDocument();
+      const call = fetchMock.mock.calls.find(([url]) =>
+        (typeof url === 'string' ? url : url instanceof URL ? url.href : url.url).endsWith(
+          '/api/v1/items',
+        ),
+      );
+      const body = JSON.parse(call?.[1]?.body as string) as Record<string, unknown>;
+      for (const field of ['acquisitionType', 'condition', 'useFrequency'])
+        expect(body).not.toHaveProperty(field);
+    },
+  );
+
+  it('PER-73: explicitly chosen display defaults are saved while untouched fields stay omitted', async () => {
+    const user = userEvent.setup();
+    render(<AddItemForm />);
+    await user.type(await screen.findByLabelText(/Item name/), 'Synthetic selected default');
+    await user.click(screen.getByLabelText('Price unknown'));
+    await user.click(screen.getByLabelText('Date unknown'));
+    await user.click(screen.getByRole('button', { name: /Additional details/ }));
+    screen.getByRole('combobox', { name: 'Condition' }).focus();
+    await user.keyboard('{Enter}');
+    (await screen.findByRole('option', { name: 'Working well' })).focus();
+    await user.keyboard('{Enter}');
+    await user.click(screen.getByRole('button', { name: /Additional details/ }));
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+    expect(await screen.findByText(/saved to your home/)).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(([url]) =>
+      (typeof url === 'string' ? url : url instanceof URL ? url.href : url.url).endsWith(
+        '/api/v1/items',
+      ),
+    );
+    const body = JSON.parse(call?.[1]?.body as string) as Record<string, unknown>;
+    expect(body.condition).toBe('working');
+    expect(body).not.toHaveProperty('acquisitionType');
+    expect(body).not.toHaveProperty('useFrequency');
+    await user.click(screen.getByRole('button', { name: /Add another item/ }));
+    await user.type(await screen.findByLabelText(/Item name/), 'Synthetic reset');
+    await user.click(screen.getByLabelText('Price unknown'));
+    await user.click(screen.getByLabelText('Date unknown'));
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+    await waitFor(() => {
+      const calls = fetchMock.mock.calls.filter(([url]) =>
+        (typeof url === 'string' ? url : url instanceof URL ? url.href : url.url).endsWith(
+          '/api/v1/items',
+        ),
+      );
+      expect(calls).toHaveLength(2);
+      expect(JSON.parse(calls[1]?.[1]?.body as string)).not.toHaveProperty('condition');
+    });
+  });
+
+  it('PER-73: consented metadata-only edits are dirty and restored while collapsed', async () => {
+    setDraftConsent(mockOwner.id, true);
+    const user = userEvent.setup();
+    const view = render(<AddItemForm />);
+    await screen.findByLabelText(/Item name/);
+    await user.click(screen.getByRole('button', { name: /Additional details/ }));
+    screen.getByRole('combobox', { name: 'Acquisition' }).focus();
+    await user.keyboard('{Enter}');
+    (await screen.findByRole('option', { name: 'Gift' })).focus();
+    await user.keyboard('{Enter}');
+    await user.click(screen.getByRole('button', { name: /Additional details/ }));
+    await waitFor(() => expect(loadItemDraft(mockOwner.id)?.acquisitionType).toBe('gift'));
+    expect(loadItemDraft(mockOwner.id)?.condition).toBeUndefined();
+    view.unmount();
+    render(<AddItemForm />);
+    await user.type(await screen.findByLabelText(/Item name/), 'Synthetic restored gift');
+    expect(screen.getByRole('button', { name: /Additional details/ })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    await user.click(screen.getByLabelText('Price unknown'));
+    await user.click(screen.getByLabelText('Date unknown'));
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+    expect(await screen.findByText(/saved to your home/)).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(([url]) =>
+      (typeof url === 'string' ? url : url instanceof URL ? url.href : url.url).endsWith(
+        '/api/v1/items',
+      ),
+    );
+    expect(JSON.parse(call?.[1]?.body as string)).toMatchObject({
+      acquisitionType: 'gift',
+      pricePaidMinor: null,
+    });
+    expect(loadItemDraft(mockOwner.id)).toBeNull();
   });
 
   it('creates an owned item that is already worn out', async () => {
