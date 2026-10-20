@@ -59,7 +59,15 @@ try {
   await new Promise((resolve, reject) => {
     const child = spawn(
       'pnpm',
-      ['--filter', '@havefolio/web', 'exec', 'playwright', 'test', 'collapsed-metadata.spec.ts'],
+      [
+        '--filter',
+        '@havefolio/web',
+        'exec',
+        'playwright',
+        'test',
+        '--config',
+        'playwright.metadata.config.ts',
+      ],
       {
         stdio: 'inherit',
         env: {
