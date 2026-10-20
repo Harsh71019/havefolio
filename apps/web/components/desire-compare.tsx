@@ -28,6 +28,13 @@ import { Label } from '@havefolio/ui/components/label';
 import { RadioGroup, RadioGroupItem } from '@havefolio/ui/components/radio-group';
 import { Skeleton } from '@havefolio/ui/components/skeleton';
 import { Textarea } from '@havefolio/ui/components/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@havefolio/ui/components/select';
 import { ItemCover } from '@havefolio/ui/components/havefolio/item-cover';
 import { PrivatePhoto } from '@havefolio/ui/components/havefolio/private-photo';
 import {
@@ -105,6 +112,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
 
   // Submission & feedback states
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [recordedEvent, setRecordedEvent] = useState<ReviewEvent | null>(null);
   const [isUncertainRetry, setIsUncertainRetry] = useState(false);
@@ -250,7 +258,8 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
   // Handle Action submission
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    if (!desire || isSubmitting) return;
+    if (!desire || isSubmitting || submittingRef.current) return;
+    submittingRef.current = true;
 
     setSubmitError(null);
     setRecordedEvent(null);
@@ -371,6 +380,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
       setIsUncertainRetry(isNetworkOr500 && pendingCommandRef.current !== null);
       setSubmitError(errorMessage(err));
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
       noticeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -861,7 +871,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
           ) : null}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} aria-busy={isSubmitting} className="space-y-6">
           <div className="space-y-2">
             <h3 className="text-xl font-bold tracking-tight">Decide how to proceed</h3>
             <p className="text-sm text-muted-foreground">
@@ -990,19 +1000,22 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
                     >
                       All owned inventory items:
                     </Label>
-                    <select
-                      id={`${componentId}-all-items-select`}
-                      value={selectedItemId}
-                      onChange={(e) => setSelectedItemId(e.target.value)}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs min-h-11"
-                    >
-                      <option value="">-- Choose an item --</option>
-                      {otherItems.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={selectedItemId} onValueChange={(val) => setSelectedItemId(val)}>
+                      <SelectTrigger
+                        id={`${componentId}-all-items-select`}
+                        className="w-full"
+                        aria-label="All owned inventory items"
+                      >
+                        <SelectValue placeholder="-- Choose an item --" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {otherItems.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
               </div>

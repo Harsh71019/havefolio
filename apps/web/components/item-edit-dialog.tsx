@@ -516,7 +516,12 @@ function EditForm({
 
   const title = sectionTitles[section];
   return (
-    <form noValidate onSubmit={(e) => void submit(e)} className="grid min-w-0 gap-5">
+    <form
+      noValidate
+      onSubmit={(e) => void submit(e)}
+      aria-busy={busy}
+      className="grid min-w-0 gap-5"
+    >
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>

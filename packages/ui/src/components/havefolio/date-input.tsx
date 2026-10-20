@@ -101,7 +101,7 @@ export function DateInput({
   };
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative min-h-11', className)}>
       <Input
         {...props}
         type="text"
@@ -112,7 +112,7 @@ export function DateInput({
         disabled={disabled}
         value={text}
         onChange={(event) => commit(formatTyped(event.target.value))}
-        className="h-full min-h-[inherit] pr-11 text-base md:text-sm"
+        className="h-full min-h-11 pr-11 text-base md:text-sm"
       />
       {name ? <input type="hidden" name={name} value={current} /> : null}
       <button

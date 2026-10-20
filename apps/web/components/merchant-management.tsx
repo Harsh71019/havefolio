@@ -6,6 +6,15 @@ import { Button } from '@havefolio/ui/components/button';
 import { Input } from '@havefolio/ui/components/input';
 import { Label } from '@havefolio/ui/components/label';
 import { Badge } from '@havefolio/ui/components/badge';
+import { Card } from '@havefolio/ui/components/card';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@havefolio/ui/components/empty';
+import { Store } from 'lucide-react';
 import { merchantRequest, saveMerchant } from './merchants-client';
 
 const emptyPage: MerchantsPage = { merchants: [], hasMore: false, nextCursor: null };
@@ -140,7 +149,7 @@ export function MerchantManagement(): ReactElement {
             are preserved.
           </p>
         ) : null}
-        <form onSubmit={save} className="grid gap-4">
+        <form onSubmit={save} aria-busy={busy} className="grid gap-4">
           <fieldset disabled={busy} className="grid min-w-0 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="merchant-name">Merchant name</Label>
@@ -237,11 +246,23 @@ export function MerchantManagement(): ReactElement {
           </div>
         ) : null}
         {!loading && !listError && page.merchants.length === 0 ? (
-          <p>
-            {query
-              ? 'No matching merchants. Try another search or add one above.'
-              : 'No saved merchants yet. Add your first merchant above.'}
-          </p>
+          <Card className="border-dashed py-0">
+            <Empty className="min-h-48">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Store aria-hidden="true" className="size-5" />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {query ? 'No matching merchants' : 'No saved merchants yet'}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {query
+                    ? 'No matching merchants. Try another search or add one above.'
+                    : 'No saved merchants yet. Add your first merchant above.'}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </Card>
         ) : null}
         <ul className="grid gap-3" aria-busy={loading}>
           {page.merchants.map((merchant) => (

@@ -3,6 +3,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SearchIcon, XIcon } from 'lucide-react';
 import { normalizeInventorySearch } from '@havefolio/contracts';
+import { Button } from '@havefolio/ui/components/button';
 import { Input } from '@havefolio/ui/components/input';
 import { changeInventoryQuery, readInventoryQuery } from './inventory-query-state';
 import { saveStoreLocation, storeHref, subscribeStoreLocation } from './store-location';
@@ -64,17 +65,19 @@ export function HeaderSearch(): React.JSX.Element {
         className="h-11 rounded-lg bg-muted/60 pr-11 pl-9 text-sm shadow-none [&::-webkit-search-cancel-button]:hidden"
       />
       {value ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           aria-label="Clear search"
           onClick={() => {
             setValue('');
             if (current) apply(undefined);
           }}
-          className="absolute top-0 right-0 flex size-11 items-center justify-center rounded-lg text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="absolute top-0 right-0 size-11 rounded-lg text-muted-foreground hover:text-foreground"
         >
           <XIcon aria-hidden="true" className="size-4" />
-        </button>
+        </Button>
       ) : null}
     </form>
   );

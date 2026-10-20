@@ -1331,8 +1331,8 @@ export function AddItemForm(): ReactElement {
 
                 {/* Brand & Model */}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`${formId}-brand`} className="text-xs font-medium">
+                  <div className="space-y-2">
+                    <Label htmlFor={`${formId}-brand`} className="text-sm font-medium">
                       Brand
                     </Label>
                     <Input
@@ -1346,8 +1346,8 @@ export function AddItemForm(): ReactElement {
                       className="min-h-11"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`${formId}-model`} className="text-xs font-medium">
+                  <div className="space-y-2">
+                    <Label htmlFor={`${formId}-model`} className="text-sm font-medium">
                       Model / Variant
                     </Label>
                     <Input
@@ -1365,8 +1365,8 @@ export function AddItemForm(): ReactElement {
 
                 {/* Acquisition, Condition & Frequency */}
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`${formId}-acquisition`} className="text-xs font-medium">
+                  <div className="space-y-2">
+                    <Label htmlFor={`${formId}-acquisition`} className="text-sm font-medium">
                       Acquisition
                     </Label>
                     <Select
@@ -1387,8 +1387,8 @@ export function AddItemForm(): ReactElement {
                     </Select>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`${formId}-condition`} className="text-xs font-medium">
+                  <div className="space-y-2">
+                    <Label htmlFor={`${formId}-condition`} className="text-sm font-medium">
                       Condition
                     </Label>
                     <Select
@@ -1409,8 +1409,8 @@ export function AddItemForm(): ReactElement {
                     </Select>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`${formId}-frequency`} className="text-xs font-medium">
+                  <div className="space-y-2">
+                    <Label htmlFor={`${formId}-frequency`} className="text-sm font-medium">
                       Use frequency
                     </Label>
                     <Select
@@ -1433,8 +1433,8 @@ export function AddItemForm(): ReactElement {
                 </div>
 
                 {/* Notes */}
-                <div className="space-y-1.5">
-                  <Label htmlFor={`${formId}-notes`} className="text-xs font-medium">
+                <div className="space-y-2">
+                  <Label htmlFor={`${formId}-notes`} className="text-sm font-medium">
                     Notes
                   </Label>
                   <Textarea

@@ -109,6 +109,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -292,7 +293,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
 
   const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
-    if (!desire) return;
+    if (!desire || isSubmitting || submittingRef.current) return;
 
     setServerError(null);
     setStaleError(null);
@@ -300,6 +301,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
 
     if (!validateForm()) return;
 
+    submittingRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -374,6 +376,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
         errorSummaryRef.current?.focus();
       }, 50);
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
       setPhotoProgress(null);
     }
@@ -477,6 +480,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
         <form
           id={`${formId}-form`}
           noValidate
+          aria-busy={isSubmitting}
           onSubmit={(e) => void handleSubmit(e)}
           className="space-y-6"
         >
@@ -559,7 +563,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
               aria-describedby={validationErrors.name ? `${formId}-name-error` : undefined}
             />
             {validationErrors.name ? (
-              <p id={`${formId}-name-error`} className="text-xs text-destructive">
+              <p id={`${formId}-name-error`} role="alert" className="text-xs text-destructive">
                 {validationErrors.name}
               </p>
             ) : null}
@@ -678,7 +682,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
               </Button>
             ) : null}
             {validationErrors.price ? (
-              <p id={`${formId}-price-error`} className="text-xs text-destructive">
+              <p id={`${formId}-price-error`} role="alert" className="text-xs text-destructive">
                 {validationErrors.price}
               </p>
             ) : null}
@@ -810,7 +814,11 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
                 ) : null}
 
                 {validationErrors.waiting ? (
-                  <p id={`${formId}-waiting-error`} className="text-xs text-destructive">
+                  <p
+                    id={`${formId}-waiting-error`}
+                    role="alert"
+                    className="text-xs text-destructive"
+                  >
                     {validationErrors.waiting}
                   </p>
                 ) : null}
@@ -846,7 +854,11 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
               }
             />
             {validationErrors.productUrl ? (
-              <p id={`${formId}-productUrl-error`} className="text-xs text-destructive">
+              <p
+                id={`${formId}-productUrl-error`}
+                role="alert"
+                className="text-xs text-destructive"
+              >
                 {validationErrors.productUrl}
               </p>
             ) : null}
@@ -881,7 +893,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
               <span>{2000 - reason.length} characters remaining</span>
             </div>
             {validationErrors.reason ? (
-              <p id={`${formId}-reason-error`} className="text-xs text-destructive">
+              <p id={`${formId}-reason-error`} role="alert" className="text-xs text-destructive">
                 {validationErrors.reason}
               </p>
             ) : null}
@@ -1005,7 +1017,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
 
             {photoError ? <p className="text-xs text-destructive">{photoError}</p> : null}
             {validationErrors.photo ? (
-              <p id={`${formId}-photo-error`} className="text-xs text-destructive">
+              <p id={`${formId}-photo-error`} role="alert" className="text-xs text-destructive">
                 {validationErrors.photo}
               </p>
             ) : null}
