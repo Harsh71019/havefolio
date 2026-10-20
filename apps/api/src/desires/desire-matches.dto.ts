@@ -18,6 +18,9 @@ import {
   itemStatuses,
   itemConditions,
   itemFrequencies,
+  suggestionFeedbackTypes,
+  suggestionFeedbackScopes,
+  suggestionFactorKinds,
   type MatchRelevance,
   type MatchSource,
   type DesireMatchItemSummary,
@@ -27,6 +30,14 @@ import {
   type ItemCondition,
   type ItemFrequency,
   type ItemCoverSummary,
+  type SuggestionFactor,
+  type SuggestionFactorKind,
+  type SuggestionFeedbackType,
+  type SuggestionFeedbackScope,
+  type DesireSuggestionFeedback,
+  type DesireSuggestionItem,
+  type DesireSuggestionsPage,
+  type CreateSuggestionFeedbackRequest,
 } from '@havefolio/contracts';
 
 export class CreateDesireMatchDto {
@@ -280,4 +291,140 @@ export class MatchCandidatesPageDto {
 
   @ApiProperty()
   hasMore!: boolean;
+}
+
+export class SuggestionFactorDto implements SuggestionFactor {
+  @ApiProperty({ enum: suggestionFactorKinds })
+  kind!: SuggestionFactorKind;
+
+  @ApiProperty()
+  score!: number;
+
+  @ApiProperty()
+  label!: string;
+
+  @ApiProperty()
+  detail!: string;
+}
+
+export class DesireSuggestionFeedbackDto implements DesireSuggestionFeedback {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  desireId!: string;
+
+  @ApiProperty()
+  itemId!: string;
+
+  @ApiProperty({ enum: suggestionFeedbackTypes })
+  feedbackType!: SuggestionFeedbackType;
+
+  @ApiProperty({ enum: suggestionFeedbackScopes })
+  scope!: SuggestionFeedbackScope;
+
+  @ApiProperty({ type: String, nullable: true })
+  reason!: string | null;
+
+  @ApiProperty()
+  createdAt!: string;
+
+  @ApiProperty()
+  updatedAt!: string;
+}
+
+export class CreateSuggestionFeedbackDto implements CreateSuggestionFeedbackRequest {
+  @ApiProperty({ description: 'UUID of the item being reviewed.' })
+  @IsUUID('4')
+  itemId!: string;
+
+  @ApiProperty({ enum: suggestionFeedbackTypes })
+  @IsIn(suggestionFeedbackTypes)
+  feedbackType!: SuggestionFeedbackType;
+
+  @ApiPropertyOptional({ enum: suggestionFeedbackScopes, default: 'desire' })
+  @IsOptional()
+  @IsIn(suggestionFeedbackScopes)
+  scope?: SuggestionFeedbackScope;
+
+  @ApiPropertyOptional({ description: 'Optional feedback explanation. Max 500 characters.' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 500)
+  reason?: string;
+}
+
+export class DesireSuggestionItemDto implements DesireSuggestionItem {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  score!: number;
+
+  @ApiProperty()
+  explanation!: string;
+
+  @ApiProperty({ type: [SuggestionFactorDto] })
+  factors!: SuggestionFactorDto[];
+
+  @ApiProperty()
+  workingRarelyUsed!: boolean;
+
+  @ApiProperty({ type: String, nullable: true })
+  conditionContext!: string | null;
+
+  @ApiProperty()
+  isUsableAlternative!: boolean;
+
+  @ApiProperty({ type: DesireMatchItemSummaryDto })
+  item!: DesireMatchItemSummaryDto;
+
+  @ApiProperty({ type: DesireSuggestionFeedbackDto, nullable: true })
+  feedback!: DesireSuggestionFeedbackDto | null;
+}
+
+export class DesireSuggestionsPageDto implements DesireSuggestionsPage {
+  @ApiProperty({ type: [DesireSuggestionItemDto] })
+  items!: DesireSuggestionItemDto[];
+
+  @ApiProperty({ type: String, nullable: true })
+  nextCursor!: string | null;
+
+  @ApiProperty()
+  hasMore!: boolean;
+
+  @ApiProperty()
+  totalCount!: number;
+}
+
+export class SuggestionsQueryDto {
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 50,
+    default: 10,
+    description: 'Number of suggestions to return.',
+    example: 10,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'Opaque pagination cursor from nextCursor.',
+  })
+  @IsOptional()
+  @IsString()
+  after?: string;
+
+  @ApiPropertyOptional({
+    description: 'Whether to include items previously dismissed for this desire.',
+    example: false,
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  includeDismissed?: boolean;
 }

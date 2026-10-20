@@ -361,4 +361,260 @@ describe('DesireMatchesService application rules', () => {
       );
     });
   });
+
+  describe('suggestions ranking and explanations', () => {
+    it('returns ranked suggestions with explanation factors and working rarely used context', async () => {
+      query
+        // 1. Check desire
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: desireId,
+              name: 'Sony WH-1000XM5 Headphones',
+              reason: 'Noise cancellation for daily focus',
+              classification: 'want',
+            },
+          ],
+        })
+        // 2. Fetch feedback
+        .mockResolvedValueOnce({ rows: [] })
+        // 3. Fetch candidate items
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: itemId,
+              name: 'Sony WH-1000XM4 Headphones',
+              brand: 'Sony',
+              model: 'WH-1000XM4',
+              description: 'Noise canceling headphones',
+              notes: 'Daily focus tool',
+              specifications: { bluetooth: '5.0' },
+              ownership_status: 'owned',
+              condition: 'working',
+              use_frequency: 'rarely',
+              category_id: 'cat-1',
+              category_name: 'Electronics',
+              subcategory_id: 'subcat-1',
+              subcategory_name: 'Headphones',
+              created_at: new Date('2026-10-17T10:00:00Z'),
+              is_already_matched: false,
+            },
+          ],
+        })
+        // 4. Fetch covers
+        .mockResolvedValueOnce({ rows: [] })
+        // 5. Fetch tags
+        .mockResolvedValueOnce({ rows: [{ item_id: itemId, tag_name: 'audio' }] });
+
+      const res = await service.suggestions(owner, desireId, { limit: 10 });
+
+      expect(res.items).toHaveLength(1);
+      const sug = res.items[0]!;
+      expect(sug.id).toBe(itemId);
+      expect(sug.score).toBeGreaterThanOrEqual(70);
+      expect(sug.workingRarelyUsed).toBe(true);
+      expect(sug.conditionContext).toBe('Working condition · Recorded usage: rarely');
+      expect(sug.explanation).toContain('shares subcategory “Headphones”');
+      expect(sug.explanation).toContain('matches brand “Sony”');
+      expect(sug.explanation).toContain('Working condition with rare recorded usage.');
+
+      expect(emitLog).toHaveBeenCalledWith('info', {
+        event: 'desire.suggestions_queried',
+        desireId,
+        resultCount: 1,
+      });
+    });
+
+    it('throws 404 when desire does not exist', async () => {
+      query.mockResolvedValueOnce({ rows: [] });
+      await expect(service.suggestions(owner, desireId, {})).rejects.toThrow(
+        new NotFoundException('DESIRE_NOT_FOUND'),
+      );
+    });
+
+    it('excludes dismissed items by default but includes when includeDismissed is true', async () => {
+      // 1. Without includeDismissed
+      query
+        .mockResolvedValueOnce({
+          rows: [{ id: desireId, name: 'Headphones', reason: null, classification: null }],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'fb-1',
+              desire_id: desireId,
+              item_id: itemId,
+              feedback_type: 'dismissed',
+              scope: 'desire',
+              reason: 'Not needed',
+              created_at: new Date(),
+              updated_at: new Date(),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: itemId,
+              name: 'Old Headphones',
+              brand: null,
+              model: null,
+              ownership_status: 'owned',
+              condition: 'working',
+              use_frequency: 'often',
+              category_id: null,
+              category_name: null,
+              subcategory_id: null,
+              subcategory_name: null,
+              created_at: new Date('2026-10-17T10:00:00Z'),
+              is_already_matched: false,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      const res1 = await service.suggestions(owner, desireId, { includeDismissed: false });
+      expect(res1.items).toHaveLength(0);
+
+      // 2. With includeDismissed
+      query
+        .mockResolvedValueOnce({
+          rows: [{ id: desireId, name: 'Headphones', reason: null, classification: null }],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'fb-1',
+              desire_id: desireId,
+              item_id: itemId,
+              feedback_type: 'dismissed',
+              scope: 'desire',
+              reason: 'Not needed',
+              created_at: new Date(),
+              updated_at: new Date(),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: itemId,
+              name: 'Old Headphones',
+              brand: null,
+              model: null,
+              ownership_status: 'owned',
+              condition: 'working',
+              use_frequency: 'often',
+              category_id: null,
+              category_name: null,
+              subcategory_id: null,
+              subcategory_name: null,
+              created_at: new Date('2026-10-17T10:00:00Z'),
+              is_already_matched: false,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      const res2 = await service.suggestions(owner, desireId, { includeDismissed: true });
+      expect(res2.items).toHaveLength(1);
+      expect(res2.items[0]?.feedback?.feedbackType).toBe('dismissed');
+    });
+  });
+
+  describe('feedback recording and deletion', () => {
+    it('records relevance feedback on a suggestion', async () => {
+      const now = new Date();
+      query
+        .mockResolvedValueOnce({ rows: [{ id: desireId }] }) // desire exists
+        .mockResolvedValueOnce({ rows: [{ id: itemId }] }) // item exists
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'fb-1',
+              desire_id: desireId,
+              item_id: itemId,
+              feedback_type: 'dismissed',
+              scope: 'desire',
+              reason: 'Different category',
+              created_at: now,
+              updated_at: now,
+            },
+          ],
+        });
+
+      const res = await service.recordFeedback(owner, desireId, {
+        itemId,
+        feedbackType: 'dismissed',
+        scope: 'desire',
+        reason: 'Different category',
+      });
+
+      expect(res.feedbackType).toBe('dismissed');
+      expect(res.scope).toBe('desire');
+      expect(res.reason).toBe('Different category');
+      expect(emitLog).toHaveBeenCalledWith('info', {
+        event: 'desire.suggestion_feedback_recorded',
+        desireId,
+        feedbackType: 'dismissed',
+        scope: 'desire',
+      });
+    });
+
+    it('throws 404 when recording feedback for non-existent desire or item', async () => {
+      query.mockResolvedValueOnce({ rows: [] }); // desire not found
+      await expect(
+        service.recordFeedback(owner, desireId, { itemId, feedbackType: 'dismissed' }),
+      ).rejects.toThrow(new NotFoundException('DESIRE_NOT_FOUND'));
+
+      query
+        .mockResolvedValueOnce({ rows: [{ id: desireId }] })
+        .mockResolvedValueOnce({ rows: [] }); // item not found
+      await expect(
+        service.recordFeedback(owner, desireId, { itemId, feedbackType: 'dismissed' }),
+      ).rejects.toThrow(new NotFoundException('ITEM_NOT_FOUND'));
+    });
+
+    it('deletes feedback and emits audit log', async () => {
+      query.mockResolvedValueOnce({ rowCount: 1 });
+      await expect(service.deleteFeedback(owner, desireId, 'fb-1')).resolves.toBeUndefined();
+      expect(emitLog).toHaveBeenCalledWith('info', {
+        event: 'desire.suggestion_feedback_removed',
+        desireId,
+      });
+    });
+
+    it('throws 404 when deleting non-existent feedback', async () => {
+      query.mockResolvedValueOnce({ rowCount: 0 });
+      await expect(service.deleteFeedback(owner, desireId, 'fb-1')).rejects.toThrow(
+        new NotFoundException('FEEDBACK_NOT_FOUND'),
+      );
+    });
+
+    it('lists feedback for a desire', async () => {
+      const now = new Date();
+      query
+        .mockResolvedValueOnce({ rows: [{ id: desireId }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'fb-1',
+              desire_id: desireId,
+              item_id: itemId,
+              feedback_type: 'irrelevant',
+              scope: 'desire',
+              reason: null,
+              created_at: now,
+              updated_at: now,
+            },
+          ],
+        });
+
+      const list = await service.listFeedback(owner, desireId);
+      expect(list).toHaveLength(1);
+      expect(list[0]?.feedbackType).toBe('irrelevant');
+    });
+  });
 });

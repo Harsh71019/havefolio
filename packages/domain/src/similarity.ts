@@ -239,6 +239,7 @@ export function computeSuggestionScore(
   item: SuggestionCandidateItem,
   desire: SuggestionDesire,
   feedback?: SuggestionFeedbackRecord | null,
+  options?: { ignoreDismissal?: boolean },
 ): SuggestionScoringResult {
   const isUsable = item.ownershipStatus === 'owned' && item.condition !== 'worn_out';
 
@@ -282,7 +283,7 @@ export function computeSuggestionScore(
     };
   }
 
-  if (feedback?.feedbackType === 'dismissed') {
+  if (!options?.ignoreDismissal && feedback?.feedbackType === 'dismissed') {
     return {
       score: 0,
       eligible: false,
