@@ -452,7 +452,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
             Back to Wants
           </Link>
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="sm" className="min-h-11">
             <Link href={`/wants/${desire.id}/matches`}>
               <Boxes className="mr-1.5 size-4" aria-hidden="true" />
