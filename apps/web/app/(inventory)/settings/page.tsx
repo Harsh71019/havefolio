@@ -1,3 +1,4 @@
+import { AppearanceSettings } from '@/components/appearance-settings';
 import { PrivacyControls } from '@/components/privacy-controls';
 import type { ReactElement } from 'react';
 import type { Metadata } from 'next';
@@ -14,8 +15,9 @@ export default function SettingsPage(): ReactElement {
     <PageShell width="content">
       <PageHeading
         title="Settings"
-        description="Manage your defaults, notification channels, sessions and private deployment."
+        description="Manage your appearance, defaults, notification channels, sessions and private deployment."
       />
+      <AppearanceSettings />
       <section
         aria-labelledby="merchant-settings-title"
         className="space-y-3 rounded-lg border p-6"

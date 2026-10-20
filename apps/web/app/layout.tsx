@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactElement, ReactNode } from 'react';
 import { Toaster } from '@havefolio/ui/components/sonner';
 import { ThemeProvider } from '@/components/theme-provider';
+import { paletteBootstrap } from '@/components/theme-palette-config';
 import { densityBootstrap } from '@/components/store-density-config';
 import { sidebarBootstrap } from '@/components/sidebar-config';
 import './globals.css';
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: paletteBootstrap }} />
         <script dangerouslySetInnerHTML={{ __html: densityBootstrap }} />
         <script dangerouslySetInnerHTML={{ __html: sidebarBootstrap }} />
       </head>
