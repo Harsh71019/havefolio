@@ -164,7 +164,7 @@ export function AppNavigation(): ReactElement {
           widen meanwhile. It is a no-op with overlay scrollbars. */}
       <nav
         aria-label="Primary"
-        className="width-before-scroll-bar fixed right-(--mobile-nav-inset-right) bottom-(--mobile-nav-offset) left-(--mobile-nav-inset-left) z-50 grid h-(--mobile-nav-height) grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
+        className="mobile-navigation width-before-scroll-bar fixed right-(--mobile-nav-inset-right) bottom-(--mobile-nav-offset) left-(--mobile-nav-inset-left) z-50 grid h-(--mobile-nav-height) grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
       >
         {navigationItems.slice(0, 4).map((item) => {
           const active = isItemActive(item.href);
