@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { PrivacyControls } from '../components/privacy-controls';
+import { loadItemDraft, saveItemDraft, setDraftConsent } from '../components/capture-drafts';
 describe('private-data controls', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -23,6 +24,15 @@ describe('private-data controls', () => {
       ),
     );
     vi.stubGlobal('fetch', fetch);
+    setDraftConsent('owner-1', true);
+    saveItemDraft('owner-1', {
+      name: 'Private draft',
+      ownershipStatus: 'owned',
+      currency: 'INR',
+      priceMode: 'unknown',
+      priceDisplay: '',
+      datePrecision: 'unknown',
+    });
     render(<PrivacyControls />);
     expect(
       screen.getByText(/Photo and document files are downloaded separately/),
@@ -40,6 +50,9 @@ describe('private-data controls', () => {
     expect(body.receipt).toMatch(/^[a-f0-9]{64}$/);
     expect(localStorage.getItem('havefolio.deletion-receipt.v1')).toBe(body.receipt);
     expect(body.confirmation).toBe('DELETE MY ACCOUNT');
+    // PER-47: local capture drafts are removed with the deletion request.
+    expect(loadItemDraft('owner-1')).toBeNull();
+    expect(Object.keys(localStorage)).toEqual(['havefolio.deletion-receipt.v1']);
     expect(await screen.findByText(/Your normal sessions have been revoked/)).toBeInTheDocument();
   });
   it('keeps the receipt when submission fails and provides a status recovery path', async () => {

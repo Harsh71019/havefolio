@@ -218,6 +218,48 @@ describe('owned item HTTP, concurrency and media recovery', () => {
   ])('rejects invalid precision %j', async (purchaseDate) => {
     await post('', { ...base, purchaseDate }).expect(400);
   });
+  it('PER-47: replays a create commandId without duplicating the item, its tags or history', async () => {
+    const commandId = randomUUID();
+    const entry = { ...base, name: 'Synthetic retried lamp', tagIds: [tag] };
+    const input = { ...entry, commandId };
+    const count = async (): Promise<number> =>
+      Number((await run.runtime.query<{ n: string }>('SELECT count(*) n FROM items')).rows[0]!.n);
+    const before = await count();
+    // Concurrent retries of one ambiguous attempt serialize on the derived ID.
+    const [first, second] = await Promise.all([post('', input), post('', input)]);
+    expect([first.status, second.status]).toEqual([201, 201]);
+    const third = (await post('', input).expect(201)).body as ItemDto;
+    expect(second.body.id).toBe(first.body.id);
+    expect(third).toMatchObject({ id: first.body.id, revision: 1, tagIds: [tag] });
+    // The command is transport-only and never stored as user-entered provenance.
+    expect(third.originalEntry).toEqual(entry);
+    expect(await count()).toBe(before + 1);
+    const events = await run.runtime.query(
+      'SELECT 1 FROM lifecycle_events WHERE item_id=$1 AND event_type=$2',
+      [third.id, 'created'],
+    );
+    expect(events.rowCount).toBe(1);
+    // Different details under the same command are a conflict, not a silent second item.
+    expect(
+      (await post('', { ...input, name: 'Synthetic other lamp' }).expect(409)).body.message,
+    ).toBe('ITEM_COMMAND_REUSED');
+    // Later edits do not change the immutable original entry a retry is compared with.
+    await patch(third.id, { revision: 1, name: 'Renamed lamp' }).expect(200);
+    expect((await post('', input).expect(201)).body).toMatchObject({
+      id: third.id,
+      name: 'Renamed lamp',
+    });
+    // Commands are owner-scoped: another owner reusing the UUID gets an independent item.
+    const foreign = await service.create(other, {
+      ...base,
+      ownershipStatus: 'owned',
+      commandId,
+    });
+    expect(foreign.id).not.toBe(third.id);
+    expect(await count()).toBe(before + 2);
+    await post('', { ...base, commandId: 'not-a-uuid' }).expect(400);
+    await patch(third.id, { revision: 2, commandId: randomUUID() }).expect(400);
+  });
   it('isolates owner reads, edits, lifecycle, history and deletion with indistinguishable not-found', async () => {
     const foreign = await service.create(other, { ...base, ownershipStatus: 'owned' });
     const missing = randomUUID();

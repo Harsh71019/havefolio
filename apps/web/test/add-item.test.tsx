@@ -6,11 +6,16 @@ import { currencyMinorDigits } from '@havefolio/domain';
 import { amountEntryToMinor, minorToAmountEntry } from '../components/money-entry';
 import { AddItemForm } from '../components/add-item-form';
 import {
-  saveItemDraft,
-  loadItemDraft,
+  clearAllCaptureDrafts,
   clearItemDraft,
-  getDraftStorageKey,
-} from '../components/items-client';
+  draftLimits,
+  hasDraftConsent,
+  loadItemDraft,
+  purgeOtherOwnersDrafts,
+  saveItemDraft,
+  setDraftConsent,
+  takeLegacyItemDraft,
+} from '../components/capture-drafts';
 
 const mockOwner: OwnerResponse = {
   id: '7b9e0789-f538-4e78-95ef-9a5d1b764011',
@@ -168,47 +173,109 @@ describe('money, currency, and date conversion logic', () => {
   });
 });
 
-describe('draft persistence and isolation', () => {
-  it('saves, loads, and clears draft scoped to owner ID', () => {
-    const ownerA = 'owner-a';
-    const ownerB = 'owner-b';
+describe('PER-47 capture draft policy', () => {
+  const fields = {
+    name: 'Coffee Grinder',
+    ownershipStatus: 'owned' as const,
+    currency: 'INR',
+    priceMode: 'known' as const,
+    priceDisplay: '4500',
+    datePrecision: 'year' as const,
+    purchaseYear: '2023',
+  };
+  const ownerA = 'owner-a';
+  const ownerB = 'owner-b';
 
-    saveItemDraft(ownerA, {
-      name: 'Coffee Grinder',
-      ownershipStatus: 'owned',
-      currency: 'INR',
-      priceMode: 'known',
-      priceDisplay: '4500',
-      datePrecision: 'year',
-      purchaseYear: '2023',
-    });
+  it('stores nothing without explicit consent, and revoking consent deletes the draft', () => {
+    expect(saveItemDraft(ownerA, fields)).toBe('unavailable');
+    expect(window.localStorage.length).toBe(0);
+    expect(setDraftConsent(ownerA, true)).toBe(true);
+    expect(saveItemDraft(ownerA, fields)).toBe('saved');
+    expect(loadItemDraft(ownerA)).toMatchObject({ ...fields, version: 2, ownerId: ownerA });
+    setDraftConsent(ownerA, false);
+    expect(hasDraftConsent(ownerA)).toBe(false);
+    expect(window.localStorage.length).toBe(0);
+  });
 
-    const draftA = loadItemDraft(ownerA);
-    expect(draftA).not.toBeNull();
-    expect(draftA?.name).toBe('Coffee Grinder');
-    expect(draftA?.priceDisplay).toBe('4500');
+  it('isolates owners and purges other owners on sign-in', () => {
+    setDraftConsent(ownerA, true);
+    saveItemDraft(ownerA, fields);
+    expect(loadItemDraft(ownerB)).toBeNull();
+    // A record copied under another owner's key is still refused.
+    const raw = window.localStorage.getItem(`havefolio.capture-draft.v2.${ownerA}`)!;
+    setDraftConsent(ownerB, true);
+    window.localStorage.setItem(`havefolio.capture-draft.v2.${ownerB}`, raw);
+    expect(loadItemDraft(ownerB)).toBeNull();
+    purgeOtherOwnersDrafts(ownerB);
+    expect(loadItemDraft(ownerA)).toBeNull();
+    expect(hasDraftConsent(ownerA)).toBe(false);
+    expect(hasDraftConsent(ownerB)).toBe(true);
+  });
 
-    // Owner B cannot see Owner A's draft
-    const draftB = loadItemDraft(ownerB);
-    expect(draftB).toBeNull();
-
-    clearItemDraft(ownerA);
+  it('expires drafts after seven days and rejects corrupt or future records', () => {
+    setDraftConsent(ownerA, true);
+    saveItemDraft(ownerA, fields);
+    const saved = Date.parse(loadItemDraft(ownerA)!.updatedAt);
+    expect(loadItemDraft(ownerA, saved + draftLimits.ttlMs - 1000)).not.toBeNull();
+    expect(loadItemDraft(ownerA, saved + draftLimits.ttlMs)).toBeNull();
+    expect(window.localStorage.getItem(`havefolio.capture-draft.v2.${ownerA}`)).toBeNull();
+    const key = `havefolio.capture-draft.v2.${ownerA}`;
+    window.localStorage.setItem(key, 'invalid json {');
+    expect(loadItemDraft(ownerA)).toBeNull();
+    expect(window.localStorage.getItem(key)).toBeNull();
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({ ...fields, version: 2, ownerId: ownerA, updatedAt: '2999-01-01T00:00:00Z' }),
+    );
     expect(loadItemDraft(ownerA)).toBeNull();
   });
 
-  it('safely handles corrupted or incompatible draft formats', () => {
-    const ownerId = 'corrupt-owner';
-    const key = getDraftStorageKey(ownerId);
+  it('caps the stored size and keeps only text fields', () => {
+    setDraftConsent(ownerA, true);
+    expect(saveItemDraft(ownerA, { ...fields, notes: '\u0939'.repeat(30_000) })).toBe('too-large');
+    expect(loadItemDraft(ownerA)).toBeNull();
+    saveItemDraft(ownerA, { ...fields, notes: '\u0939'.repeat(10_000) });
+    const stored = window.localStorage.getItem(`havefolio.capture-draft.v2.${ownerA}`)!;
+    expect(Object.keys(JSON.parse(stored) as object).sort()).toEqual(
+      [...Object.keys(fields), 'notes', 'version', 'ownerId', 'updatedAt'].sort(),
+    );
+    expect(stored).not.toMatch(/merchant|purchaseUrl|token|cookie|https?:/i);
+  });
 
-    // Corrupted JSON
-    window.localStorage.setItem(key, 'invalid json {');
-    expect(loadItemDraft(ownerId)).toBeNull();
+  it('reads a legacy unconsented draft into memory once and removes it from storage', () => {
+    const key = `havefolio_item_draft_v1_${ownerA}`;
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({ ...fields, version: 1, updatedAt: new Date().toISOString() }),
+    );
+    expect(takeLegacyItemDraft(ownerA)).toMatchObject(fields);
     expect(window.localStorage.getItem(key)).toBeNull();
+    expect(takeLegacyItemDraft(ownerA)).toBeNull();
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({ ...fields, version: 1, updatedAt: '2020-01-01T00:00:00Z' }),
+    );
+    expect(takeLegacyItemDraft(ownerA)).toBeNull();
+    expect(window.localStorage.getItem(key)).toBeNull();
+  });
 
-    // Incompatible version
-    window.localStorage.setItem(key, JSON.stringify({ version: 99, name: 'Old' }));
-    expect(loadItemDraft(ownerId)).toBeNull();
-    expect(window.localStorage.getItem(key)).toBeNull();
+  it('clears every capture draft on logout or deletion without touching other settings', () => {
+    setDraftConsent(ownerA, true);
+    saveItemDraft(ownerA, fields);
+    setDraftConsent(ownerB, true);
+    window.localStorage.setItem('havefolio_item_draft_v1_x', '{}');
+    window.localStorage.setItem('havefolio.store-density', 'compact');
+    clearAllCaptureDrafts();
+    expect(Object.keys(window.localStorage)).toEqual(['havefolio.store-density']);
+    clearItemDraft(ownerA);
+  });
+
+  it('fails safe when storage is blocked', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+    expect(setDraftConsent(ownerA, true)).toBe(false);
+    spy.mockRestore();
   });
 });
 
@@ -448,14 +515,14 @@ describe('fast manual add-item flow component', () => {
     expect(await screen.findByRole('button', { name: 'Sign in' })).toBeInTheDocument();
     expect(screen.getByText(/session expired/i)).toBeInTheDocument();
 
-    // Draft is stored in localStorage
-    const saved = loadItemDraft(mockOwner.id);
-    expect(saved).not.toBeNull();
-    expect(saved?.name).toBe('Draft Item');
+    // Without consent the text stays in page memory only.
+    expect(loadItemDraft(mockOwner.id)).toBeNull();
+    expect(window.localStorage.length).toBe(0);
   });
 
   it('autosaves draft, shows restored notice, and allows discarding draft', async () => {
-    // Pre-populate localStorage with a draft for mockOwner
+    // Pre-populate localStorage with a consented draft for mockOwner
+    setDraftConsent(mockOwner.id, true);
     saveItemDraft(mockOwner.id, {
       name: 'Restored Kettle',
       ownershipStatus: 'owned',
@@ -472,6 +539,10 @@ describe('fast manual add-item flow component', () => {
     expect(screen.getByDisplayValue('Restored Kettle')).toBeInTheDocument();
     expect(screen.getByDisplayValue('2200')).toBeInTheDocument();
     expect(screen.getByText('Draft restored')).toBeInTheDocument();
+    expect(
+      screen.getByText('Restored from this device. It is not saved to your inventory yet.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Keep a draft on this device' })).toBeChecked();
 
     // Discard draft
     await user.click(screen.getByRole('button', { name: /Discard/ }));
@@ -481,6 +552,7 @@ describe('fast manual add-item flow component', () => {
   });
 
   it('clears draft after successful creation', async () => {
+    setDraftConsent(mockOwner.id, true);
     saveItemDraft(mockOwner.id, {
       name: 'To Be Saved',
       ownershipStatus: 'owned',
@@ -498,6 +570,146 @@ describe('fast manual add-item flow component', () => {
 
     expect(await screen.findByText(/saved to your home/)).toBeInTheDocument();
     expect(loadItemDraft(mockOwner.id)).toBeNull();
+  });
+
+  it('PER-47: keeps a device draft only after consent and deletes it when turned off', async () => {
+    const user = userEvent.setup();
+    render(<AddItemForm />);
+    const name = await screen.findByLabelText(/Item name/);
+    await user.type(name, 'Desk lamp');
+    expect(window.localStorage.length).toBe(0);
+    expect(screen.getByText('Off: your text stays on this page only.')).toBeInTheDocument();
+
+    const consent = screen.getByRole('switch', { name: 'Keep a draft on this device' });
+    await user.click(consent);
+    await waitFor(() => expect(loadItemDraft(mockOwner.id)?.name).toBe('Desk lamp'));
+    expect(
+      await screen.findByText(/Draft kept on this device at .* not saved to your inventory yet/),
+    ).toBeInTheDocument();
+
+    await user.click(consent);
+    expect(window.localStorage.length).toBe(0);
+    // Turning storage off never erases what is on the page.
+    expect(name).toHaveValue('Desk lamp');
+  });
+
+  it('PER-47: retries an unconfirmed save with the same command and no duplicate', async () => {
+    const user = userEvent.setup();
+    const bodies: { commandId?: string }[] = [];
+    fetchMock.mockImplementation((input, init) => {
+      const url = typeof input === 'string' ? input : (input as Request).url;
+      if (url.includes('/api/v1/auth/me')) return Promise.resolve(jsonResponse(mockOwner));
+      if (url.includes('/api/v1/merchants'))
+        return Promise.resolve(jsonResponse({ merchants: [], nextCursor: null, hasMore: false }));
+      if (url.includes('/api/v1/taxonomy')) return Promise.resolve(jsonResponse(mockTaxonomy));
+      if (url.includes('/api/v1/items')) {
+        bodies.push(JSON.parse(init?.body as string) as { commandId?: string });
+        // The first response is lost after the server may have saved the item.
+        return bodies.length === 1
+          ? Promise.reject(new TypeError('Failed to fetch'))
+          : Promise.resolve(jsonResponse(createdItemResponse, 201));
+      }
+      return Promise.resolve(jsonResponse({}));
+    });
+    setDraftConsent(mockOwner.id, true);
+    render(<AddItemForm />);
+    await user.type(await screen.findByLabelText(/Item name/), 'Lost response kettle');
+    await user.click(screen.getByLabelText('Price unknown'));
+    await user.click(screen.getByLabelText('Date unknown'));
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /not confirmed saved; your draft is kept on this device.*will not create a duplicate/,
+    );
+    // The pending command survives navigation with the consented draft.
+    await waitFor(() => expect(loadItemDraft(mockOwner.id)?.commandId).toBe(bodies[0]?.commandId));
+
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+    expect(await screen.findByText(/saved to your home/)).toBeInTheDocument();
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0]?.commandId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(bodies[1]?.commandId).toBe(bodies[0]?.commandId);
+    expect(loadItemDraft(mockOwner.id)).toBeNull();
+  });
+
+  it('PER-47: explains a reused command and saves separately only on request', async () => {
+    const user = userEvent.setup();
+    const commands: (string | undefined)[] = [];
+    fetchMock.mockImplementation((input, init) => {
+      const url = typeof input === 'string' ? input : (input as Request).url;
+      if (url.includes('/api/v1/auth/me')) return Promise.resolve(jsonResponse(mockOwner));
+      if (url.includes('/api/v1/merchants'))
+        return Promise.resolve(jsonResponse({ merchants: [], nextCursor: null, hasMore: false }));
+      if (url.includes('/api/v1/taxonomy')) return Promise.resolve(jsonResponse(mockTaxonomy));
+      if (url.includes('/api/v1/items')) {
+        commands.push((JSON.parse(init?.body as string) as { commandId?: string }).commandId);
+        return Promise.resolve(
+          commands.length === 1
+            ? jsonResponse({ message: 'ITEM_COMMAND_REUSED' }, 409)
+            : jsonResponse(createdItemResponse, 201),
+        );
+      }
+      return Promise.resolve(jsonResponse({}));
+    });
+    render(<AddItemForm />);
+    await user.type(await screen.findByLabelText(/Item name/), 'Edited after failure');
+    await user.click(screen.getByLabelText('Price unknown'));
+    await user.click(screen.getByLabelText('Date unknown'));
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /earlier attempt already saved this item.*Check My Store/,
+    );
+    await user.click(screen.getByRole('button', { name: 'Save as a new item' }));
+    expect(await screen.findByText(/saved to your home/)).toBeInTheDocument();
+    expect(commands).toHaveLength(2);
+    expect(commands[1]).not.toBe(commands[0]);
+  });
+
+  it('PER-47: a different owner signing in inline never sees the previous text', async () => {
+    const user = userEvent.setup();
+    const otherOwner = { ...mockOwner, id: '9a3a2f2e-7c4b-4b8e-9d55-3f1f6f5d8a10' };
+    let signedIn = false;
+    fetchMock.mockImplementation((input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url;
+      if (url.includes('/api/v1/auth/me'))
+        return Promise.resolve(jsonResponse(signedIn ? otherOwner : mockOwner));
+      if (url.includes('/api/v1/auth/login')) {
+        signedIn = true;
+        return Promise.resolve(jsonResponse(otherOwner));
+      }
+      if (url.includes('/api/v1/merchants'))
+        return Promise.resolve(jsonResponse({ merchants: [], nextCursor: null, hasMore: false }));
+      if (url.includes('/api/v1/taxonomy')) return Promise.resolve(jsonResponse(mockTaxonomy));
+      if (url.includes('/api/v1/items'))
+        return Promise.resolve(jsonResponse({ message: 'AUTH_REQUIRED' }, 401));
+      return Promise.resolve(jsonResponse({}));
+    });
+    setDraftConsent(mockOwner.id, true);
+    render(<AddItemForm />);
+    await user.type(await screen.findByLabelText(/Item name/), 'Private first-owner text');
+    await waitFor(() => expect(loadItemDraft(mockOwner.id)).not.toBeNull());
+    await user.click(screen.getByLabelText('Price unknown'));
+    await user.click(screen.getByLabelText('Date unknown'));
+    await user.click(screen.getByRole('button', { name: 'Save item' }));
+
+    await user.type(await screen.findByLabelText('Email'), 'other@example.test');
+    await user.type(screen.getByLabelText('Password'), 'synthetic-password-1');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    const name = await screen.findByLabelText(/Item name/);
+    expect(name).toHaveValue('');
+    expect(loadItemDraft(mockOwner.id)).toBeNull();
+    expect(hasDraftConsent(mockOwner.id)).toBe(false);
+  });
+
+  it('PER-47: announces offline state without claiming the item is saved', async () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    render(<AddItemForm />);
+    expect(await screen.findByText(/You.re offline\. Keep typing/)).toHaveTextContent(
+      'your text stays on this page',
+    );
+    expect(screen.getByText(/nothing reaches your inventory until then/)).toBeInTheDocument();
+    online.mockRestore();
   });
 
   it('prevents duplicate submissions while in flight', async () => {
@@ -647,6 +859,7 @@ describe('fast manual add-item flow component', () => {
   });
 
   it('renders pre-existing retired category as disabled when restored from draft', async () => {
+    setDraftConsent(mockOwner.id, true);
     saveItemDraft(mockOwner.id, {
       name: 'Old Projector',
       ownershipStatus: 'owned',

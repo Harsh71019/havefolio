@@ -236,7 +236,9 @@ describe('item photo gallery', () => {
     fireEvent.change(screen.getByLabelText('Choose from gallery or files'), {
       target: { files: [file('one.jpg'), file('two.png', 'image/png')] },
     });
-    expect(screen.getAllByRole('img', { name: /Preview of selected photo/ })).toHaveLength(2);
+    expect(await screen.findAllByRole('img', { name: /Preview of selected photo/ })).toHaveLength(
+      2,
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Upload photos' }));
     act(() => FakeXhr.pending[0]!.progress(40));
     expect(
@@ -269,7 +271,7 @@ describe('item photo gallery', () => {
     fireEvent.change(screen.getByLabelText('Choose from gallery or files'), {
       target: { files: [file('one.jpg')] },
     });
-    await userEvent.click(screen.getByRole('button', { name: 'Remove photo 1' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove photo 1' }));
     expect(screen.queryByRole('img', { name: /Preview/ })).toBeNull();
     expect(revoke).toHaveBeenCalledWith('blob:synthetic-preview');
   });
@@ -297,12 +299,14 @@ describe('item photo gallery', () => {
     expect(FakeXhr.sent[2]!.uploadId).toBe(FakeXhr.sent[1]!.uploadId);
   });
 
-  it('explains unsupported HEIC without uploading it', async () => {
+  it('explains HEIC this browser cannot convert, with alternatives, without uploading it', async () => {
     await renderGallery();
     fireEvent.change(screen.getByLabelText('Choose from gallery or files'), {
       target: { files: [file('IMG_0001.HEIC', '')] },
     });
-    expect(screen.getByRole('alert')).toHaveTextContent('HEIC/HEIF is not supported yet');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /can’t convert HEIC.*Most Compatible.*save the item now and add photos later/,
+    );
     expect(screen.getByText('Not uploaded')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Upload photos' })).toBeDisabled();
     expect(FakeXhr.sent).toHaveLength(0);

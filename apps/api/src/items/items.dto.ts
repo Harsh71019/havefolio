@@ -149,6 +149,14 @@ export class CreateItemDto {
   @ValidateIf((_o, v) => v !== undefined && v !== null)
   @IsObject()
   specifications?: Record<string, unknown> | null;
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Stable command UUID for identical retries after an ambiguous failure. A repeat with the same details returns the saved item; different details return ITEM_COMMAND_REUSED.',
+  })
+  @ValidateIf((_o, v) => v !== undefined)
+  @IsUUID('4')
+  commandId?: string;
 }
 export class RevisionDto {
   @ApiProperty({
@@ -163,7 +171,7 @@ export class RevisionDto {
 }
 // Ownership is changed exclusively through a history-appending action.
 export class UpdateItemDto extends PartialType(
-  OmitType(CreateItemDto, ['ownershipStatus'] as const),
+  OmitType(CreateItemDto, ['ownershipStatus', 'commandId'] as const),
   { skipNullProperties: false },
 ) {
   @ApiProperty({ minimum: 1, maximum: 2147483646 })

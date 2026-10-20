@@ -168,6 +168,8 @@ export interface CreateItemRequest {
   description?: string | null | undefined;
   notes?: string | null | undefined;
   specifications?: Record<string, unknown> | null | undefined;
+  /** Stable UUID reused across retries of one create so a lost response cannot duplicate it. */
+  commandId?: string | undefined;
 }
 
 export interface ItemResponse {
@@ -247,6 +249,7 @@ export const itemErrorCodes = [
   'STALE_ITEM_REVISION',
   'INVALID_ITEM_TRANSITION',
   'ITEM_MEDIA_PENDING',
+  'ITEM_COMMAND_REUSED',
   'ITEMS_UNAVAILABLE',
 ] as const;
 
@@ -400,7 +403,9 @@ export const inventoryQueryKeys = [
 ] as const;
 
 /** `PATCH /api/v1/items/:id`. Ownership changes only through actions; revision is last-seen. */
-export type UpdateItemRequest = Partial<Omit<CreateItemRequest, 'ownershipStatus'>> & {
+export type UpdateItemRequest = Partial<
+  Omit<CreateItemRequest, 'ownershipStatus' | 'commandId'>
+> & {
   revision: number;
 };
 
