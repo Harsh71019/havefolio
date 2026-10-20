@@ -29,8 +29,8 @@ export function PhotoCapture({ itemId }: { itemId: string }): React.JSX.Element 
             <h1>Add item photos</h1>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Private JPEG, PNG or WebP photos. Up to 10 MiB each and 8 per item. HEIC/HEIF is not
-            supported.
+            Private JPEG, PNG or WebP photos, up to 10 MiB each and 8 per item. HEIC/HEIF is
+            converted on this device where the browser supports it.
             {existing ? ` This item already has ${existing} of 8.` : ''}
           </p>
         </CardHeader>

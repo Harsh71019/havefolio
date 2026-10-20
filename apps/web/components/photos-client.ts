@@ -10,7 +10,8 @@ import type { PrivatePhotoSource } from '@havefolio/ui/components/havefolio/priv
 
 // Fixed public API codes only. Never echo server text, provider details or private input.
 export const photoMessages: Record<string, string> = {
-  PHOTO_HEIC_UNSUPPORTED: 'HEIC/HEIF is not supported. Export as JPEG, PNG or WebP.',
+  PHOTO_HEIC_UNSUPPORTED:
+    'HEIC/HEIF could not be converted on this device. Export it as JPEG, PNG or WebP, or add photos later.',
   PHOTO_FORMAT_MISMATCH: 'The file type, extension and contents must match JPEG, PNG or WebP.',
   PHOTO_INVALID: 'This image could not be decoded safely. Choose another image.',
   PHOTO_FILE_SIZE: 'Choose a photo smaller than 10 MiB.',
@@ -152,7 +153,7 @@ export function uploadPhoto(
         else
           failed(
             req.status === 401
-              ? 'Sign in to add private photos.'
+              ? 'Your session has expired, so this photo was not saved. Sign in again, then add it.'
               : req.status === 404
                 ? 'This item is unavailable.'
                 : (photoMessages[result?.error ?? response.message ?? ''] ??
@@ -172,9 +173,9 @@ export function uploadPhoto(
 /** Client-side pre-check; the API still validates signatures, decoding and HEIC brands. */
 export function selectionError(file: File): string | undefined {
   if (/\.(heic|heif)$/i.test(file.name) || /^image\/hei[cf]/i.test(file.type))
-    return 'HEIC/HEIF is not supported yet. Export this photo as JPEG, PNG or WebP and try again.';
+    return photoMessages.PHOTO_HEIC_UNSUPPORTED!;
   if (!(itemPhotoLimits.acceptedMimeTypes as readonly string[]).includes(file.type))
-    return 'Choose JPEG, PNG or WebP. HEIC/HEIF is not supported.';
+    return 'Choose a JPEG, PNG, WebP or HEIC photo.';
   if (file.size === 0 || file.size > itemPhotoLimits.maxFileBytes)
     return photoMessages.PHOTO_FILE_SIZE;
   return undefined;

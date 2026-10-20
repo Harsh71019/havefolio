@@ -630,7 +630,8 @@ export function PhotoGallery({
                   </h2>
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  JPEG, PNG or WebP, up to 10 MiB each. HEIC/HEIF is not supported.{' '}
+                  JPEG, PNG or WebP, up to 10 MiB each. HEIC/HEIF is converted on this device where
+                  supported.{' '}
                   {photos.length >= limit
                     ? `This item has the maximum of ${limit} photos.`
                     : `${limit - photos.length} of ${limit} slots free.`}
