@@ -259,6 +259,7 @@ export class PrivacyRepository implements OnModuleDestroy {
       await c.query('DELETE FROM media_attachments WHERE owner_id=$1', [d.owner_id]);
       // Parent erasure preserves ordinary append-only guards while cascading private histories.
       for (const table of [
+        'desire_suggestion_feedback',
         'desires',
         'goals',
         'items',

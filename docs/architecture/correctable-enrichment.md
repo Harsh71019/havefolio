@@ -48,7 +48,7 @@ permitted only by parent item/account erasure.
 
 ## Durable work and bounds
 
-Migration `0022_correctable_enrichment` adds `enrichment_work` and `enrichment_reviews`,
+Migration `0023_correctable_enrichment` adds `enrichment_work` and `enrichment_reviews`,
 owner/item composite foreign keys, payload/state constraints, command uniqueness, due and
 owner indexes, immutable-history guards and the existing deletion-admission write guard.
 Existing migration history is unchanged. Reconcile numbering with parallel work before

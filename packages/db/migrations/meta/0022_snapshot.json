@@ -1,5 +1,5 @@
 {
-  "id": "ba265239-daae-4462-82c6-a279ac9e2abc",
+  "id": "116bf771-4ce7-48f5-a70b-de6c82da7c77",
   "prevId": "0b17ab6f-8673-4e38-8a01-fb8d061b42fb",
   "version": "7",
   "dialect": "postgresql",
@@ -1496,6 +1496,241 @@
       },
       "isRLSEnabled": false
     },
+    "public.desire_suggestion_feedback": {
+      "name": "desire_suggestion_feedback",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "desire_id": {
+          "name": "desire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_id": {
+          "name": "item_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "feedback_type": {
+          "name": "feedback_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'desire'"
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "desire_suggestion_feedback_desire_item_unique": {
+          "name": "desire_suggestion_feedback_desire_item_unique",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "desire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "desire_suggestion_feedback_owner_desire_idx": {
+          "name": "desire_suggestion_feedback_owner_desire_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "desire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "desire_suggestion_feedback_owner_item_idx": {
+          "name": "desire_suggestion_feedback_owner_item_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "desire_suggestion_feedback_owner_id_users_id_fk": {
+          "name": "desire_suggestion_feedback_owner_id_users_id_fk",
+          "tableFrom": "desire_suggestion_feedback",
+          "tableTo": "users",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "desire_suggestion_feedback_desire_owner_fk": {
+          "name": "desire_suggestion_feedback_desire_owner_fk",
+          "tableFrom": "desire_suggestion_feedback",
+          "tableTo": "desires",
+          "columnsFrom": [
+            "desire_id",
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id",
+            "owner_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "desire_suggestion_feedback_item_owner_fk": {
+          "name": "desire_suggestion_feedback_item_owner_fk",
+          "tableFrom": "desire_suggestion_feedback",
+          "tableTo": "items",
+          "columnsFrom": [
+            "item_id",
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id",
+            "owner_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "desire_suggestion_feedback_owner_identity_unique": {
+          "name": "desire_suggestion_feedback_owner_identity_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "owner_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "desire_suggestion_feedback_type_check": {
+          "name": "desire_suggestion_feedback_type_check",
+          "value": "\"desire_suggestion_feedback\".\"feedback_type\" in ('dismissed','irrelevant','relevant')"
+        },
+        "desire_suggestion_feedback_scope_check": {
+          "name": "desire_suggestion_feedback_scope_check",
+          "value": "\"desire_suggestion_feedback\".\"scope\" in ('desire','global')"
+        },
+        "desire_suggestion_feedback_reason_check": {
+          "name": "desire_suggestion_feedback_reason_check",
+          "value": "\"desire_suggestion_feedback\".\"reason\" is null or (length(btrim(\"desire_suggestion_feedback\".\"reason\")) between 1 and 500 and \"desire_suggestion_feedback\".\"reason\" = btrim(\"desire_suggestion_feedback\".\"reason\"))"
+        },
+        "desire_suggestion_feedback_times_check": {
+          "name": "desire_suggestion_feedback_times_check",
+          "value": "isfinite(\"desire_suggestion_feedback\".\"created_at\") and isfinite(\"desire_suggestion_feedback\".\"updated_at\") and \"desire_suggestion_feedback\".\"created_at\" <= \"desire_suggestion_feedback\".\"updated_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.desires": {
       "name": "desires",
       "schema": "",
@@ -1787,437 +2022,6 @@
         "desire_times_check": {
           "name": "desire_times_check",
           "value": "isfinite(\"desires\".\"created_at\") and isfinite(\"desires\".\"updated_at\") and \"desires\".\"created_at\" <= \"desires\".\"updated_at\""
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.enrichment_reviews": {
-      "name": "enrichment_reviews",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "owner_id": {
-          "name": "owner_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "item_id": {
-          "name": "item_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "work_id": {
-          "name": "work_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "command_id": {
-          "name": "command_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "request_hash": {
-          "name": "request_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "candidate_id": {
-          "name": "candidate_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "field": {
-          "name": "field",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "decision": {
-          "name": "decision",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "previous_value": {
-          "name": "previous_value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confirmed_value": {
-          "name": "confirmed_value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "revision": {
-          "name": "revision",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resulting_revision": {
-          "name": "resulting_revision",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "enrichment_review_owner_item_idx": {
-          "name": "enrichment_review_owner_item_idx",
-          "columns": [
-            {
-              "expression": "owner_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "item_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "enrichment_reviews_owner_id_users_id_fk": {
-          "name": "enrichment_reviews_owner_id_users_id_fk",
-          "tableFrom": "enrichment_reviews",
-          "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "enrichment_review_work_fk": {
-          "name": "enrichment_review_work_fk",
-          "tableFrom": "enrichment_reviews",
-          "tableTo": "enrichment_work",
-          "columnsFrom": [
-            "work_id",
-            "owner_id",
-            "item_id"
-          ],
-          "columnsTo": [
-            "id",
-            "owner_id",
-            "item_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "enrichment_review_command_unique": {
-          "name": "enrichment_review_command_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "owner_id",
-            "command_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "enrichment_review_field_check": {
-          "name": "enrichment_review_field_check",
-          "value": "\"enrichment_reviews\".\"field\" in ('name','brand','model','description')"
-        },
-        "enrichment_review_decision_check": {
-          "name": "enrichment_review_decision_check",
-          "value": "\"enrichment_reviews\".\"decision\" in ('accept','reject','correct') and ((\"enrichment_reviews\".\"decision\"='correct' and \"enrichment_reviews\".\"value\" is not null) or (\"enrichment_reviews\".\"decision\"<>'correct' and \"enrichment_reviews\".\"value\" is null))"
-        },
-        "enrichment_review_bounds_check": {
-          "name": "enrichment_review_bounds_check",
-          "value": "\"enrichment_reviews\".\"revision\">0 and \"enrichment_reviews\".\"resulting_revision\"=\"enrichment_reviews\".\"revision\"+1 and \"enrichment_reviews\".\"request_hash\" ~ '^[a-f0-9]{64}$' and length(\"enrichment_reviews\".\"candidate_id\") between 1 and 80 and (\"enrichment_reviews\".\"value\" is null or length(\"enrichment_reviews\".\"value\") between 1 and 5000)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.enrichment_work": {
-      "name": "enrichment_work",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "owner_id": {
-          "name": "owner_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "item_id": {
-          "name": "item_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "command_id": {
-          "name": "command_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "request_hash": {
-          "name": "request_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "base_revision": {
-          "name": "base_revision",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "input": {
-          "name": "input",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "confirmed_snapshot": {
-          "name": "confirmed_snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "attempts": {
-          "name": "attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "next_attempt_at": {
-          "name": "next_attempt_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "lease_token": {
-          "name": "lease_token",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "lease_until": {
-          "name": "lease_until",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "failure_code": {
-          "name": "failure_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "candidates": {
-          "name": "candidates",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "enrichment_due_idx": {
-          "name": "enrichment_due_idx",
-          "columns": [
-            {
-              "expression": "state",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "next_attempt_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "enrichment_owner_item_idx": {
-          "name": "enrichment_owner_item_idx",
-          "columns": [
-            {
-              "expression": "owner_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "item_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "enrichment_work_owner_id_users_id_fk": {
-          "name": "enrichment_work_owner_id_users_id_fk",
-          "tableFrom": "enrichment_work",
-          "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "enrichment_item_owner_fk": {
-          "name": "enrichment_item_owner_fk",
-          "tableFrom": "enrichment_work",
-          "tableTo": "items",
-          "columnsFrom": [
-            "item_id",
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id",
-            "owner_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "enrichment_owner_command_unique": {
-          "name": "enrichment_owner_command_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "owner_id",
-            "command_id"
-          ]
-        },
-        "enrichment_work_identity_unique": {
-          "name": "enrichment_work_identity_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "owner_id",
-            "item_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "enrichment_state_check": {
-          "name": "enrichment_state_check",
-          "value": "\"enrichment_work\".\"state\" in ('pending','processing','retry','succeeded','failed','unconfigured','stale')"
-        },
-        "enrichment_bounds_check": {
-          "name": "enrichment_bounds_check",
-          "value": "\"enrichment_work\".\"base_revision\">0 and \"enrichment_work\".\"attempts\" between 0 and 3 and \"enrichment_work\".\"request_hash\" ~ '^[a-f0-9]{64}$'"
-        },
-        "enrichment_payload_check": {
-          "name": "enrichment_payload_check",
-          "value": "jsonb_typeof(\"enrichment_work\".\"input\")='object' and octet_length(\"enrichment_work\".\"input\"::text)<=16384 and jsonb_typeof(\"enrichment_work\".\"confirmed_snapshot\")='object' and octet_length(\"enrichment_work\".\"confirmed_snapshot\"::text)<=32768 and jsonb_typeof(\"enrichment_work\".\"candidates\")='array' and jsonb_array_length(\"enrichment_work\".\"candidates\")<=5 and octet_length(\"enrichment_work\".\"candidates\"::text)<=40000"
-        },
-        "enrichment_lease_check": {
-          "name": "enrichment_lease_check",
-          "value": "(\"enrichment_work\".\"state\"='processing' and \"enrichment_work\".\"lease_token\" is not null and \"enrichment_work\".\"lease_until\" is not null) or (\"enrichment_work\".\"state\"<>'processing' and \"enrichment_work\".\"lease_token\" is null and \"enrichment_work\".\"lease_until\" is null)"
-        },
-        "enrichment_failure_check": {
-          "name": "enrichment_failure_check",
-          "value": "\"enrichment_work\".\"failure_code\" is null or \"enrichment_work\".\"failure_code\" in ('PROVIDER_UNCONFIGURED','PROVIDER_FAILED')"
         }
       },
       "isRLSEnabled": false

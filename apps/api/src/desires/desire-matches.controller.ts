@@ -34,6 +34,10 @@ import {
   MatchCandidatesQueryDto,
   MatchesQueryDto,
   PatchDesireMatchDto,
+  CreateSuggestionFeedbackDto,
+  DesireSuggestionFeedbackDto,
+  DesireSuggestionsPageDto,
+  SuggestionsQueryDto,
 } from './desire-matches.dto.js';
 import { DesireMatchesService } from './desire-matches.service.js';
 
@@ -113,6 +117,75 @@ export class DesireMatchesController {
     @Query() query: MatchCandidatesQueryDto,
   ): Promise<MatchCandidatesPageDto> {
     return this.service.candidates(owner.id, id, query);
+  }
+
+  @Get('suggestions')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary:
+      'List automatic similarity suggestions for this desire, ranked deterministically with explainable factors and feedback context.',
+  })
+  @ApiOkResponse({
+    type: DesireSuggestionsPageDto,
+    description: 'A page of ranked, explainable suggestions from the owner’s inventory.',
+  })
+  suggestions(
+    @CurrentOwner() owner: OwnerContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: SuggestionsQueryDto,
+  ): Promise<DesireSuggestionsPageDto> {
+    return this.service.suggestions(owner.id, id, query);
+  }
+
+  @Get('suggestions/feedback')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary: 'List all relevance and dismissal feedback recorded for this desire.',
+  })
+  @ApiOkResponse({
+    type: [DesireSuggestionFeedbackDto],
+    description: 'List of recorded feedback entries for this desire.',
+  })
+  listFeedback(
+    @CurrentOwner() owner: OwnerContext,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<DesireSuggestionFeedbackDto[]> {
+    return this.service.listFeedback(owner.id, id);
+  }
+
+  @Post('suggestions/feedback')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary: 'Record relevance or dismissal feedback on a suggestion for this desire.',
+  })
+  @ApiCreatedResponse({
+    type: DesireSuggestionFeedbackDto,
+    description: 'The recorded feedback entry.',
+  })
+  recordFeedback(
+    @CurrentOwner() owner: OwnerContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() input: CreateSuggestionFeedbackDto,
+  ): Promise<DesireSuggestionFeedbackDto> {
+    return this.service.recordFeedback(owner.id, id, input);
+  }
+
+  @Delete('suggestions/feedback/:feedbackId')
+  @HttpCode(204)
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({
+    summary:
+      'Reset or remove a relevance/dismissal feedback entry, restoring normal suggestion ranking.',
+  })
+  @ApiNoContentResponse({
+    description: 'The feedback was removed successfully.',
+  })
+  deleteFeedback(
+    @CurrentOwner() owner: OwnerContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('feedbackId', ParseUUIDPipe) feedbackId: string,
+  ): Promise<void> {
+    return this.service.deleteFeedback(owner.id, id, feedbackId);
   }
 
   @Patch(':matchId')

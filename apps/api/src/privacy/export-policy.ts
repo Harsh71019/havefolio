@@ -74,6 +74,17 @@ export const exportColumns = {
     'created_at',
     'updated_at',
   ],
+  desire_suggestion_feedback: [
+    'id',
+    'owner_id',
+    'desire_id',
+    'item_id',
+    'feedback_type',
+    'scope',
+    'reason',
+    'created_at',
+    'updated_at',
+  ],
   desire_reminders: [
     'desire_id',
     'owner_id',

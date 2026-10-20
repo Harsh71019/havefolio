@@ -9,5 +9,5 @@ export * from './format.js';
 export * from './desires.js';
 export * from './reminders.js';
 export * from './goal-comparison.js';
-
+export * from './similarity.js';
 export * from './enrichment.js';

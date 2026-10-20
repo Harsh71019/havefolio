@@ -848,6 +848,72 @@ export interface MatchCandidatesPage {
   hasMore: boolean;
 }
 
+/** PER-46: Explainable automatic similarity suggestions and relevance feedback. */
+export const suggestionFeedbackTypes = ['dismissed', 'irrelevant', 'relevant'] as const;
+export type SuggestionFeedbackType = (typeof suggestionFeedbackTypes)[number];
+
+export const suggestionFeedbackScopes = ['desire', 'global'] as const;
+export type SuggestionFeedbackScope = (typeof suggestionFeedbackScopes)[number];
+
+export const suggestionFactorKinds = [
+  'subcategory_match',
+  'category_match',
+  'purpose_match',
+  'name_match',
+  'brand_match',
+  'model_match',
+  'tag_match',
+  'trait_match',
+  'rarely_used_working',
+  'condition_penalty',
+  'relevance_feedback',
+] as const;
+export type SuggestionFactorKind = (typeof suggestionFactorKinds)[number];
+
+export interface SuggestionFactor {
+  kind: SuggestionFactorKind;
+  score: number;
+  label: string;
+  detail: string;
+}
+
+export interface DesireSuggestionFeedback {
+  id: string;
+  desireId: string;
+  itemId: string;
+  feedbackType: SuggestionFeedbackType;
+  scope: SuggestionFeedbackScope;
+  reason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DesireSuggestionItem {
+  id: string;
+  score: number;
+  explanation: string;
+  factors: SuggestionFactor[];
+  workingRarelyUsed: boolean;
+  conditionContext: string | null;
+  isUsableAlternative: boolean;
+  item: DesireMatchItemSummary;
+  feedback: DesireSuggestionFeedback | null;
+}
+
+export interface DesireSuggestionsPage {
+  items: DesireSuggestionItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalCount: number;
+}
+
+export interface CreateSuggestionFeedbackRequest {
+  itemId: string;
+  feedbackType: SuggestionFeedbackType;
+  scope?: SuggestionFeedbackScope | undefined;
+  reason?: string | undefined;
+}
+
 /**
  * PER-29: optional conversion of an effective bought desire into an owned item. Suggestions are
  * copied desire data the owner may accept or edit; the likely price is reference only and is

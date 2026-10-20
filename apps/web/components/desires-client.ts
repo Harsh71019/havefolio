@@ -1,11 +1,14 @@
 import type {
   ConvertDesireRequest,
-  DesireConversion,
-  DesireConversionState,
   CreateDesireMatchRequest,
   CreateReviewRequest,
+  CreateSuggestionFeedbackRequest,
+  DesireConversion,
+  DesireConversionState,
   DesireMatch,
   DesireMatchesPage,
+  DesireSuggestionFeedback,
+  DesireSuggestionsPage,
   ItemsPage,
   MatchCandidatesPage,
   PatchDesireMatchRequest,
@@ -376,6 +379,65 @@ export function getMatchCandidates(
   return request<MatchCandidatesPage>(
     `/api/v1/desires/${encodeURIComponent(desireId)}/matches/candidates${query ? `?${query}` : ''}`,
     { ...(options.signal ? { signal: options.signal } : {}) },
+  );
+}
+
+export function getDesireSuggestions(
+  desireId: string,
+  options: {
+    after?: string | undefined;
+    limit?: number | undefined;
+    includeDismissed?: boolean | undefined;
+    signal?: AbortSignal | undefined;
+  } = {},
+): Promise<DesireSuggestionsPage> {
+  const params = new URLSearchParams();
+  if (options.after) params.set('after', options.after);
+  if (options.limit) params.set('limit', String(options.limit));
+  if (options.includeDismissed) params.set('includeDismissed', 'true');
+  const query = params.toString();
+  return request<DesireSuggestionsPage>(
+    `/api/v1/desires/${encodeURIComponent(desireId)}/matches/suggestions${query ? `?${query}` : ''}`,
+    { ...(options.signal ? { signal: options.signal } : {}) },
+  );
+}
+
+export function recordSuggestionFeedback(
+  desireId: string,
+  input: CreateSuggestionFeedbackRequest,
+  signal?: AbortSignal,
+): Promise<DesireSuggestionFeedback> {
+  return request<DesireSuggestionFeedback>(
+    `/api/v1/desires/${encodeURIComponent(desireId)}/matches/suggestions/feedback`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+      ...(signal ? { signal } : {}),
+    },
+  );
+}
+
+export function deleteSuggestionFeedback(
+  desireId: string,
+  feedbackId: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  return request<void>(
+    `/api/v1/desires/${encodeURIComponent(desireId)}/matches/suggestions/feedback/${encodeURIComponent(feedbackId)}`,
+    {
+      method: 'DELETE',
+      ...(signal ? { signal } : {}),
+    },
+  );
+}
+
+export function getSuggestionFeedback(
+  desireId: string,
+  signal?: AbortSignal,
+): Promise<DesireSuggestionFeedback[]> {
+  return request<DesireSuggestionFeedback[]>(
+    `/api/v1/desires/${encodeURIComponent(desireId)}/matches/suggestions/feedback`,
+    { ...(signal ? { signal } : {}) },
   );
 }
 
