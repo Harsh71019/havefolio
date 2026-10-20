@@ -102,6 +102,7 @@ export class ItemPhotosService {
     item: string,
     uploadId: string,
     files: PhotoInput[],
+    review?: { revision: number; commit: (c: PoolClient, photoId: string) => Promise<void> },
   ): Promise<PhotoUploadDto> {
     const results: PhotoUploadDto['results'] = [];
     for (const [index, file] of files.entries()) {
@@ -112,7 +113,7 @@ export class ItemPhotosService {
         const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
         const ids = [id, randomUUID(), randomUUID()];
         const existing = await this.repo.transaction(owner, async (c) => {
-          await this.item(c, owner, item, undefined, true);
+          await this.item(c, owner, item, review?.revision, true);
           const prior = (await c.query<Row>('SELECT * FROM media_attachments WHERE id=$1', [id]))
             .rows[0];
           if (prior) {
@@ -178,7 +179,7 @@ export class ItemPhotosService {
               }),
             );
           await this.repo.transaction(owner, async (c) => {
-            await this.item(c, owner, item, undefined, true);
+            await this.item(c, owner, item, review?.revision, true);
             const position = (
               await c.query<{ position: number }>(
                 "SELECT coalesce(max(position)+1,0) AS position FROM media_attachments WHERE owner_id=$1 AND item_id=$2 AND kind='photo' AND variant='original' AND state='ready'",
@@ -192,10 +193,12 @@ export class ItemPhotosService {
               );
               if (r.rowCount !== 1) throw new ConflictException('PHOTO_UPLOAD_PENDING');
             }
-            await c.query(
-              'UPDATE items SET revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2',
-              [item, owner],
-            );
+            if (review) await review.commit(c, id);
+            else
+              await c.query(
+                'UPDATE items SET revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2',
+                [item, owner],
+              );
           });
         }
         const state = await this.snapshot(owner, item);

@@ -4,13 +4,24 @@
  * `2026-08-14`). Only receipt evidence can suggest them and only an explicit review applies them.
  */
 export type EnrichmentField =
-  'name' | 'brand' | 'model' | 'description' | 'pricePaid' | 'purchaseDate';
+  | 'name'
+  | 'brand'
+  | 'model'
+  | 'description'
+  | 'pricePaid'
+  | 'purchaseDate'
+  | 'image'
+  | `specification:${string}`;
 export interface EnrichmentRequest {
   commandId: string;
   revision: number;
   kind: 'name' | 'url' | 'barcode' | 'photo' | 'receipt';
   /** Required only for barcode; name/URL are read from the existing item. */
   barcode?: string;
+  /** Explicit URL for this request; omitted uses the saved purchase URL. */
+  url?: string;
+  /** Required for URL/barcode requests after provider disclosure; never inferred for old work. */
+  providerConsent?: 'public-product-metadata-v1' | 'open-food-facts-v1';
   attachmentId?: string;
 }
 export interface EnrichmentReview {
@@ -53,7 +64,7 @@ export interface EnrichmentWork {
   createdAt: string;
 }
 export interface EnrichmentPage {
-  /** `available` when at least one input kind has a configured local adapter. */
+  /** `available` when at least one input kind has a configured adapter. */
   providerStatus: 'available' | 'unconfigured';
   /** Input kinds that can currently produce suggestions; others resolve as unconfigured. */
   availableKinds: EnrichmentRequest['kind'][];

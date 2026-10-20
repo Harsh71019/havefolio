@@ -480,6 +480,9 @@ export function ItemDetails({
             Add details ({missing.length} optional)
           </Button>
         ) : null}
+        <Button asChild variant="outline" className="min-h-11">
+          <Link href={`/items/${current.id}/enrichment`}>Product link or barcode suggestions</Link>
+        </Button>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">

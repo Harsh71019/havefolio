@@ -20,12 +20,27 @@ export class EnrichmentRequestDto implements EnrichmentRequest {
   kind!: EnrichmentRequest['kind'];
   @ApiPropertyOptional({
     maxLength: 64,
-    description: 'Only for barcode input; never looked up by this boundary.',
+    description: 'GTIN barcode; explicit Open Food Facts lookup.',
   })
   @ValidateIf((_o, v) => v !== undefined)
   @IsString()
   @Matches(/^[0-9A-Za-z -]{1,64}$/)
   barcode?: string;
+  @ApiPropertyOptional({
+    maxLength: 2048,
+    description: 'Explicit public product URL; omitted uses saved purchase URL.',
+  })
+  @ValidateIf((_o, v) => v !== undefined)
+  @IsString()
+  @Length(1, 2048)
+  url?: string;
+  @ApiPropertyOptional({
+    enum: ['public-product-metadata-v1', 'open-food-facts-v1'],
+    description: 'Explicit source disclosure acknowledgement required for URL/barcode.',
+  })
+  @ValidateIf((_o, v) => v !== undefined)
+  @IsIn(['public-product-metadata-v1', 'open-food-facts-v1'])
+  providerConsent?: NonNullable<EnrichmentRequest['providerConsent']>;
   @ApiPropertyOptional({
     format: 'uuid',
     description: 'Ready original attachment belonging to this item; no content is transmitted.',
@@ -48,11 +63,13 @@ export class EnrichmentReviewDto implements EnrichmentReview {
   @Matches(/^[a-zA-Z0-9_-]{1,80}$/)
   candidateId!: string;
   @ApiProperty({
-    enum: ['name', 'brand', 'model', 'description', 'pricePaid', 'purchaseDate'],
+    example: 'specification:Capacity',
     description:
-      'pricePaid and purchaseDate are reviewable only for receipt work and use canonical values.',
+      'name, brand, model, description, receipt-only pricePaid/purchaseDate, image or specification:<key>',
   })
-  @IsIn(['name', 'brand', 'model', 'description', 'pricePaid', 'purchaseDate'])
+  @Matches(
+    /^(?:name|brand|model|description|pricePaid|purchaseDate|image|specification:[a-zA-Z0-9][a-zA-Z0-9 _-]{0,63})$/,
+  )
   field!: EnrichmentField;
   @ApiProperty({ enum: ['accept', 'reject', 'correct'] })
   @IsIn(['accept', 'reject', 'correct'])

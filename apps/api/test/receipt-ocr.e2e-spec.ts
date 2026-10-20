@@ -137,12 +137,12 @@ describe('PER-45 receipt and photo OCR review', () => {
     await run.close();
   });
 
-  it('advertises only the configured local kinds and accepts only owner-authorised image originals', async () => {
+  it('advertises product sources and configured local kinds and accepts only owner-authorised image originals', async () => {
     const item = await createItem();
     const list = await auth(http().get(path(item))).expect(200);
     expect(list.body).toMatchObject({
       providerStatus: 'available',
-      availableKinds: ['photo', 'receipt'],
+      availableKinds: ['url', 'barcode', 'photo', 'receipt'],
     });
     // Manual capture never queues OCR on its own.
     expect(
