@@ -141,6 +141,15 @@ describe('PER-35 private export and account erasure', () => {
         [desire, owner, event, goal, allocated, allocationCommand],
       );
     });
+    const enrichment = randomUUID();
+    await run.runtime.query(
+      `INSERT INTO enrichment_work(id,owner_id,item_id,command_id,request_hash,base_revision,input,confirmed_snapshot) VALUES($1,$2,$3,$4,repeat('a',64),1,'{"kind":"name","name":"Private manual"}','{"name":"Private manual"}')`,
+      [enrichment, owner, item, randomUUID()],
+    );
+    await run.runtime.query(
+      `INSERT INTO enrichment_reviews(owner_id,item_id,work_id,command_id,request_hash,candidate_id,field,decision,value,previous_value,confirmed_value,revision,resulting_revision) VALUES($1,$2,$3,$4,repeat('b',64),'fixture','name','correct','Private correction','Private manual','Private correction',1,2)`,
+      [owner, item, enrichment, randomUUID()],
+    );
     await media(ready);
     for (const [id, variant, parent] of [
       [photo, 'original', null],
@@ -191,6 +200,16 @@ describe('PER-35 private export and account erasure', () => {
     expect(data.goals![0]).toMatchObject({
       target_minor: '9007199254740993',
       target_date: '2028-02-29',
+    });
+    expect(data.enrichment_work).toHaveLength(1);
+    expect(data.enrichment_work![0]).toMatchObject({
+      input: { kind: 'name', name: 'Private manual' },
+      confirmed_snapshot: { name: 'Private manual' },
+    });
+    expect(data.enrichment_reviews![0]).toMatchObject({
+      decision: 'correct',
+      previous_value: 'Private manual',
+      confirmed_value: 'Private correction',
     });
     expect(data.goal_contributions).toHaveLength(3);
     expect(data.goal_contributions!.some((r) => r.supersedes_id === contribution)).toBe(true);
@@ -317,6 +336,14 @@ describe('PER-35 private export and account erasure', () => {
     ).toBe(1);
     expect(
       (await run.runtime.query('SELECT * FROM media_attachments WHERE owner_id=$1', [owner]))
+        .rowCount,
+    ).toBe(0);
+    expect(
+      (await run.runtime.query('SELECT id FROM enrichment_work WHERE owner_id=$1', [owner]))
+        .rowCount,
+    ).toBe(0);
+    expect(
+      (await run.runtime.query('SELECT id FROM enrichment_reviews WHERE owner_id=$1', [owner]))
         .rowCount,
     ).toBe(0);
     await service.tick();

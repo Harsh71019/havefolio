@@ -288,6 +288,7 @@ test('upload progress and processing states are visible and announced', async ({
   const { held, state } = await mockApi(page, photos(2), { holdUploads: true });
   await page.setViewportSize({ width: 360, height: 900 });
   await page.goto(`/items/${item}/photos`);
+  await expect(page.getByLabel('Choose from gallery or files')).toBeEnabled();
   await page.getByLabel('Choose from gallery or files').setInputFiles([
     { name: 'synthetic-1.png', mimeType: 'image/png', buffer: png(64, 48, [107, 143, 181]) },
     { name: 'synthetic-2.heic', mimeType: 'image/heic', buffer: Buffer.from('synthetic') },

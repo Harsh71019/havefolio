@@ -1,3 +1,8 @@
+import { enrichmentQueue } from '@havefolio/domain';
+import { EnrichmentRepository } from './enrichment/enrichment.repository.js';
+import { EnrichmentWorkerService, ENRICHMENT_PROVIDERS } from './enrichment/enrichment.service.js';
+import { EnrichmentRuntime } from './enrichment/enrichment.runtime.js';
+import { EnrichmentProcessor } from './enrichment/enrichment.processor.js';
 import { TelemetryModule } from '@havefolio/logging';
 import type { WorkerEnvironment } from '@havefolio/config';
 import { BullModule } from '@nestjs/bullmq';
@@ -29,6 +34,7 @@ export class WorkerModule {
             },
           }),
           BullModule.registerQueue(
+            { name: enrichmentQueue, prefix: environment.VALKEY_PREFIX },
             {
               name: SYSTEM_QUEUE,
               prefix: environment.VALKEY_PREFIX,
@@ -59,9 +65,14 @@ export class WorkerModule {
       providers: [
         { provide: WORKER_ENVIRONMENT, useValue: environment },
         WorkerRuntimeService,
+        EnrichmentRepository,
+        EnrichmentWorkerService,
+        EnrichmentRuntime,
+        { provide: ENRICHMENT_PROVIDERS, useValue: [] },
         ...(environment.WORKER_QUEUE_ENABLED
           ? [
               SystemProcessor,
+              EnrichmentProcessor,
               RemindersRepository,
               NtfyNotifierService,
               RemindersProcessor,

@@ -303,3 +303,5 @@ See [private Cloudinary operations](../operations/cloudinary-media.md) and [ADR-
 
 - [Optional demo inventory and onboarding](demo-onboarding.md): PER-19 durable identity, spending exclusion, read-only examples, private milestones and safe removal.
 - [PER-32 goals and money-alternatives screens](goals-screens.md): goal list/detail/forms over the PER-30 API, confirmed-ledger history with retry-safe commands, and hypothetical want-versus-goal comparison that defers to PER-31 allocation.
+
+- [PER-43 correctable enrichment](correctable-enrichment.md): private typed inputs, durable bounded work, explicit field review, correction history and disabled-provider behavior.

@@ -396,6 +396,9 @@ importers:
       '@havefolio/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@havefolio/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@havefolio/domain':
         specifier: workspace:*
         version: link:../../packages/domain

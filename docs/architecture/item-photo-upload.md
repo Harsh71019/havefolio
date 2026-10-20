@@ -35,3 +35,11 @@ The UI composes existing shadcn Button/Card/Input/Label primitives in the neutra
 PER-15 adds the gallery manager, owner alt text (migration 0007) and same-origin image delivery; see [item-photo-gallery.md](./item-photo-gallery.md).
 
 PER-47 adds on-device HEIC conversion before upload in browsers that can decode HEIC, offline guidance and upload cancellation; the API contract and HEIC rejection above are unchanged. See [mobile-capture-resilience.md](./mobile-capture-resilience.md).
+
+### Photo picker readiness
+
+Server-rendered camera and gallery inputs remain disabled until client handlers are attached.
+File input changes made before hydration cannot reliably be replayed, so an early selection
+would otherwise disappear without a preview. Browser tests wait for enabled controls and
+include a delayed-JavaScript regression proving both inputs stay disabled before hydration
+and selected photos produce previews afterwards (PER-43 CI reconciliation after PER-47).

@@ -21,3 +21,5 @@ export async function applyMigrations(
 }
 
 export { currencyCodes } from '@havefolio/domain';
+
+export * from './enrichment.js';
