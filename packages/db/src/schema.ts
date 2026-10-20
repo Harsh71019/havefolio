@@ -1209,3 +1209,105 @@ export const deletionResources = pgTable(
   },
   (t) => [index('deletion_resource_request_idx').on(t.deletionId, t.attachmentId)],
 );
+
+// PER-43: immutable private work snapshots and append-only field decisions.
+export const enrichmentWork = pgTable(
+  'enrichment_work',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    itemId: uuid('item_id').notNull(),
+    commandId: uuid('command_id').notNull(),
+    requestHash: text('request_hash').notNull(),
+    baseRevision: integer('base_revision').notNull(),
+    input: jsonb('input').$type<Record<string, unknown>>().notNull(),
+    confirmedSnapshot: jsonb('confirmed_snapshot').$type<Record<string, unknown>>().notNull(),
+    state: text('state').notNull().default('pending'),
+    attempts: integer('attempts').notNull().default(0),
+    nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, precision: 3 })
+      .notNull()
+      .defaultNow(),
+    leaseToken: uuid('lease_token'),
+    leaseUntil: timestamp('lease_until', { withTimezone: true, precision: 3 }),
+    failureCode: text('failure_code'),
+    candidates: jsonb('candidates').$type<unknown[]>().notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('enrichment_owner_command_unique').on(t.ownerId, t.commandId),
+    unique('enrichment_work_identity_unique').on(t.id, t.ownerId, t.itemId),
+    foreignKey({
+      columns: [t.itemId, t.ownerId],
+      foreignColumns: [items.id, items.ownerId],
+      name: 'enrichment_item_owner_fk',
+    }).onDelete('cascade'),
+    check(
+      'enrichment_state_check',
+      sql`${t.state} in ('pending','processing','retry','succeeded','failed','unconfigured','stale')`,
+    ),
+    check(
+      'enrichment_bounds_check',
+      sql`${t.baseRevision}>0 and ${t.attempts} between 0 and 3 and ${t.requestHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      'enrichment_payload_check',
+      sql`jsonb_typeof(${t.input})='object' and octet_length(${t.input}::text)<=16384 and jsonb_typeof(${t.confirmedSnapshot})='object' and octet_length(${t.confirmedSnapshot}::text)<=32768 and jsonb_typeof(${t.candidates})='array' and jsonb_array_length(${t.candidates})<=5 and octet_length(${t.candidates}::text)<=40000`,
+    ),
+    check(
+      'enrichment_lease_check',
+      sql`(${t.state}='processing' and ${t.leaseToken} is not null and ${t.leaseUntil} is not null) or (${t.state}<>'processing' and ${t.leaseToken} is null and ${t.leaseUntil} is null)`,
+    ),
+    check(
+      'enrichment_failure_check',
+      sql`${t.failureCode} is null or ${t.failureCode} in ('PROVIDER_UNCONFIGURED','PROVIDER_FAILED')`,
+    ),
+    index('enrichment_due_idx').on(t.state, t.nextAttemptAt, t.id),
+    index('enrichment_owner_item_idx').on(t.ownerId, t.itemId, t.id),
+  ],
+);
+export const enrichmentReviews = pgTable(
+  'enrichment_reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    itemId: uuid('item_id').notNull(),
+    workId: uuid('work_id').notNull(),
+    commandId: uuid('command_id').notNull(),
+    requestHash: text('request_hash').notNull(),
+    candidateId: text('candidate_id').notNull(),
+    field: text('field').notNull(),
+    decision: text('decision').notNull(),
+    value: text('value'),
+    previousValue: text('previous_value'),
+    confirmedValue: text('confirmed_value'),
+    revision: integer('revision').notNull(),
+    resultingRevision: integer('resulting_revision').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.workId, t.ownerId, t.itemId],
+      foreignColumns: [enrichmentWork.id, enrichmentWork.ownerId, enrichmentWork.itemId],
+      name: 'enrichment_review_work_fk',
+    }).onDelete('cascade'),
+    unique('enrichment_review_command_unique').on(t.ownerId, t.commandId),
+    check(
+      'enrichment_review_field_check',
+      sql`${t.field} in ('name','brand','model','description')`,
+    ),
+    check(
+      'enrichment_review_decision_check',
+      sql`${t.decision} in ('accept','reject','correct') and ((${t.decision}='correct' and ${t.value} is not null) or (${t.decision}<>'correct' and ${t.value} is null))`,
+    ),
+    check(
+      'enrichment_review_bounds_check',
+      sql`${t.revision}>0 and ${t.resultingRevision}=${t.revision}+1 and ${t.requestHash} ~ '^[a-f0-9]{64}$' and length(${t.candidateId}) between 1 and 80 and (${t.value} is null or length(${t.value}) between 1 and 5000)`,
+    ),
+    index('enrichment_review_owner_item_idx').on(t.ownerId, t.itemId, t.id),
+  ],
+);

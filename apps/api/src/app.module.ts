@@ -1,3 +1,4 @@
+import { EnrichmentModule } from './enrichment/enrichment.module.js';
 import { PrivacyModule } from './privacy/privacy.module.js';
 import { GoalsModule } from './goals/goals.module.js';
 import { HomeModule } from './home/home.module.js';
@@ -41,6 +42,7 @@ import { SettingsModule } from './settings/settings.module.js';
     MediaModule,
     SettingsModule,
     PrivacyModule,
+    EnrichmentModule,
   ],
 })
 export class AppModule {}

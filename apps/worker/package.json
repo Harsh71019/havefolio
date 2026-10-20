@@ -13,6 +13,7 @@
     "test:integration": "pnpm build && node --test test/*.integration.mjs"
   },
   "dependencies": {
+    "@havefolio/db": "workspace:*",
     "@havefolio/config": "workspace:*",
     "@havefolio/domain": "workspace:*",
     "@havefolio/logging": "workspace:*",

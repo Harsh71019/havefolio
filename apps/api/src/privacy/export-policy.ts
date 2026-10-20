@@ -1,5 +1,36 @@
 // Explicitly reviewed field policy. New tables and columns fail the schema coverage test.
 export const exportColumns = {
+  enrichment_work: [
+    'id',
+    'owner_id',
+    'item_id',
+    'command_id',
+    'base_revision',
+    'input',
+    'confirmed_snapshot',
+    'state',
+    'attempts',
+    'failure_code',
+    'candidates',
+    'created_at',
+    'updated_at',
+  ],
+  enrichment_reviews: [
+    'id',
+    'owner_id',
+    'item_id',
+    'work_id',
+    'command_id',
+    'candidate_id',
+    'field',
+    'decision',
+    'value',
+    'previous_value',
+    'confirmed_value',
+    'revision',
+    'resulting_revision',
+    'created_at',
+  ],
   categories: [
     'id',
     'owner_id',
@@ -265,6 +296,8 @@ export const excludedTables = [
   'deletion_resources',
 ];
 export const excludedColumns: Record<string, readonly string[]> = {
+  enrichment_work: ['request_hash', 'next_attempt_at', 'lease_token', 'lease_until'],
+  enrichment_reviews: ['request_hash'],
   users: ['password_hash', 'taxonomy_defaults_seeded_at', 'deletion_requested_at'],
   media_attachments: [
     'provider',
@@ -296,6 +329,7 @@ export function exportRow(
 // Preserve nested original/suggested JSON verbatim too: parsing JSONB through JS numbers
 // would round large original numeric values before the export is serialised.
 export const exportJsonColumns: Partial<Record<keyof typeof exportColumns, readonly string[]>> = {
+  enrichment_work: ['input', 'confirmed_snapshot', 'candidates'],
   items: ['original_entry', 'specifications'],
   lifecycle_events: ['metadata'],
   item_suggestions: ['suggested_values'],
