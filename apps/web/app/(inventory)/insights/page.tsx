@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
 import { MerchantSpending } from '@/components/merchant-spending';
 import { PageHeading } from '@/components/page-heading';
+import { PageShell } from '@/components/page-shell';
 import { SpendingInsights } from '@/components/spending-insights';
 export const metadata: Metadata = { title: 'Spending insights' };
 
 // Private data is requested only through the authenticated same-origin API, never in shared RSC data.
 export default function InsightsPage(): React.JSX.Element {
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-8 sm:py-12 lg:px-12">
+    <PageShell width="wide" className="space-y-8">
       <PageHeading
         eyebrow="Insights"
         title="Recorded spending"
@@ -20,6 +21,6 @@ export default function InsightsPage(): React.JSX.Element {
       </p>
       <MerchantSpending />
       <SpendingInsights />
-    </main>
+    </PageShell>
   );
 }

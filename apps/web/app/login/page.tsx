@@ -45,8 +45,9 @@ export default function LoginPage(): ReactElement {
             </p>
           </div>
         </section>
-        <section className="relative flex flex-col px-6 pb-8 pt-6 sm:px-10 lg:min-h-svh lg:px-12">
-          <div className="absolute right-6 top-6 flex justify-end sm:right-10 lg:static">
+        {/* PER-75: phones use the same 16 px gutter as the app shell; the split layout stays. */}
+        <section className="relative flex flex-col px-4 pb-8 pt-6 sm:px-10 lg:min-h-svh lg:px-12">
+          <div className="absolute right-4 top-6 flex justify-end sm:right-10 lg:static">
             <ThemeToggle />
           </div>
           <div

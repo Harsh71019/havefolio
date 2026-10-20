@@ -11,6 +11,8 @@ import {
   frequencyLabels,
 } from './item-detail-presentation';
 import { statusLabel } from './item-presentation';
+import { PageShell } from './page-shell';
+import { pageTitleClassName } from './page-heading';
 export function DemoItemDetails({
   item,
   returnTo,
@@ -19,13 +21,13 @@ export function DemoItemDetails({
   returnTo: string;
 }): React.JSX.Element {
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-8">
+    <PageShell width="wide">
       <Button asChild variant="outline" className="min-h-11">
         <Link href={returnTo}>Back to My Store</Link>
       </Button>
       <header className="space-y-3">
         <Badge>Demo · read-only example</Badge>
-        <h1 className="text-3xl font-semibold break-words">{item.name}</h1>
+        <h1 className={`${pageTitleClassName} break-words`}>{item.name}</h1>
         <p className="text-muted-foreground">
           A fictional household example. Amounts and dates are illustrative, excluded from your real
           spending. These details cannot be edited. Add your own item through manual entry.
@@ -68,6 +70,6 @@ export function DemoItemDetails({
           </CardContent>
         </Card>
       </div>
-    </main>
+    </PageShell>
   );
 }

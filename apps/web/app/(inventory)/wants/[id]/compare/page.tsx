@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import type { ReactElement } from 'react';
 import { PageHeading } from '@/components/page-heading';
+import { PageShell } from '@/components/page-shell';
 import { DesireCompare } from '@/components/desire-compare';
 
 export const metadata: Metadata = {
@@ -20,15 +21,13 @@ export default async function DesireComparePage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-8 sm:py-12 lg:px-12">
-      <div className="mb-6">
-        <PageHeading
-          eyebrow="Wants"
-          title="Compare before buying"
-          description="Consider what you already have and reflect on what a new purchase would do differently."
-        />
-      </div>
+    <PageShell width="wide">
+      <PageHeading
+        eyebrow="Wants"
+        title="Compare before buying"
+        description="Consider what you already have and reflect on what a new purchase would do differently."
+      />
       <DesireCompare desireId={id} />
-    </main>
+    </PageShell>
   );
 }

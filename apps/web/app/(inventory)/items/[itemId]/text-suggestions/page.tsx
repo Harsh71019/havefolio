@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { TextSuggestions } from '@/components/text-suggestions';
+import { PageShell } from '@/components/page-shell';
 
 export const metadata: Metadata = { title: 'Suggestions from photos and receipts' };
 
@@ -17,11 +18,11 @@ export default async function TextSuggestionsPage({
   const { returnTo } = await searchParams;
   // The component re-validates; only a single same-origin My Store route is ever honoured.
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
+    <PageShell width="content">
       <TextSuggestions
         itemId={itemId}
         returnTo={typeof returnTo === 'string' ? returnTo : undefined}
       />
-    </main>
+    </PageShell>
   );
 }

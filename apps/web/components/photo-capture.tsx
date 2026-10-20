@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { itemPhotoLimits } from '@havefolio/contracts';
 import { Button } from '@havefolio/ui/components/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@havefolio/ui/components/card';
+import { Card, CardContent } from '@havefolio/ui/components/card';
 import { PhotoUploadPanel } from './photo-upload-panel';
 import { fetchPhotos } from './photos-client';
+import { PageHeading } from './page-heading';
+import { PageShell } from './page-shell';
 
 export function PhotoCapture({ itemId }: { itemId: string }): React.JSX.Element {
   const [existing, setExisting] = useState<number | undefined>();
@@ -22,18 +24,12 @@ export function PhotoCapture({ itemId }: { itemId: string }): React.JSX.Element 
   }, [itemId]);
   const remaining = itemPhotoLimits.maxPhotosPerItem - (existing ?? 0) - added;
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-6 p-4 sm:p-6">
+    <PageShell width="form">
+      <PageHeading
+        title="Add item photos"
+        description={`Private JPEG, PNG or WebP photos, up to 10 MiB each and 8 per item. HEIC/HEIF is converted on this device where the browser supports it.${existing ? ` This item already has ${existing} of 8.` : ''}`}
+      />
       <Card>
-        <CardHeader>
-          <CardTitle>
-            <h1>Add item photos</h1>
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Private JPEG, PNG or WebP photos, up to 10 MiB each and 8 per item. HEIC/HEIF is
-            converted on this device where the browser supports it.
-            {existing ? ` This item already has ${existing} of 8.` : ''}
-          </p>
-        </CardHeader>
         <CardContent>
           <PhotoUploadPanel
             itemId={itemId}
@@ -49,6 +45,6 @@ export function PhotoCapture({ itemId }: { itemId: string }): React.JSX.Element 
           </PhotoUploadPanel>
         </CardContent>
       </Card>
-    </main>
+    </PageShell>
   );
 }
