@@ -27,7 +27,11 @@
     "pg": "8.23.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
-    "@havefolio/monitoring": "workspace:*"
+    "@havefolio/monitoring": "workspace:*",
+    "@tesseract.js-data/eng": "1.0.0",
+    "cloudinary": "2.11.0",
+    "sharp": "0.35.5",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "@havefolio/test-utils": "workspace:*",
