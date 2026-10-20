@@ -118,6 +118,7 @@ export function AddDesireForm(): ReactElement {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [createdDesire, setCreatedDesire] = useState<Desire | null>(null);
 
   function validationTarget(key: string): string {
@@ -242,12 +243,14 @@ export function AddDesireForm(): ReactElement {
     setServerError(null);
     setPhotoUploadError(null);
 
+    if (isSubmitting || submittingRef.current) return;
     const valid = flushSync(() => validateForm());
     if (!valid) {
       errorSummaryRef.current?.focus();
       return;
     }
 
+    submittingRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -307,6 +310,7 @@ export function AddDesireForm(): ReactElement {
         errorSummaryRef.current?.focus();
       }, 50);
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
       setPhotoUploadProgress(null);
     }
@@ -462,6 +466,7 @@ export function AddDesireForm(): ReactElement {
         <form
           id={`${formId}-form`}
           noValidate
+          aria-busy={isSubmitting}
           onSubmit={(e) => void handleSubmit(e)}
           className="space-y-6"
         >
@@ -531,7 +536,7 @@ export function AddDesireForm(): ReactElement {
               aria-describedby={validationErrors.name ? `${formId}-name-error` : undefined}
             />
             {validationErrors.name ? (
-              <p id={`${formId}-name-error`} className="text-xs text-destructive">
+              <p id={`${formId}-name-error`} role="alert" className="text-xs text-destructive">
                 {validationErrors.name}
               </p>
             ) : null}
@@ -678,7 +683,7 @@ export function AddDesireForm(): ReactElement {
                   </div>
                 </div>
                 {validationErrors.price ? (
-                  <p id={`${formId}-price-error`} className="text-xs text-destructive">
+                  <p id={`${formId}-price-error`} role="alert" className="text-xs text-destructive">
                     {validationErrors.price}
                   </p>
                 ) : null}
@@ -777,7 +782,11 @@ export function AddDesireForm(): ReactElement {
                 ) : null}
 
                 {validationErrors.waiting ? (
-                  <p id={`${formId}-waiting-error`} className="text-xs text-destructive">
+                  <p
+                    id={`${formId}-waiting-error`}
+                    role="alert"
+                    className="text-xs text-destructive"
+                  >
                     {validationErrors.waiting}
                   </p>
                 ) : null}
@@ -834,7 +843,11 @@ export function AddDesireForm(): ReactElement {
                   }
                 />
                 {validationErrors.productUrl ? (
-                  <p id={`${formId}-productUrl-error`} className="text-xs text-destructive">
+                  <p
+                    id={`${formId}-productUrl-error`}
+                    role="alert"
+                    className="text-xs text-destructive"
+                  >
                     {validationErrors.productUrl}
                   </p>
                 ) : null}
@@ -891,7 +904,11 @@ export function AddDesireForm(): ReactElement {
                   <span>{2000 - reason.length} characters remaining</span>
                 </div>
                 {validationErrors.reason ? (
-                  <p id={`${formId}-reason-error`} className="text-xs text-destructive">
+                  <p
+                    id={`${formId}-reason-error`}
+                    role="alert"
+                    className="text-xs text-destructive"
+                  >
                     {validationErrors.reason}
                   </p>
                 ) : null}
@@ -1002,7 +1019,7 @@ export function AddDesireForm(): ReactElement {
                 ) : null}
 
                 {validationErrors.photo ? (
-                  <p id={`${formId}-photo-error`} className="text-xs text-destructive">
+                  <p id={`${formId}-photo-error`} role="alert" className="text-xs text-destructive">
                     {validationErrors.photo}
                   </p>
                 ) : null}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AddItemForm } from '../components/add-item-form';
@@ -145,7 +145,9 @@ describe('PER-72 rendered validation recovery', () => {
       });
       if (state === 'collapsed') for (const toggle of toggles) await user.click(toggle);
       submit();
-      const summary = await screen.findByRole('alert');
+      const summary = (
+        await screen.findByRole('heading', { name: 'Please check the following before saving:' })
+      ).parentElement!;
       const links = within(summary).getAllByRole('link');
       expect(links).toHaveLength(5);
       for (const link of links)
@@ -168,7 +170,9 @@ describe('PER-72 rendered validation recovery', () => {
       target: { files: [new File(['bad'], 'bad.txt', { type: 'text/plain' })] },
     });
     await user.click(toggle);
-    const summary = await screen.findByRole('alert');
+    const summary = (
+      await screen.findByRole('heading', { name: 'Please check the following before saving:' })
+    ).parentElement!;
     const link = within(summary).getByRole('link');
     await activate(new RegExp(link.textContent));
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
@@ -240,6 +244,24 @@ describe('PER-72 rendered validation recovery', () => {
     await screen.findByRole('button', { name: /Retry loading categories/ });
     submit();
     await activate(/subcategory requires/, true);
+  });
+
+  it('retains duplicate-submit protection in the real Add want form', () => {
+    const original = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((input, init) => {
+      if (init?.method === 'POST') return new Promise<Response>(() => undefined);
+      return original(input, init);
+    });
+    render(<AddDesireForm />);
+    fireEvent.change(screen.getByRole('textbox', { name: /What are you considering/ }), {
+      target: { value: 'Synthetic guarded want' },
+    });
+    act(() => {
+      submit();
+      submit();
+    });
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /Saving desire/ })).toBeDisabled();
   });
 
   it('respects reduced motion when moving focus', async () => {

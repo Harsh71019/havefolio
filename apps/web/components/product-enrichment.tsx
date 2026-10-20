@@ -13,6 +13,7 @@ import { validBarcode } from '@havefolio/domain';
 import { Button } from '@havefolio/ui/components/button';
 import { Input } from '@havefolio/ui/components/input';
 import { Label } from '@havefolio/ui/components/label';
+import { RadioGroup, RadioGroupItem } from '@havefolio/ui/components/radio-group';
 import { Card, CardContent } from '@havefolio/ui/components/card';
 import { Textarea } from '@havefolio/ui/components/textarea';
 import { readItem } from './items-client';
@@ -276,20 +277,26 @@ export function ProductEnrichment({
                     <legend className="font-medium">
                       Choose the matching product ({w.candidates.length} candidates)
                     </legend>
-                    {w.candidates.map((c, index) => (
-                      <Label key={c.id} className="flex min-h-11 items-center gap-3 break-words">
-                        <input
-                          type="radio"
-                          name={`candidate-${w.id}`}
-                          checked={selected[w.id] === c.id}
-                          onChange={() => setSelected((p) => ({ ...p, [w.id]: c.id }))}
-                        />
-                        <span>
-                          Candidate {index + 1}:{' '}
-                          {c.fields.find((f) => f.field === 'name')?.value ?? 'Product details'}
-                        </span>
-                      </Label>
-                    ))}
+                    <RadioGroup
+                      name={`candidate-${w.id}`}
+                      value={selected[w.id] ?? ''}
+                      onValueChange={(val) => setSelected((p) => ({ ...p, [w.id]: val }))}
+                      className="space-y-2"
+                    >
+                      {w.candidates.map((c, index) => (
+                        <Label
+                          key={c.id}
+                          htmlFor={`candidate-${w.id}-${c.id}`}
+                          className="flex min-h-11 items-center gap-3 break-words rounded-md border border-input p-3 hover:bg-muted/50 cursor-pointer"
+                        >
+                          <RadioGroupItem id={`candidate-${w.id}-${c.id}`} value={c.id} />
+                          <span>
+                            Candidate {index + 1}:{' '}
+                            {c.fields.find((f) => f.field === 'name')?.value ?? 'Product details'}
+                          </span>
+                        </Label>
+                      ))}
+                    </RadioGroup>
                   </fieldset>
                 ) : null}
                 {w.candidates
