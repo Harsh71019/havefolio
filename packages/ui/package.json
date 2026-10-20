@@ -20,7 +20,8 @@
     "./components/kibo-ui/pill": "./src/components/kibo-ui/pill/index.tsx",
     "./hooks/*": "./src/hooks/*.ts",
     "./lib/*": "./src/lib/*.ts",
-    "./styles/globals.css": "./src/styles/globals.css"
+    "./styles/globals.css": "./src/styles/globals.css",
+    "./styles/themes.css": "./src/styles/themes.css"
   },
   "files": [
     "dist"
