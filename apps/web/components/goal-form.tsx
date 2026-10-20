@@ -100,6 +100,7 @@ export function GoalForm({ goalId }: Readonly<{ goalId?: string }>): ReactElemen
   const [ambiguousCreate, setAmbiguousCreate] = useState(false);
   const [latest, setLatest] = useState<Goal | null>(null);
   const [busy, setBusy] = useState(false);
+  const submittingRef = useRef(false);
   const notice = useRef<HTMLDivElement>(null);
   const touchedCurrency = useRef(false);
 
@@ -159,11 +160,13 @@ export function GoalForm({ goalId }: Readonly<{ goalId?: string }>): ReactElemen
   };
 
   const save = async (): Promise<void> => {
+    if (submittingRef.current || busy) return;
     const { errors: found, body } = validate(draft);
     // After a stale conflict the owner chose to keep their edits against the latest version.
     const base = latest ?? saved;
     setErrors(found);
     if (!body) return;
+    submittingRef.current = true;
     setBusy(true);
     setError('');
     try {
@@ -202,6 +205,7 @@ export function GoalForm({ goalId }: Readonly<{ goalId?: string }>): ReactElemen
         setError(goalMessage(e));
       }
     } finally {
+      submittingRef.current = false;
       setBusy(false);
     }
   };

@@ -7,6 +7,7 @@ Companion Architecture Artifacts:
 - [Route & Capture Audit Matrix](file:///Users/harsh/Developer/Havefolio/docs/architecture/ui-route-audit.md)
 - [Product Capture Blueprint](file:///Users/harsh/Developer/Havefolio/docs/architecture/capture-blueprint.md)
 - [Responsive UI Wireframes](file:///Users/harsh/Developer/Havefolio/docs/architecture/ui-wireframes.md)
+- [Control Standardisation Architecture](file:///Users/harsh/Developer/Havefolio/docs/architecture/control-standardisation.md)
 
 ---
 
@@ -128,6 +129,7 @@ Havefolio uses the native operating system typography stack (`font-sans`) withou
 - **Minimum Touch Target:** `44 × 44 px` (`min-h-11`) for all visible buttons, inputs, selects, and disclosure toggles on touch viewports.
 - **Input Heights:** `h-11` (44 px) default across text inputs, selects, and buttons.
 - **Focus Indicators:** Uncompromised `ring-2 ring-ring ring-offset-2 ring-offset-background` on `:focus-visible`. Never suppress focus outlines.
+- **Detailed Specification:** See [Control Standardisation Architecture](file:///Users/harsh/Developer/Havefolio/docs/architecture/control-standardisation.md) (PER-89) for the complete component usage matrix, state contracts, and touch target rules.
 
 ---
 

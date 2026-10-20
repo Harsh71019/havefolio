@@ -136,7 +136,7 @@ export function SpendingFilters({
         Refunds stay with the original purchase period.
       </p>
       {dateError ? (
-        <p role="alert" className="text-sm">
+        <p role="alert" className="text-sm text-destructive">
           {dateError}
         </p>
       ) : null}
