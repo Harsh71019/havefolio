@@ -292,7 +292,7 @@ test('upload progress and processing states are visible and announced', async ({
     { name: 'synthetic-1.png', mimeType: 'image/png', buffer: png(64, 48, [107, 143, 181]) },
     { name: 'synthetic-2.heic', mimeType: 'image/heic', buffer: Buffer.from('synthetic') },
   ]);
-  await expect(page.getByText('HEIC/HEIF is not supported yet')).toBeVisible();
+  await expect(page.getByText(/can’t convert HEIC\/HEIF photos/)).toBeVisible();
   await page.getByRole('button', { name: 'Upload photos' }).click();
   await expect(
     page.getByRole('progressbar', { name: 'Upload progress for photo 1' }),

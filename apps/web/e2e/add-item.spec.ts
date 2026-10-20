@@ -259,28 +259,112 @@ test.describe('Fast manual add-item flow', () => {
     const nameInput = page.getByPlaceholder('e.g. Electric kettle, Sony headphones, Winter coat');
     await nameInput.fill('Vintage Desk Lamp');
 
+    // PER-47: nothing is kept on the device until the owner opts in.
+    await page.reload();
+    await expect(nameInput).toHaveValue('');
+    await nameInput.fill('Vintage Desk Lamp');
+    await page.getByRole('switch', { name: 'Keep a draft on this device' }).click();
+
     await page.getByRole('combobox', { name: 'Category', exact: true }).click();
     await page.getByRole('option', { name: 'Electronics' }).click();
-
-    // Wait for draft autosave debounce
-    await page.waitForTimeout(400);
+    await expect(page.getByText(/Draft kept on this device at/)).toBeVisible();
 
     // Reload page
     await page.reload();
 
-    // Verify draft was restored
+    // Verify draft was restored and is distinguished from a saved item
     await expect(nameInput).toHaveValue('Vintage Desk Lamp');
     await expect(page.getByRole('combobox', { name: 'Category', exact: true })).toContainText(
       'Electronics',
     );
-    await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible();
+    await expect(page.getByText('Restored from this device.')).toContainText(
+      'not saved to your inventory yet',
+    );
+    await expect(page.getByRole('button', { name: 'Discard draft' })).toBeVisible();
 
     // Click discard draft
-    await page.getByRole('button', { name: 'Discard' }).click();
+    await page.getByRole('button', { name: 'Discard draft' }).click();
 
-    // Form is reset
+    // Form is reset and nothing remains on the device
     await expect(nameInput).toHaveValue('');
-    await expect(page.getByRole('button', { name: 'Discard' })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Discard draft' })).not.toBeVisible();
+    expect(
+      await page.evaluate(() =>
+        Object.keys(localStorage).filter((key) => key.startsWith('havefolio.capture-draft.v2.')),
+      ),
+    ).toEqual([]);
+  });
+
+  test('PER-47 offline draft survives and the retried save reuses one command', async ({
+    page,
+    context,
+  }, testInfo) => {
+    const commands: unknown[] = [];
+    let offline = false;
+    await page.route('**/api/v1/items', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      commands.push(body.commandId);
+      // Routed requests bypass context offline mode, so the lost connection is simulated here.
+      if (offline) return route.abort('internetdisconnected');
+      await route.fulfill({
+        status: 201,
+        json: {
+          id: 'item_test_per47',
+          name: body.name,
+          ownershipStatus: 'owned',
+          currency: 'INR',
+          pricePaidMinor: null,
+          purchaseDate: { precision: 'unknown' },
+          categoryId: null,
+        },
+      });
+    });
+    await page.goto('/items/new');
+    const nameInput = page.getByPlaceholder('e.g. Electric kettle, Sony headphones, Winter coat');
+    await nameInput.fill('Synthetic offline kettle');
+    await page.getByLabel('Price unknown').check();
+    await page.getByLabel('Date unknown').check();
+    await page.getByRole('switch', { name: 'Keep a draft on this device' }).click();
+
+    await context.setOffline(true);
+    offline = true;
+    await expect(page.getByText(/You.re offline\. Keep typing/)).toBeVisible();
+    await page.getByRole('button', { name: 'Save item', exact: true }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'not confirmed saved' })).toContainText(
+      'a retry will not create a duplicate',
+    );
+    const isMobile = testInfo.project.name === 'mobile';
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(
+        (value) => document.documentElement.classList.toggle('dark', value),
+        theme === 'dark',
+      );
+      await page.screenshot({
+        path: path.join(
+          screenshotsDir,
+          `per-47-offline-draft-${isMobile ? '360' : 'desktop'}-${theme}.png`,
+        ),
+        fullPage: true,
+      });
+    }
+    // A pending command survives a reload with the consented draft.
+    const stored = await page.evaluate(() =>
+      Object.entries(localStorage).find(([key]) => key.startsWith('havefolio.capture-draft.v2.')),
+    );
+    expect(stored?.[1]).toContain('Synthetic offline kettle');
+    expect(stored?.[1]).not.toMatch(/token|cookie|password/i);
+
+    await context.setOffline(false);
+    offline = false;
+    await page.reload();
+    await expect(nameInput).toHaveValue('Synthetic offline kettle');
+    await page.getByRole('button', { name: 'Save item', exact: true }).click();
+    await expect(page.getByText(/saved to your home/)).toBeVisible();
+    // Both attempts carry the command saved with the draft, so the server cannot duplicate it.
+    expect(commands).toHaveLength(2);
+    expect(commands[1]).toBe(commands[0]);
+    expect(commands[0]).toBe((JSON.parse(stored![1]) as { commandId: string }).commandId);
   });
 
   test('validation summary and field error focus', async ({ page }) => {

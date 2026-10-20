@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LoginForm } from '../components/login-form';
+import { hasDraftConsent, setDraftConsent } from '../components/capture-drafts';
 const { push, refresh } = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh }) }));
 afterEach(() => {
@@ -60,4 +61,22 @@ it('announces a connection failure and leaves the form retryable', async () => {
   submit();
   expect(await screen.findByRole('alert')).toHaveTextContent('Unable to connect');
   expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+});
+
+it("PER-47: removes other owners' local capture drafts after sign-in", async () => {
+  localStorage.clear();
+  setDraftConsent('previous-owner', true);
+  setDraftConsent('owner-1', true);
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ id: 'owner-1' })));
+  submit();
+  await waitFor(() => expect(push).toHaveBeenCalledWith('/store'));
+  expect(hasDraftConsent('previous-owner')).toBe(false);
+  expect(hasDraftConsent('owner-1')).toBe(true);
+  // An unreadable owner response clears every draft rather than guessing.
+  cleanup();
+  push.mockClear();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+  submit();
+  await waitFor(() => expect(hasDraftConsent('owner-1')).toBe(false));
+  localStorage.clear();
 });

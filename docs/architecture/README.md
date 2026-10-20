@@ -28,7 +28,7 @@ The MVP must provide an end-to-end private household experience for:
 - Product enrichment from names, URLs and barcodes.
 - Photo and receipt OCR enrichment.
 - Automatic similarity suggestions and relevance feedback.
-- HEIC capture improvements, offline drafts and installability.
+- HEIC capture improvements, offline drafts and installability (PER-47: [mobile-capture-resilience.md](./mobile-capture-resilience.md)).
 
 These enhancements must use provider boundaries and may improve data entry, but they must never block manual entry or silently overwrite user facts.
 

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@havefolio/ui/components/button';
 import { Input } from '@havefolio/ui/components/input';
 import { Label } from '@havefolio/ui/components/label';
+import { clearAllCaptureDrafts, purgeOtherOwnersDrafts } from './capture-drafts';
 
 export function LoginForm(): ReactElement {
   const router = useRouter();
@@ -38,6 +39,15 @@ export function LoginForm(): ReactElement {
         return;
       }
       form.reset();
+      // PER-47: another owner's local capture drafts never survive this sign-in.
+      let ownerId: unknown;
+      try {
+        ownerId = ((await response.json()) as { id?: unknown }).id;
+      } catch {
+        ownerId = undefined;
+      }
+      if (typeof ownerId === 'string') purgeOtherOwnersDrafts(ownerId);
+      else clearAllCaptureDrafts();
       router.push('/store');
       router.refresh();
     } catch {

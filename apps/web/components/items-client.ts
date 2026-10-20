@@ -1,16 +1,11 @@
 import type {
   CorrectRefundRequest,
   CreateItemRequest,
-  DatePrecision,
-  ItemAcquisition,
   ItemActionRequest,
-  ItemCondition,
   ItemEventsPage,
-  ItemFrequency,
   ItemRefundsSnapshot,
   ItemResponse,
   ItemsPage,
-  ItemStatus,
   OwnerResponse,
   RecordRefundRequest,
   UpdateItemRequest,
@@ -37,6 +32,8 @@ const messages: Record<string, string> = {
     'The server rejected this request origin. Check your connection or trusted origin configuration.',
   AUTH_REQUIRED: 'Your session has expired. Sign in to save this item.',
   REQUEST_TOO_LARGE: 'The item details are too large. Please shorten the description or notes.',
+  ITEM_COMMAND_REUSED:
+    'An earlier attempt already saved this item with different details. Check My Store before saving it as a new item.',
 };
 
 export class ItemRequestError extends Error {
@@ -92,7 +89,7 @@ export async function createItem(payload: CreateItemRequest): Promise<ItemRespon
             ? 'The item details are too large. Please shorten the description or notes.'
             : 'Could not save item. Try again.');
 
-    throw new ItemRequestError(response.status, userMessage);
+    throw new ItemRequestError(response.status, userMessage, rawMessage ?? '');
   }
 
   return response.json() as Promise<ItemResponse>;
@@ -109,90 +106,6 @@ export async function fetchCurrentOwner(): Promise<OwnerResponse | null> {
     return (await response.json()) as OwnerResponse;
   } catch {
     return null;
-  }
-}
-
-export interface ItemDraft {
-  version: 1;
-  name: string;
-  ownershipStatus: ItemStatus;
-  currency: string;
-  priceMode: 'known' | 'unknown';
-  priceDisplay: string;
-  datePrecision: DatePrecision;
-  purchaseYear?: string | undefined;
-  purchaseMonth?: string | undefined;
-  purchaseDay?: string | undefined;
-  categoryId?: string | undefined;
-  subcategoryId?: string | undefined;
-  tagIds?: string[] | undefined;
-  brand?: string | undefined;
-  model?: string | undefined;
-  description?: string | undefined;
-  notes?: string | undefined;
-  acquisitionType?: ItemAcquisition | undefined;
-  condition?: ItemCondition | undefined;
-  useFrequency?: ItemFrequency | undefined;
-  updatedAt: string;
-}
-
-export function getDraftStorageKey(ownerId: string): string {
-  return `havefolio_item_draft_v1_${ownerId}`;
-}
-
-export function saveItemDraft(
-  ownerId: string,
-  draft: Omit<ItemDraft, 'version' | 'updatedAt'>,
-): void {
-  if (typeof window === 'undefined' || !ownerId) return;
-  try {
-    const fullDraft: ItemDraft = {
-      ...draft,
-      version: 1,
-      updatedAt: new Date().toISOString(),
-    };
-    window.localStorage.setItem(getDraftStorageKey(ownerId), JSON.stringify(fullDraft));
-  } catch {
-    // Quota exceeded or storage unavailable; silently fail safe without throwing
-  }
-}
-
-export function loadItemDraft(ownerId: string): ItemDraft | null {
-  if (typeof window === 'undefined' || !ownerId) return null;
-  try {
-    const raw = window.localStorage.getItem(getDraftStorageKey(ownerId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as unknown;
-    if (
-      parsed &&
-      typeof parsed === 'object' &&
-      'version' in parsed &&
-      parsed.version === 1 &&
-      'name' in parsed &&
-      typeof parsed.name === 'string'
-    ) {
-      return parsed as ItemDraft;
-    }
-    // Incompatible or corrupt version, discard safely
-    window.localStorage.removeItem(getDraftStorageKey(ownerId));
-    return null;
-  } catch {
-    // Corrupt JSON, clear safely
-    try {
-      window.localStorage.removeItem(getDraftStorageKey(ownerId));
-    } catch {
-      // Ignore storage errors
-    }
-    return null;
-  }
-}
-
-export function clearItemDraft(ownerId: string): void {
-  if (typeof window === 'undefined' || !ownerId) return;
-  try {
-    window.localStorage.removeItem(getDraftStorageKey(ownerId));
-  } catch {
-    // Ignore storage errors
   }
 }
 

@@ -58,10 +58,12 @@ import {
 import { Skeleton } from '@havefolio/ui/components/skeleton';
 import { Switch } from '@havefolio/ui/components/switch';
 import { onboardingRequest } from './onboarding-client';
+import { clearAllCaptureDrafts } from './capture-drafts';
 import {
   fetchSettingsOverview,
   revokeActiveSession,
   revokeOtherSessions,
+  logoutThisDevice,
   updateOwnerPreferences,
   SettingsRequestError,
 } from './settings-client';
@@ -104,6 +106,7 @@ export function SettingsView(): ReactElement {
   // Session action state
   const [sessionActionLoading, setSessionActionLoading] = useState<string | null>(null);
   const [revokeAllLoading, setRevokeAllLoading] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   function applyOverview(data: SettingsOverview): void {
     setPreferences(data.preferences);
@@ -228,6 +231,20 @@ export function SettingsView(): ReactElement {
       );
     } finally {
       setRevokeAllLoading(false);
+    }
+  }
+
+  async function handleLogout(): Promise<void> {
+    setLogoutLoading(true);
+    // PER-47: local capture drafts leave with the session, even if the request then fails.
+    clearAllCaptureDrafts();
+    try {
+      await logoutThisDevice();
+      // A full navigation drops private data held in page memory; Back cannot return here.
+      window.location.replace('/login');
+    } catch (err) {
+      setSaveError(err instanceof SettingsRequestError ? err.message : 'Could not log out.');
+      setLogoutLoading(false);
     }
   }
 
@@ -473,42 +490,55 @@ export function SettingsView(): ReactElement {
                 <h2>Active Sessions</h2>
               </CardTitle>
             </div>
-            {otherSessionsCount > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    className="min-h-11"
-                    variant="outline"
-                    size="sm"
-                    disabled={revokeAllLoading}
-                  >
-                    <LogOut aria-hidden="true" className="mr-1.5 size-3.5" />
-                    Sign out other sessions ({otherSessionsCount})
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Sign out of other devices?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will revoke all active sessions except your current device. You will
-                      remain signed in here.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => void handleRevokeOtherSessions()}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <div className="flex flex-wrap gap-2">
+              <Button
+                className="min-h-11"
+                variant="outline"
+                size="sm"
+                disabled={logoutLoading}
+                onClick={() => void handleLogout()}
+              >
+                <LogOut aria-hidden="true" className="mr-1.5 size-3.5" />
+                {logoutLoading ? 'Logging out…' : 'Log out of this device'}
+              </Button>
+              {otherSessionsCount > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      className="min-h-11"
+                      variant="outline"
+                      size="sm"
+                      disabled={revokeAllLoading}
                     >
-                      Sign out other devices
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+                      <LogOut aria-hidden="true" className="mr-1.5 size-3.5" />
+                      Sign out other sessions ({otherSessionsCount})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Sign out of other devices?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will revoke all active sessions except your current device. You will
+                        remain signed in here.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => void handleRevokeOtherSessions()}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Sign out other devices
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </div>
           <CardDescription>
-            Manage devices currently signed into your private Havefolio installation.
+            Manage devices currently signed into your private Havefolio installation. Logging out
+            also removes unsaved item drafts kept on this device.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

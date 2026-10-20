@@ -57,6 +57,7 @@ export class ConvertDesireItemDto extends OmitType(CreateItemDto, [
   'useFrequency',
   'description',
   'specifications',
+  'commandId',
 ] as const) {
   @ApiProperty({ type: ConfirmedPricePaidDto })
   @IsDefined()

@@ -20,6 +20,7 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from '@havefolio/ui/components/alert-dialog';
+import { clearAllCaptureDrafts } from './capture-drafts';
 
 const storageKey = 'havefolio.deletion-receipt.v1';
 async function send(path: string, body: object): Promise<DeletionStatus> {
@@ -85,6 +86,8 @@ export function PrivacyControls(): ReactElement {
         : Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
       localStorage.setItem(storageKey, next);
       setReceipt(next);
+      // PER-47: local capture drafts are private data; remove them with the deletion request.
+      clearAllCaptureDrafts();
       const result = await send('deletion', { password, confirmation, receipt: next });
       setStatus(result);
       setOpen(false);
