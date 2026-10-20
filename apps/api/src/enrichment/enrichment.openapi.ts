@@ -2,7 +2,10 @@ import type { SchemaObject } from '@nestjs/swagger';
 const text: SchemaObject = { type: 'string' };
 const uuid: SchemaObject = { type: 'string', format: 'uuid' };
 const nullable: SchemaObject = { type: 'string', nullable: true };
-const field: SchemaObject = { type: 'string', enum: ['name', 'brand', 'model', 'description'] };
+const field: SchemaObject = {
+  type: 'string',
+  enum: ['name', 'brand', 'model', 'description', 'pricePaid', 'purchaseDate'],
+};
 const candidate: SchemaObject = {
   type: 'object',
   required: ['id', 'fields'],
@@ -94,9 +97,14 @@ export const enrichmentReviewSchema: SchemaObject = {
 };
 export const enrichmentPageSchema: SchemaObject = {
   type: 'object',
-  required: ['providerStatus', 'items', 'nextBefore'],
+  required: ['providerStatus', 'availableKinds', 'items', 'nextBefore'],
   properties: {
-    providerStatus: { type: 'string', enum: ['unconfigured'] },
+    providerStatus: { type: 'string', enum: ['available', 'unconfigured'] },
+    availableKinds: {
+      type: 'array',
+      maxItems: 5,
+      items: { type: 'string', enum: ['name', 'url', 'barcode', 'photo', 'receipt'] },
+    },
     items: { type: 'array', maxItems: 20, items: enrichmentWorkSchema },
     nextBefore: { ...uuid, nullable: true },
   },
