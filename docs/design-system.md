@@ -82,6 +82,8 @@ All inventory pages and shells must align to a **single, shared left rail**:
 2. **Left-Pinned Forms:** Constrain form containers to `max-w-2xl` (672 px) for ergonomic line length (50–75 characters per line), but **never center them**. Keep them anchored to the left content rail.
 3. **Wide Catalog Grids:** In My Store, Wants, and Insights, allow grids to fill available width up to `max-w-7xl` using auto-fill columns (`repeat(auto-fill, minmax(15rem, 1fr))`).
 
+> **Implemented in PER-75:** see [Shared left-rail page shell](architecture/page-shell.md) for the shipped `PageShell` widths and the recorded differences from this table (sidebar state is a saved preference at any desktop width; My Store keeps its 112rem cap).
+
 ---
 
 ## 4. Mobile Navigation & Clearance Contract (PER-85 Coordination)
@@ -95,6 +97,8 @@ Claude owns **PER-85** (`app-navigation.tsx`, safe-area mobile clearance, and na
    - All mobile pages must reserve bottom padding to prevent content, sticky actions, or active inputs from being hidden behind the navbar.
    - Standard clearance class: `pb-28` (112 px) or `pb-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]`.
    - On desktop (`md:`), reset to `md:pb-0`.
+> **Superseded by the merged PER-85 CSS:** the clearance above was provisional. The implemented contract is `--mobile-nav-clearance` in `apps/web/app/globals.css`, applied once by the inventory layout; pages must not add `pb-28`.
+
 3. **Software Keyboard Usability (PER-86):**
    - Save and cancel buttons on mobile forms must remain reachable above the software keyboard using standard viewport scrolling.
 
