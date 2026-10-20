@@ -150,7 +150,7 @@ export function BarcodeCamera({
             onChoose(code);
             setCodes([]);
           }}
-          className="mr-2"
+          className="mr-2 min-h-11"
         >
           Use {code}
         </Button>

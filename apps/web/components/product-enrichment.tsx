@@ -78,9 +78,25 @@ export function ProductEnrichment({
   };
   const refresh = async (): Promise<void> => {
     const [i, page] = await Promise.all([loadItem(itemId), api.list(itemId)]);
+    // PER-43 cursors use UUID ordering, so a newly submitted pending job can be on a
+    // later page. Resolve known active jobs within the existing 100-work item cap.
+    const pending = new Set(
+      works.filter((w) => ['pending', 'processing', 'retry'].includes(w.state)).map((w) => w.id),
+    );
+    const rows = [...page.items];
+    let next = page.nextBefore;
+    for (
+      let pages = 1;
+      next && pages < 10 && [...pending].some((id) => !rows.some((w) => w.id === id));
+      pages++
+    ) {
+      const more = await api.list(itemId, next);
+      rows.push(...more.items.filter((w) => !rows.some((r) => r.id === w.id)));
+      next = more.nextBefore;
+    }
     setItem(i);
-    setWorks(page.items);
-    setBefore(page.nextBefore);
+    setWorks(rows);
+    setBefore(next);
     requestCommand.current = null;
     reviewCommand.current = null;
     setStatus('Suggestions refreshed.');
@@ -143,7 +159,7 @@ export function ProductEnrichment({
   };
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
-      <Button asChild variant="ghost">
+      <Button className="min-h-11" asChild variant="ghost">
         <Link href={`/items/${encodeURIComponent(itemId)}`}>Back to item</Link>
       </Button>
       <header className="space-y-2">
@@ -171,6 +187,7 @@ export function ProductEnrichment({
           </p>
           <Label htmlFor="product-url">Public product URL</Label>
           <Input
+            className="min-h-11"
             id="product-url"
             disabled={!item || busy}
             type="url"
@@ -179,6 +196,7 @@ export function ProductEnrichment({
             maxLength={2048}
           />
           <Button
+            className="min-h-11"
             disabled={busy || !item || item.isDemo || !url}
             onClick={() => void act(() => request('url'))}
           >
@@ -192,6 +210,7 @@ export function ProductEnrichment({
           <BarcodeCamera onChoose={setBarcode} />
           <Label htmlFor="product-barcode">Barcode number</Label>
           <Input
+            className="min-h-11"
             id="product-barcode"
             disabled={!item || busy}
             inputMode="numeric"
@@ -204,6 +223,7 @@ export function ProductEnrichment({
             may have no match. Camera frames stay on your device.
           </p>
           <Button
+            className="min-h-11"
             disabled={busy || !item || item.isDemo || !barcode}
             onClick={() => void act(() => request('barcode'))}
           >
@@ -216,7 +236,12 @@ export function ProductEnrichment({
           <h2 id="review-heading" className="text-lg font-semibold">
             Review suggestions
           </h2>
-          <Button disabled={busy || !item} variant="outline" onClick={() => void act(refresh)}>
+          <Button
+            className="min-h-11"
+            disabled={busy || !item}
+            variant="outline"
+            onClick={() => void act(refresh)}
+          >
             Refresh suggestions
           </Button>
         </div>
@@ -250,7 +275,7 @@ export function ProductEnrichment({
                     Choose the matching product ({w.candidates.length} candidates)
                   </legend>
                   {w.candidates.map((c, index) => (
-                    <Label key={c.id} className="flex items-start gap-3 break-words">
+                    <Label key={c.id} className="flex min-h-11 items-center gap-3 break-words">
                       <input
                         type="radio"
                         name={`candidate-${w.id}`}
@@ -329,6 +354,7 @@ export function ProductEnrichment({
                       )}
                       <div className="flex flex-wrap gap-2">
                         <Button
+                          className="min-h-11"
                           disabled={busy}
                           onClick={() => void act(() => decide(w, f.field, 'accept'))}
                         >
@@ -338,6 +364,7 @@ export function ProductEnrichment({
                         </Button>
                         {f.field !== 'image' ? (
                           <Button
+                            className="min-h-11"
                             disabled={busy}
                             variant="outline"
                             onClick={() =>
@@ -348,6 +375,7 @@ export function ProductEnrichment({
                           </Button>
                         ) : null}
                         <Button
+                          className="min-h-11"
                           disabled={busy}
                           variant="outline"
                           onClick={() => void act(() => decide(w, f.field, 'reject'))}
@@ -363,6 +391,7 @@ export function ProductEnrichment({
         ))}
         {before ? (
           <Button
+            className="min-h-11"
             disabled={busy}
             variant="outline"
             onClick={() =>
@@ -373,7 +402,7 @@ export function ProductEnrichment({
               })
             }
           >
-            Load earlier requests
+            Load more requests
           </Button>
         ) : null}
       </section>
@@ -382,6 +411,7 @@ export function ProductEnrichment({
           Review history
         </h2>
         <Button
+          className="min-h-11"
           disabled={busy}
           variant="outline"
           onClick={() =>
@@ -411,6 +441,7 @@ export function ProductEnrichment({
         </ul>
         {historyBefore ? (
           <Button
+            className="min-h-11"
             disabled={busy}
             variant="outline"
             onClick={() =>
@@ -424,7 +455,7 @@ export function ProductEnrichment({
               })
             }
           >
-            Load earlier decisions
+            Load more decisions
           </Button>
         ) : null}
       </section>

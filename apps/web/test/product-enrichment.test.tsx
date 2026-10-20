@@ -142,6 +142,26 @@ describe('PER-44 source-specific review', () => {
       ),
     );
   });
+  it('refreshes a newly submitted job even when UUID ordering puts it on a later page', async () => {
+    const { api, user } = fixture();
+    await screen.findByText(item.name);
+    await user.type(
+      screen.getByLabelText('Public product URL'),
+      'https://shop.example.org/product',
+    );
+    await user.click(screen.getByRole('button', { name: 'Request link suggestions' }));
+    await screen.findByText(/Request saved/);
+    api.list
+      .mockResolvedValueOnce({
+        providerStatus: 'available',
+        items: [{ ...work, id: 'higher-uuid', candidates: [] }],
+        nextBefore: 'cursor',
+      })
+      .mockResolvedValueOnce({ providerStatus: 'available', items: [work], nextBefore: null });
+    await user.click(screen.getByRole('button', { name: 'Refresh suggestions' }));
+    await screen.findByText(/Choose the matching product/);
+    expect(api.list).toHaveBeenCalledWith(item.id, 'cursor');
+  });
   it('preserves command identity when a request response is lost', async () => {
     const { api, user } = fixture();
     api.request.mockRejectedValueOnce(new Error('Offline'));

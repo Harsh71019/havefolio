@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { test, expect } from '@playwright/test';
 const id = '00000000-0000-4000-a000-000000000044';
 for (const theme of ['light', 'dark'] as const)
@@ -107,6 +108,37 @@ for (const theme of ['light', 'dark'] as const)
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
+    await page.addScriptTag({
+      path: createRequire(import.meta.url).resolve('axe-core/axe.min.js'),
+    });
+    const violations = await page.evaluate(async () => {
+      const axe = (
+        window as unknown as {
+          axe: { run: (context: Document, options: unknown) => Promise<{ violations: unknown[] }> };
+        }
+      ).axe;
+      return (
+        await axe.run(document, {
+          runOnly: {
+            type: 'tag',
+            values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'],
+          },
+        })
+      ).violations;
+    });
+    expect(violations).toEqual([]);
+    const shortButtons = await page
+      .getByRole('main')
+      .getByRole('button')
+      .evaluateAll((buttons) =>
+        buttons
+          .filter(
+            (button) =>
+              !button.hasAttribute('disabled') && button.getBoundingClientRect().height < 44,
+          )
+          .map((button) => button.textContent),
+      );
+    expect(shortButtons).toEqual([]);
     await page.screenshot({
       path: `../../docs/screenshots/per-44-${info.project.name}-${theme}.png`,
       fullPage: true,

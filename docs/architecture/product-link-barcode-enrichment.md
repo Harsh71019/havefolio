@@ -60,7 +60,7 @@ preserved. `image` accepts or rejects one proposed URL; correction is intentiona
 Image acceptance records the protected attachment ID, never a public hotlink. All reviews
 retain command identity, original input, previous/confirmed values, provenance, confidence
 and current-revision chain. Network work runs outside transactions; revision/ownership and
-deletion admission are rechecked at publication. Source-specific UI lives independently of
+deletion admission are rechecked at publication. Refresh resolves known active requests through at most ten bounded UUID-cursor pages (the existing 100-work item cap), so new work is not lost when UUID ordering places it on a later page. Source-specific UI lives independently of
 PER-45. New fields use existing private work/review tables and existing item/media exports
 and account/item erasure; no additional private table or provider cleanup policy.
 
