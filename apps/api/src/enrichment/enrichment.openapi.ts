@@ -40,6 +40,8 @@ export const enrichmentWorkSchema: SchemaObject = {
   required: [
     'id',
     'itemId',
+    'inputKind',
+    'attachmentId',
     'baseRevision',
     'state',
     'attempts',
@@ -50,6 +52,8 @@ export const enrichmentWorkSchema: SchemaObject = {
   properties: {
     id: uuid,
     itemId: uuid,
+    inputKind: { type: 'string', enum: ['name', 'url', 'barcode', 'photo', 'receipt'] },
+    attachmentId: { ...uuid, nullable: true },
     baseRevision: { type: 'integer', minimum: 1 },
     state: {
       type: 'string',

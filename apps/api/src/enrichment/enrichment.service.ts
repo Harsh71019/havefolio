@@ -106,6 +106,9 @@ function work(r: WorkRow): EnrichmentWork {
   return {
     id: r.id,
     itemId: r.item_id,
+    inputKind: r.input.kind,
+    // Only the owner's own opaque attachment ID; URLs, barcodes and names are not echoed.
+    attachmentId: 'attachmentId' in r.input ? r.input.attachmentId : null,
     baseRevision: r.base_revision,
     state: r.state,
     attempts: r.attempts,

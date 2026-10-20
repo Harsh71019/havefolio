@@ -205,7 +205,11 @@ describe('PER-45 receipt and photo OCR review', () => {
       line('TOTAL Rs 2,624.85'),
     ]);
     const listed = (await auth(http().get(path(item))).expect(200)).body.items[0];
-    expect(listed.state).toBe('succeeded');
+    expect(listed).toMatchObject({
+      state: 'succeeded',
+      inputKind: 'receipt',
+      attachmentId: receipt,
+    });
     expect(listed.candidates.map((c: { id: string }) => c.id)).toEqual([
       'receipt-line-2',
       'receipt-line-3',

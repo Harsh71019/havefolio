@@ -33,6 +33,10 @@ export interface EnrichmentReviewEvent extends EnrichmentReview {
 export interface EnrichmentWork {
   id: string;
   itemId: string;
+  /** PER-45: which typed input produced this work, so source-specific review stays separate. */
+  inputKind: EnrichmentRequest['kind'];
+  /** The owner's own private photo/receipt attachment ID; null for other inputs. */
+  attachmentId: string | null;
   baseRevision: number;
   state: 'pending' | 'processing' | 'retry' | 'succeeded' | 'failed' | 'unconfigured' | 'stale';
   attempts: number;
