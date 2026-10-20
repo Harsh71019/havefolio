@@ -2,8 +2,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { id, itemId, mockCoreJourneys } from './support/core-journeys';
 
 // PER-87: overlays open and close without moving the page, leaking scroll to the background or
-// losing focus. Chromium emulation with synthetic data: wheel and synthesized touch-scroll
-// gestures stand in for real input, and no mobile browser chrome or software keyboard is modelled.
+// losing focus. Chromium emulation with synthetic data: wheel gestures stand in for real input,
+// and no touch scrolling, mobile browser chrome or software keyboard is modelled.
 
 const onboarding = {
   state: 'active',
@@ -52,35 +52,19 @@ function pageState(page: Page): Promise<PageState> {
 }
 
 /**
- * Scrolls by a gesture over a point (by default the content column, clear of the sidebar, which
- * scrolls on its own) towards whichever end has room, and reports how far the window moved.
+ * Wheels over a point (by default the content column, clear of the sidebar, which scrolls on its
+ * own) towards whichever end has room, and reports how far the window moved. CDP touch-scroll
+ * gestures were not applied on the Linux CI runner, so the wheel is used in both projects.
  */
-async function scrollOver(
-  page: Page,
-  isMobile: boolean,
-  point?: { x: number; y: number },
-): Promise<number> {
+async function scrollOver(page: Page, point?: { x: number; y: number }): Promise<number> {
   const { x, y } = point ?? { x: page.viewportSize()!.width - 24, y: 160 };
   const before = await page.evaluate(() => scrollY);
   const down = await page.evaluate(
     () => scrollY + innerHeight < document.documentElement.scrollHeight - 1,
   );
-  const distance = down ? 200 : -200;
-  if (isMobile) {
-    const session = await page.context().newCDPSession(page);
-    await session.send('Input.synthesizeScrollGesture', {
-      x,
-      y,
-      yDistance: -distance,
-      gestureSourceType: 'touch',
-      speed: 2000,
-    });
-    await session.detach();
-  } else {
-    await page.mouse.move(x, y);
-    await page.mouse.wheel(0, distance);
-  }
-  // Let the gesture's scroll events land before measuring.
+  await page.mouse.move(x, y);
+  await page.mouse.wheel(0, down ? 200 : -200);
+  // Let the wheel's scroll events land before measuring.
   await page.waitForTimeout(200);
   return (await page.evaluate(() => scrollY)) - before;
 }
@@ -159,10 +143,7 @@ for (const { theme, palette, motion } of appearances)
     });
 
     for (const c of cases)
-      test(`${c.name} keeps the page still and returns focus to its opener`, async ({
-        page,
-        isMobile,
-      }) => {
+      test(`${c.name} keeps the page still and returns focus to its opener`, async ({ page }) => {
         const { width, height } = page.viewportSize()!;
         if (c.maxWidth && width > c.maxWidth)
           await page.setViewportSize({ width: c.maxWidth, height });
@@ -176,7 +157,7 @@ for (const { theme, palette, motion } of appearances)
         await expect(dialog).toBeVisible();
         expect(await pageState(page)).toMatchObject({ y, overflow: 'hidden' });
         // The background stays put while the modal is open.
-        expect(await scrollOver(page, isMobile)).toBe(0);
+        expect(await scrollOver(page)).toBe(0);
 
         if (c.dismiss === 'Escape') await page.keyboard.press('Escape');
         else await dialog.getByRole('button', { name: c.dismiss }).click();
@@ -184,11 +165,11 @@ for (const { theme, palette, motion } of appearances)
         await expect(trigger).toBeFocused();
         await expect.poll(() => pageState(page)).toEqual(released(y));
         // Scrolling works again once the overlay has gone.
-        expect(await scrollOver(page, isMobile)).not.toBe(0);
+        expect(await scrollOver(page)).not.toBe(0);
       });
   });
 
-test('store filters scroll inside the dialog, not behind it', async ({ page, isMobile }) => {
+test('store filters scroll inside the dialog, not behind it', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 520 });
   await page.goto('/store');
   const trigger = page.getByRole('button', { name: /^Filters/ });
@@ -205,7 +186,7 @@ test('store filters scroll inside the dialog, not behind it', async ({ page, isM
   expect(await dialog.evaluate((d) => d.scrollHeight > d.clientHeight)).toBe(true);
 
   const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-  expect(await scrollOver(page, isMobile, centre)).toBe(0);
+  expect(await scrollOver(page, centre)).toBe(0);
   expect(await dialog.evaluate((d) => d.scrollTop)).toBeGreaterThan(0);
   expect((await pageState(page)).y).toBe(y);
 
@@ -231,10 +212,7 @@ test('choosing an optional detail hands focus to its editor, not back to Add det
   expect(await editor.evaluate((d) => d.contains(document.activeElement))).toBe(true);
 });
 
-test('nested overlays close one layer at a time and release the page last', async ({
-  page,
-  isMobile,
-}) => {
+test('nested overlays close one layer at a time and release the page last', async ({ page }) => {
   await page.goto(`/items/${itemId}`);
   const trigger = page.getByRole('button', { name: 'Edit condition and use' });
   const y = await midPage(page, trigger);
@@ -249,13 +227,13 @@ test('nested overlays close one layer at a time and release the page last', asyn
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('combobox').first()).toBeFocused();
   expect(await pageState(page)).toMatchObject({ y, overflow: 'hidden' });
-  expect(await scrollOver(page, isMobile)).toBe(0);
+  expect(await scrollOver(page)).toBe(0);
 
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
   await expect.poll(() => pageState(page)).toEqual(released(y));
-  expect(await scrollOver(page, isMobile)).not.toBe(0);
+  expect(await scrollOver(page)).not.toBe(0);
 });
 
 test('a confirmation opened from a menu returns focus to the menu button', async ({ page }) => {
