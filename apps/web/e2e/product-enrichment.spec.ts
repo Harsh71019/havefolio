@@ -33,6 +33,7 @@ for (const theme of ['light', 'dark'] as const)
     const work = {
       id: '00000000-0000-4000-a000-000000000144',
       itemId: id,
+      inputKind: 'url',
       baseRevision: 1,
       state: 'succeeded',
       attempts: 1,
