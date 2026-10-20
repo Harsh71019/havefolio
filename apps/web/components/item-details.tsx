@@ -231,6 +231,7 @@ export function ItemDetails({
   const [addDetails, setAddDetails] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const editReturn = useRef<HTMLElement | null>(null);
+  const addDetailsTrigger = useRef<HTMLButtonElement>(null);
   const online = useSyncExternalStore(
     subscribeOnline,
     () => navigator.onLine,
@@ -472,6 +473,7 @@ export function ItemDetails({
         />
         {missing.length ? (
           <Button
+            ref={addDetailsTrigger}
             variant="link"
             className="h-auto min-h-11 px-0"
             onClick={() => setAddDetails(true)}
@@ -879,7 +881,15 @@ export function ItemDetails({
       />
 
       <Dialog open={addDetails} onOpenChange={setAddDetails}>
-        <DialogContent className="max-h-[92svh] overflow-y-auto motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none">
+        <DialogContent
+          className="max-h-[92svh] overflow-y-auto motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none"
+          // PER-87: without a DialogTrigger Radix restores focus to nothing. Choosing a detail
+          // hands focus to its editor instead, so only a dismissal returns to the button.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            if (!editing) addDetailsTrigger.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Add details</DialogTitle>
             <DialogDescription>

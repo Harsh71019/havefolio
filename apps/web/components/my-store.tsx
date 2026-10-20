@@ -133,6 +133,7 @@ export function MyStore({
   const [announcement, setAnnouncement] = useState('');
   const [deleted, setDeleted] = useState<string | undefined>();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const filtersButton = useRef<HTMLButtonElement>(null);
   const flash = useRef<string | undefined>(undefined);
   useEffect(() => {
     // Read after hydration; the ref survives a development double-run of this effect.
@@ -266,7 +267,14 @@ export function MyStore({
       ) : null}
 
       <Dialog open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-        <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-md">
+        <DialogContent
+          className="max-h-[85svh] overflow-y-auto sm:max-w-md"
+          // PER-87: the dialog has no DialogTrigger, so Radix has no element to restore focus to.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            filtersButton.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Filters</DialogTitle>
             <DialogDescription>Narrow what you see. Counts update as you choose.</DialogDescription>
@@ -309,6 +317,7 @@ export function MyStore({
             query={query}
             onQueryChange={handleQueryChange}
             onOpenMobileFilters={() => setMobileFiltersOpen(true)}
+            filtersButtonRef={filtersButton}
             summary={summary}
           >
             <div className="hidden items-center gap-3 lg:flex">

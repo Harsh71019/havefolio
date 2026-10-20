@@ -33,6 +33,8 @@ export interface StoreToolbarProps {
   query: InventoryQuery;
   onQueryChange: (patch: InventoryPatch) => void;
   onOpenMobileFilters: () => void;
+  /** The Filters button, where focus returns when the filters dialog closes. */
+  filtersButtonRef?: React.Ref<HTMLButtonElement>;
   /** Result summary shown at the start of the row. */
   summary: string;
   /** Extra controls after sorting, such as view density. */
@@ -43,6 +45,7 @@ export function StoreToolbar({
   query,
   onQueryChange,
   onOpenMobileFilters,
+  filtersButtonRef,
   summary,
   children,
 }: StoreToolbarProps): React.JSX.Element {
@@ -68,6 +71,7 @@ export function StoreToolbar({
       <p className="text-sm text-muted-foreground">{summary}</p>
       <div className="flex flex-wrap items-center gap-3">
         <Button
+          ref={filtersButtonRef}
           type="button"
           variant="outline"
           onClick={onOpenMobileFilters}

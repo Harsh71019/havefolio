@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { OnboardingAction, OnboardingStatus } from '@havefolio/contracts';
 import { Button } from '@havefolio/ui/components/button';
@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from '@havefolio/ui/components/dialog';
 import { onboardingRequest } from './onboarding-client';
+import { mainContentId } from './skip-link';
 
 /** Product composition of existing shadcn primitives; no blocking tour or browser persistence. */
 export function Onboarding({
@@ -27,6 +28,7 @@ export function Onboarding({
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [notice, setNotice] = useState('');
+  const removeTrigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     let active = true;
     request(store ? 'browse_store' : 'read')
@@ -173,6 +175,7 @@ export function Onboarding({
             Sample amounts do not count toward your spending.
           </p>
           <Button
+            ref={removeTrigger}
             variant="outline"
             className="min-h-11"
             disabled={busy}
@@ -183,7 +186,14 @@ export function Onboarding({
         </div>
       ) : null}
       <Dialog open={confirm} onOpenChange={setConfirm}>
-        <DialogContent>
+        <DialogContent
+          // PER-87: return to the button, or to the page once removal has taken the button away.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            const target = removeTrigger.current;
+            (target?.isConnected ? target : document.getElementById(mainContentId))?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Remove all demo data?</DialogTitle>
             <DialogDescription>
