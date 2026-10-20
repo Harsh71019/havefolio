@@ -1,5 +1,9 @@
 # PER-43: correctable enrichment boundary
 
+Historical PER-43 baseline below. PER-44 adds production link/food-barcode adapters,
+source-specific review UI and image/specification fields; see
+[the additive extension](product-link-barcode-enrichment.md) for the current contracts.
+
 Enrichment is an explicit owner action after a valid manual item has been saved. Manual
 creation never calls a provider, touches an enrichment queue or depends on enrichment
 availability. There is **no production provider configured**. The production registry is

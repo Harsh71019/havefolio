@@ -108,3 +108,36 @@ test('PER-43 timed-out non-cooperative adapter retains its slot and logs only fi
   assert.deepEqual(outcomes, ['failed', 'circuit']);
   assert.equal(JSON.stringify(events).includes('PRIVATE'), false);
 });
+
+test('PER-44 legacy work without matching provider consent remains unconfigured', async () => {
+  for (const input of [
+    { kind: 'url', url: 'https://shop.example.org/private' },
+    { kind: 'barcode', barcode: '3017620422003' },
+  ]) {
+    const outcomes = [];
+    let calls = 0;
+    const service = new EnrichmentWorkerService(
+      {
+        store: {
+          claim: async () => ({ input }),
+          finish: async (_claim, outcome) => outcomes.push(outcome),
+        },
+      },
+      [
+        {
+          id: 'real-source-contract',
+          kinds: [input.kind],
+          supports: () => false,
+          suggest: async () => {
+            calls++;
+            return [];
+          },
+        },
+      ],
+      { emit: () => {} },
+    );
+    await service.process('legacy');
+    assert.equal(calls, 0);
+    assert.deepEqual(outcomes, ['unconfigured']);
+  }
+});

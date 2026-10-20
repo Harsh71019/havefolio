@@ -1,3 +1,4 @@
+import { ProductLinkProvider, FoodBarcodeProvider } from '@havefolio/enrichment';
 import { enrichmentQueue } from '@havefolio/domain';
 import { EnrichmentRepository } from './enrichment/enrichment.repository.js';
 import { EnrichmentWorkerService, ENRICHMENT_PROVIDERS } from './enrichment/enrichment.service.js';
@@ -68,7 +69,10 @@ export class WorkerModule {
         EnrichmentRepository,
         EnrichmentWorkerService,
         EnrichmentRuntime,
-        { provide: ENRICHMENT_PROVIDERS, useValue: [] },
+        {
+          provide: ENRICHMENT_PROVIDERS,
+          useFactory: () => [new ProductLinkProvider(), new FoodBarcodeProvider()],
+        },
         ...(environment.WORKER_QUEUE_ENABLED
           ? [
               SystemProcessor,

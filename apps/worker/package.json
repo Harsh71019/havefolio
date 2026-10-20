@@ -27,7 +27,8 @@
     "pg": "8.23.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
-    "@havefolio/monitoring": "workspace:*"
+    "@havefolio/monitoring": "workspace:*",
+    "@havefolio/enrichment": "workspace:*"
   },
   "devDependencies": {
     "@havefolio/test-utils": "workspace:*",

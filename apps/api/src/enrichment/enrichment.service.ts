@@ -1,3 +1,6 @@
+import { PublicFetcher, publicUrl } from '@havefolio/enrichment';
+import { ItemPhotosService } from '../media/item-photos.service.js';
+import { UploadRateService } from '../media/upload-rate.service.js';
 import { createHash } from 'node:crypto';
 import {
   BadRequestException,
@@ -5,11 +8,15 @@ import {
   Injectable,
   NotFoundException,
   HttpException,
+  Optional,
+  Inject,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import type { EnrichmentWork, EnrichmentPage, EnrichmentReviewEvent } from '@havefolio/contracts';
 import {
   validEnrichmentValue,
+  validBarcode,
   type EnrichmentInput,
   type EnrichmentCandidate,
 } from '@havefolio/domain';
@@ -34,6 +41,7 @@ interface Item {
   model: string | null;
   description: string | null;
   purchase_url: string | null;
+  specifications: Record<string, unknown> | null;
 }
 interface WorkRow {
   id: string;
@@ -94,7 +102,15 @@ function review(r: ReviewRow): EnrichmentReviewEvent {
 }
 @Injectable()
 export class EnrichmentService {
-  constructor(private readonly repository: ItemsRepository) {}
+  private importingImage = false;
+  constructor(
+    private readonly repository: ItemsRepository,
+    @Optional() private readonly photos?: ItemPhotosService,
+    @Optional() private readonly uploadRate?: UploadRateService,
+    @Optional()
+    @Inject('ENRICHMENT_FETCHER')
+    private readonly fetcher: PublicFetcher = new PublicFetcher(),
+  ) {}
   private async item(c: PoolClient, owner: string, id: string, revision?: number): Promise<Item> {
     const active = (
       await c.query('SELECT id FROM users WHERE id=$1 AND deletion_requested_at IS NULL', [owner])
@@ -117,6 +133,9 @@ export class EnrichmentService {
       dto.kind,
       dto.barcode ?? null,
       dto.attachmentId ?? null,
+      ...(dto.url !== undefined || dto.providerConsent !== undefined
+        ? [{ url: dto.url ?? null, providerConsent: dto.providerConsent ?? null }]
+        : []),
     ]);
     return this.repository.transaction(owner, async (c) => {
       await this.item(c, owner, id);
@@ -134,6 +153,8 @@ export class EnrichmentService {
       const item = await this.item(c, owner, id, dto.revision);
       if (
         (dto.kind !== 'barcode' && dto.barcode !== undefined) ||
+        (dto.kind !== 'url' && dto.url !== undefined) ||
+        (!['url', 'barcode'].includes(dto.kind) && dto.providerConsent !== undefined) ||
         (!['photo', 'receipt'].includes(dto.kind) && dto.attachmentId !== undefined)
       )
         throw new BadRequestException('INVALID_ENRICHMENT_INPUT');
@@ -143,12 +164,26 @@ export class EnrichmentService {
           input = { kind: 'name', name: item.name };
           break;
         case 'url':
-          if (!item.purchase_url) throw new BadRequestException('ENRICHMENT_URL_REQUIRED');
-          input = { kind: 'url', url: item.purchase_url };
+          if (dto.providerConsent !== 'public-product-metadata-v1')
+            throw new BadRequestException('ENRICHMENT_CONSENT_REQUIRED');
+          if (!(dto.url ?? item.purchase_url))
+            throw new BadRequestException('ENRICHMENT_URL_REQUIRED');
+          try {
+            input = {
+              kind: 'url',
+              url: publicUrl((dto.url ?? item.purchase_url)!).href,
+              consent: 'public-product-metadata-v1',
+            };
+          } catch {
+            throw new BadRequestException('INVALID_ENRICHMENT_URL');
+          }
           break;
         case 'barcode':
-          if (!dto.barcode) throw new BadRequestException('ENRICHMENT_BARCODE_REQUIRED');
-          input = { kind: 'barcode', barcode: dto.barcode };
+          if (dto.providerConsent !== 'open-food-facts-v1')
+            throw new BadRequestException('ENRICHMENT_CONSENT_REQUIRED');
+          if (!dto.barcode || !validBarcode(dto.barcode))
+            throw new BadRequestException('ENRICHMENT_BARCODE_REQUIRED');
+          input = { kind: 'barcode', barcode: dto.barcode, consent: 'open-food-facts-v1' };
           break;
         default:
           if (!dto.attachmentId) throw new BadRequestException('ENRICHMENT_ATTACHMENT_REQUIRED');
@@ -176,6 +211,7 @@ export class EnrichmentService {
         brand: item.brand,
         model: item.model,
         description: item.description,
+        specifications: item.specifications,
       };
       const row = (
         await c.query<WorkRow>(
@@ -204,7 +240,7 @@ export class EnrichmentService {
         )
       ).rows;
       return {
-        providerStatus: 'unconfigured',
+        providerStatus: 'available',
         items: rows.slice(0, q.limit).map(work),
         nextBefore: rows.length > q.limit ? rows[q.limit - 1]!.id : null,
       };
@@ -237,7 +273,8 @@ export class EnrichmentService {
   ): Promise<EnrichmentReviewEvent> {
     if (
       (dto.decision === 'correct') !== (dto.value !== undefined) ||
-      (dto.decision === 'correct' && !validEnrichmentValue(dto.field, dto.value))
+      (dto.decision === 'correct' &&
+        (dto.field === 'image' || !validEnrichmentValue(dto.field, dto.value)))
     )
       throw new BadRequestException('INVALID_ENRICHMENT_REVIEW');
     const requestHash = hash([
@@ -249,7 +286,10 @@ export class EnrichmentService {
       dto.decision,
       dto.value ?? null,
     ]);
-    return this.repository.transaction(owner, async (c) => {
+    const apply = async (
+      c: PoolClient,
+      imageId?: string,
+    ): Promise<EnrichmentReviewEvent | string> => {
       await this.item(c, owner, id);
       const prior = (
         await c.query<ReviewRow>(
@@ -284,18 +324,56 @@ export class EnrichmentService {
         .find((candidate) => candidate.id === dto.candidateId)
         ?.fields.find((f) => f.field === dto.field);
       if (!suggestion) throw new BadRequestException('ENRICHMENT_FIELD_NOT_FOUND');
-      const previous = item[dto.field];
+      if (dto.field === 'image' && dto.decision === 'accept' && !imageId) return suggestion.value;
+      const key = dto.field.startsWith('specification:') ? dto.field.slice(14) : null;
+      const priorImage =
+        dto.field === 'image'
+          ? ((
+              await c.query<{ confirmed_value: string | null }>(
+                "SELECT confirmed_value FROM enrichment_reviews WHERE owner_id=$1 AND work_id=$2 AND candidate_id=$3 AND field='image' ORDER BY resulting_revision DESC LIMIT 1",
+                [owner, workId, dto.candidateId],
+              )
+            ).rows[0]?.confirmed_value ?? null)
+          : null;
+      const rawPrevious = key
+        ? item.specifications && Object.hasOwn(item.specifications, key)
+          ? (item.specifications[key] ?? null)
+          : null
+        : dto.field === 'image'
+          ? priorImage
+          : item[dto.field as keyof typeof fields];
+      const previous =
+        rawPrevious === null || typeof rawPrevious === 'string'
+          ? rawPrevious
+          : JSON.stringify(rawPrevious);
       const confirmed =
         dto.decision === 'reject'
           ? previous
           : dto.decision === 'correct'
             ? dto.value!
-            : suggestion.value;
+            : dto.field === 'image'
+              ? imageId!
+              : suggestion.value;
       // Column identifiers come exclusively from the static allowlist, never from request text.
-      await c.query(
-        `UPDATE items SET ${fields[dto.field]}=$3,revision=revision+1,updated_at=now() WHERE owner_id=$1 AND id=$2`,
-        [owner, id, confirmed],
-      );
+      if (dto.decision === 'reject' || dto.field === 'image') {
+        await c.query(
+          'UPDATE items SET revision=revision+1,updated_at=now() WHERE owner_id=$1 AND id=$2',
+          [owner, id],
+        );
+      } else if (key) {
+        const next = { ...item.specifications, [key]: confirmed };
+        if (Buffer.byteLength(JSON.stringify(next)) > 16384 || Object.keys(next).length > 50)
+          throw new BadRequestException('INVALID_ENRICHMENT_REVIEW');
+        await c.query(
+          'UPDATE items SET specifications=$3::jsonb,revision=revision+1,updated_at=now() WHERE owner_id=$1 AND id=$2',
+          [owner, id, JSON.stringify(next)],
+        );
+      } else {
+        await c.query(
+          `UPDATE items SET ${fields[dto.field as keyof typeof fields]}=$3,revision=revision+1,updated_at=now() WHERE owner_id=$1 AND id=$2`,
+          [owner, id, confirmed],
+        );
+      }
       const result = (
         await c.query<ReviewRow>(
           `INSERT INTO enrichment_reviews(owner_id,item_id,work_id,command_id,request_hash,candidate_id,field,decision,value,previous_value,confirmed_value,revision,resulting_revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$12+1) RETURNING *`,
@@ -316,6 +394,53 @@ export class EnrichmentService {
         )
       ).rows[0]!;
       return review(result);
-    });
+    };
+    const result = await this.repository.transaction(owner, (c) => apply(c));
+    if (typeof result !== 'string') return result;
+    if (!this.photos || this.importingImage)
+      throw new ServiceUnavailableException('ENRICHMENT_IMAGE_UNAVAILABLE');
+    this.importingImage = true;
+    try {
+      await this.photos.authorize(owner, id);
+      await this.uploadRate?.check(owner, 'enrichment-image');
+      let remote;
+      try {
+        remote = await this.fetcher.fetch(
+          result,
+          ['image/jpeg', 'image/png', 'image/webp'],
+          10 * 1024 * 1024,
+          AbortSignal.timeout(4000),
+        );
+      } catch {
+        throw new BadRequestException('ENRICHMENT_IMAGE_REJECTED');
+      }
+      let event: EnrichmentReviewEvent | undefined;
+      const upload = await this.photos.upload(
+        owner,
+        id,
+        dto.commandId,
+        [
+          {
+            bytes: remote.bytes,
+            mimeType: remote.mime,
+            filename: `suggested.${remote.mime.split('/')[1]}`,
+          },
+        ],
+        {
+          revision: dto.revision,
+          commit: async (c, photoId) => {
+            const applied = await apply(c, photoId);
+            if (typeof applied === 'string')
+              throw new ConflictException('ENRICHMENT_IMAGE_UNAVAILABLE');
+            event = applied;
+          },
+        },
+      );
+      if (!event || upload.results[0]?.error)
+        throw new ConflictException('ENRICHMENT_IMAGE_UNAVAILABLE');
+      return event;
+    } finally {
+      this.importingImage = false;
+    }
   }
 }

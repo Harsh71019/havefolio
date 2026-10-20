@@ -1,11 +1,16 @@
 /** PER-43: owner-private review contract. No purchase money/date fields are accepted. */
-export type EnrichmentField = 'name' | 'brand' | 'model' | 'description';
+export type EnrichmentField =
+  'name' | 'brand' | 'model' | 'description' | 'image' | `specification:${string}`;
 export interface EnrichmentRequest {
   commandId: string;
   revision: number;
   kind: 'name' | 'url' | 'barcode' | 'photo' | 'receipt';
   /** Required only for barcode; name/URL are read from the existing item. */
   barcode?: string;
+  /** Explicit URL for this request; omitted uses the saved purchase URL. */
+  url?: string;
+  /** Required for URL/barcode requests after provider disclosure; never inferred for old work. */
+  providerConsent?: 'public-product-metadata-v1' | 'open-food-facts-v1';
   attachmentId?: string;
 }
 export interface EnrichmentReview {
@@ -44,7 +49,7 @@ export interface EnrichmentWork {
   createdAt: string;
 }
 export interface EnrichmentPage {
-  providerStatus: 'unconfigured';
+  providerStatus: 'available' | 'unconfigured';
   items: EnrichmentWork[];
   nextBefore: string | null;
 }

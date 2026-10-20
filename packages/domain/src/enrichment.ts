@@ -1,10 +1,10 @@
 /** PER-43: private, opt-in adapter boundary. URLs are provenance, never fetch permission. */
-export const enrichmentFields = ['name', 'brand', 'model', 'description'] as const;
-export type EnrichmentField = (typeof enrichmentFields)[number];
+export const enrichmentFields = ['name', 'brand', 'model', 'description', 'image'] as const;
+export type EnrichmentField = (typeof enrichmentFields)[number] | `specification:${string}`;
 export type EnrichmentInput =
   | { kind: 'name'; name: string }
-  | { kind: 'url'; url: string }
-  | { kind: 'barcode'; barcode: string }
+  | { kind: 'url'; url: string; consent?: 'public-product-metadata-v1' }
+  | { kind: 'barcode'; barcode: string; consent?: 'open-food-facts-v1' }
   | { kind: 'photo' | 'receipt'; attachmentId: string };
 export interface EnrichmentSuggestion {
   field: EnrichmentField;
@@ -20,13 +20,15 @@ export interface EnrichmentProvider {
   /** Stable non-secret adapter identity, never credentials or a model prompt. */
   readonly id: string;
   readonly kinds: readonly EnrichmentInput['kind'][];
+  /** Optional discriminator for source-specific consent; older providers remain compatible. */
+  supports?(input: EnrichmentInput): boolean;
   /** Adapters must honour cancellation and never forward private files externally. */
   suggest(input: EnrichmentInput, signal: AbortSignal): Promise<EnrichmentCandidate[]>;
 }
 export const enrichmentQueue = 'item-enrichment';
 export const enrichmentLimits = {
   candidates: 5,
-  fields: 4,
+  fields: 16,
   resultBytes: 32768,
   attempts: 3,
   timeoutMs: 5000,
@@ -35,11 +37,44 @@ export const enrichmentLimits = {
   circuitFailures: 3,
   circuitCooldownMs: 60000,
 } as const;
+export function validEnrichmentField(field: unknown): field is EnrichmentField {
+  return (
+    typeof field === 'string' &&
+    (enrichmentFields.includes(field as (typeof enrichmentFields)[number]) ||
+      /^specification:[a-zA-Z0-9][a-zA-Z0-9 _-]{0,63}$/.test(field))
+  );
+}
+export function validBarcode(value: string): boolean {
+  if (!/^(?:[0-9]{8}|[0-9]{12,14})$/.test(value)) return false;
+  const digits = [...value].map(Number);
+  const last = digits.pop();
+  const sum = digits.reverse().reduce((n, d, i) => n + d * (i % 2 === 0 ? 3 : 1), 0);
+  return (10 - (sum % 10)) % 10 === last;
+}
+function validImageReference(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password && !url.port
+    );
+  } catch {
+    return false;
+  }
+}
 export function validEnrichmentValue(field: EnrichmentField, value: unknown): value is string {
   return (
+    validEnrichmentField(field) &&
+    (field !== 'image' || (typeof value === 'string' && validImageReference(value))) &&
     typeof value === 'string' &&
     value.trim().length > 0 &&
-    value.length <= (field === 'description' ? 5000 : 300) &&
+    value.length <=
+      (field === 'description'
+        ? 5000
+        : field === 'image'
+          ? 2048
+          : field.startsWith('specification:')
+            ? 1000
+            : 300) &&
     !Array.from(value).some((character) => {
       const code = character.codePointAt(0)!;
       return code <= 31 && ![9, 10, 13].includes(code);
@@ -77,7 +112,7 @@ export function validateEnrichmentCandidates(
       fields: candidate.fields.map((suggestion) => {
         if (
           !suggestion ||
-          !enrichmentFields.includes(suggestion.field) ||
+          !validEnrichmentField(suggestion.field) ||
           fields.has(suggestion.field) ||
           !validEnrichmentValue(suggestion.field, suggestion.value) ||
           !Number.isFinite(suggestion.confidence) ||

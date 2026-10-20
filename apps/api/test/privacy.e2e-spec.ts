@@ -150,6 +150,14 @@ describe('PER-35 private export and account erasure', () => {
       `INSERT INTO enrichment_reviews(owner_id,item_id,work_id,command_id,request_hash,candidate_id,field,decision,value,previous_value,confirmed_value,revision,resulting_revision) VALUES($1,$2,$3,$4,repeat('b',64),'fixture','name','correct','Private correction','Private manual','Private correction',1,2)`,
       [owner, item, enrichment, randomUUID()],
     );
+    for (const [field, confirmed] of [
+      ['specification:Capacity', '1.5 L'],
+      ['image', photo],
+    ])
+      await run.runtime.query(
+        `INSERT INTO enrichment_reviews(owner_id,item_id,work_id,command_id,request_hash,candidate_id,field,decision,previous_value,confirmed_value,revision,resulting_revision) VALUES($1,$2,$3,$4,repeat('c',64),'fixture',$5,'accept',null,$6,2,3)`,
+        [owner, item, enrichment, randomUUID(), field, confirmed],
+      );
     await media(ready);
     for (const [id, variant, parent] of [
       [photo, 'original', null],
@@ -206,10 +214,16 @@ describe('PER-35 private export and account erasure', () => {
       input: { kind: 'name', name: 'Private manual' },
       confirmed_snapshot: { name: 'Private manual' },
     });
-    expect(data.enrichment_reviews![0]).toMatchObject({
+    expect(data.enrichment_reviews!.find((r) => r.field === 'name')).toMatchObject({
       decision: 'correct',
       previous_value: 'Private manual',
       confirmed_value: 'Private correction',
+    });
+    expect(
+      data.enrichment_reviews!.find((r) => r.field === 'specification:Capacity'),
+    ).toMatchObject({ confirmed_value: '1.5 L' });
+    expect(data.enrichment_reviews!.find((r) => r.field === 'image')).toMatchObject({
+      confirmed_value: photo,
     });
     expect(data.goal_contributions).toHaveLength(3);
     expect(data.goal_contributions!.some((r) => r.supersedes_id === contribution)).toBe(true);
