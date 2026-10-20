@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { isPurchaseUrl, type Merchant } from '@havefolio/contracts';
 import {
@@ -295,9 +296,22 @@ export class ItemsService {
   }
   async create(owner: string, input: CreateItemDto): Promise<ItemDto> {
     this.validate(input); // Reject before opening a transaction; insert re-checks for other callers.
+    const { commandId, ...entry } = input;
     return this.repository.transaction(owner, async (c) => {
-      const id = await this.insert(c, owner, input);
-      return this.details(c, owner, id);
+      if (!commandId) return this.details(c, owner, await this.insert(c, owner, entry));
+      // PER-47: a retried command derives the same owner-scoped ID, so a create whose response
+      // was lost cannot save a second item. The command itself is not stored.
+      const hex = createHash('sha256').update(`item:${owner}:${commandId}`).digest('hex');
+      const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+      await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [id]);
+      const prior = (
+        await c.query<{ same: boolean }>(
+          "SELECT original_source='manual' AND original_entry=$3::jsonb AS same FROM items WHERE owner_id=$1 AND id=$2",
+          [owner, id, JSON.stringify(entry)],
+        )
+      ).rows[0];
+      if (prior && !prior.same) throw new ConflictException('ITEM_COMMAND_REUSED');
+      return this.details(c, owner, prior ? id : await this.insert(c, owner, entry, undefined, id));
     });
   }
   /**
@@ -310,6 +324,7 @@ export class ItemsService {
     owner: string,
     input: CreateItemDto,
     provenance?: { originalEntry: Record<string, unknown>; event: Record<string, unknown> },
+    id?: string,
   ): Promise<string> {
     this.validate(input);
     await this.taxonomy(c, owner, input);
@@ -329,10 +344,11 @@ export class ItemsService {
       date.month ?? null,
       date.day ?? null,
       provenance?.originalEntry ?? input,
+      id ?? null,
     ];
     const row = (
       await c.query<{ id: string }>(
-        `INSERT INTO items(owner_id,${keys.map((k) => columns[k]).join(',')},ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,original_entry,original_source) VALUES(${params.map((_v, i) => '$' + (i + 1)).join(',')},'manual') RETURNING id`,
+        `INSERT INTO items(owner_id,${keys.map((k) => columns[k]).join(',')},ownership_status,purchase_date_precision,purchase_year,purchase_month,purchase_day,original_entry,id,original_source) VALUES(${params.map((_v, i) => (i === params.length - 1 ? `coalesce($${i + 1}::uuid,gen_random_uuid())` : '$' + (i + 1))).join(',')},'manual') RETURNING id`,
         params,
       )
     ).rows[0]!;
