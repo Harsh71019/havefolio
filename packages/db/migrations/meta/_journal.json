@@ -155,6 +155,13 @@
       "when": 1792324964862,
       "tag": "0021_private_export_account_deletion",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792468138221,
+      "tag": "0022_desire_suggestion_feedback",
+      "breakpoints": true
     }
   ]
 }
