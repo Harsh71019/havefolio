@@ -5,7 +5,6 @@ import Link from 'next/link';
 import type {
   Desire,
   DesireMatch,
-  DesireSuggestionFeedback,
   DesireSuggestionItem,
   MatchCandidateItem,
   MatchRelevance,
@@ -1003,7 +1002,8 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
               <EmptyHeader>
                 <EmptyTitle className="text-sm font-medium">No automatic suggestions</EmptyTitle>
                 <EmptyDescription className="text-xs">
-                  We didn&apos;t find any automatic suggestions based on recorded categories or purpose. Search your inventory below to link an alternative manually.
+                  We didn&apos;t find any automatic suggestions based on recorded categories or
+                  purpose. Search your inventory below to link an alternative manually.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

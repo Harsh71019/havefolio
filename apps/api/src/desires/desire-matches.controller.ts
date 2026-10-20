@@ -174,7 +174,8 @@ export class DesireMatchesController {
   @HttpCode(204)
   @Header('Cache-Control', 'no-store')
   @ApiOperation({
-    summary: 'Reset or remove a relevance/dismissal feedback entry, restoring normal suggestion ranking.',
+    summary:
+      'Reset or remove a relevance/dismissal feedback entry, restoring normal suggestion ranking.',
   })
   @ApiNoContentResponse({
     description: 'The feedback was removed successfully.',

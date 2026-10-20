@@ -8,7 +8,6 @@ import type {
   DesireMatch,
   DesireMatchesPage,
   DesireSuggestionFeedback,
-  DesireSuggestionItem,
   DesireSuggestionsPage,
   ItemsPage,
   MatchCandidatesPage,

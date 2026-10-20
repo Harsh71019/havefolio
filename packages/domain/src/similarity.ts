@@ -216,7 +216,11 @@ export function tokenizeText(text: string | null | undefined): string[] {
 /**
  * Check if candidate string occurs within target tokens or substring.
  */
-function textMatchesTokens(candidate: string | null | undefined, tokens: Set<string>, targetText: string): boolean {
+function textMatchesTokens(
+  candidate: string | null | undefined,
+  tokens: Set<string>,
+  targetText: string,
+): boolean {
   if (!candidate) return false;
   const candidateLower = candidate.toLowerCase().trim();
   if (candidateLower.length === 0) return false;
@@ -309,7 +313,10 @@ export function computeSuggestionScore(
   let rawScore = 0;
 
   // Factor: Subcategory Match (+35)
-  if (item.subcategoryName && textMatchesTokens(item.subcategoryName, desireAllTokens, desireCombinedText)) {
+  if (
+    item.subcategoryName &&
+    textMatchesTokens(item.subcategoryName, desireAllTokens, desireCombinedText)
+  ) {
     const pts = 35;
     rawScore += pts;
     factors.push({
@@ -321,7 +328,10 @@ export function computeSuggestionScore(
   }
 
   // Factor: Category Match (+20)
-  if (item.categoryName && textMatchesTokens(item.categoryName, desireAllTokens, desireCombinedText)) {
+  if (
+    item.categoryName &&
+    textMatchesTokens(item.categoryName, desireAllTokens, desireCombinedText)
+  ) {
     const pts = 20;
     rawScore += pts;
     factors.push({
@@ -379,7 +389,9 @@ export function computeSuggestionScore(
       ...tokenizeText(item.notes),
       ...itemNameTokens,
     ];
-    const sharedPurposeTokens = [...new Set(desireReasonTokens.filter((t) => itemContextTokens.includes(t)))];
+    const sharedPurposeTokens = [
+      ...new Set(desireReasonTokens.filter((t) => itemContextTokens.includes(t))),
+    ];
     if (sharedPurposeTokens.length > 0) {
       const pts = Math.min(sharedPurposeTokens.length * 6, 25);
       rawScore += pts;
@@ -394,7 +406,9 @@ export function computeSuggestionScore(
 
   // Factor: Tag Matches (+5 per matching tag, up to +15)
   if (Array.isArray(item.tags) && item.tags.length > 0) {
-    const matchingTags = item.tags.filter((tag) => textMatchesTokens(tag, desireAllTokens, desireCombinedText));
+    const matchingTags = item.tags.filter((tag) =>
+      textMatchesTokens(tag, desireAllTokens, desireCombinedText),
+    );
     if (matchingTags.length > 0) {
       const uniqueTags = [...new Set(matchingTags)];
       const pts = Math.min(uniqueTags.length * 5, 15);

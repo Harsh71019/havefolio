@@ -10,7 +10,9 @@ import {
 describe('similarity and explainable suggestion ranking', () => {
   describe('tokenizeText', () => {
     it('normalizes, lowercases, and strips punctuation and stop words', () => {
-      const tokens = tokenizeText('The Sony WH-1000XM4 Wireless Noise-Canceling Headphones for Coffee Shops!');
+      const tokens = tokenizeText(
+        'The Sony WH-1000XM4 Wireless Noise-Canceling Headphones for Coffee Shops!',
+      );
       assert.ok(!tokens.includes('the'));
       assert.ok(!tokens.includes('for'));
       assert.ok(tokens.includes('sony'));
@@ -224,9 +226,7 @@ describe('similarity and explainable suggestion ranking', () => {
     });
 
     it('global dismissal suppresses suggestion across all desires', () => {
-      const globalFeedback = new Map([
-        [item.id, { feedbackType: 'dismissed', scope: 'global' }],
-      ]);
+      const globalFeedback = new Map([[item.id, { feedbackType: 'dismissed', scope: 'global' }]]);
 
       const ranked1 = rankSuggestionCandidates([item], desire1, globalFeedback);
       assert.equal(ranked1.length, 0);
@@ -260,9 +260,7 @@ describe('similarity and explainable suggestion ranking', () => {
       assert.equal(initial[0].item.id, 'a');
 
       // Mark itemA as irrelevant for desire1
-      const feedback = new Map([
-        ['a', { feedbackType: 'irrelevant', scope: 'desire' }],
-      ]);
+      const feedback = new Map([['a', { feedbackType: 'irrelevant', scope: 'desire' }]]);
       const afterFeedback = rankSuggestionCandidates([itemA, itemB], desire1, feedback);
       assert.equal(afterFeedback[0].item.id, 'b', 'itemB should now rank above downranked itemA');
     });
@@ -323,7 +321,9 @@ describe('similarity and explainable suggestion ranking', () => {
 
       const run1 = rankSuggestionCandidates(items, desire).map((r) => r.item.id);
       const run2 = rankSuggestionCandidates([...items].reverse(), desire).map((r) => r.item.id);
-      const run3 = rankSuggestionCandidates([items[1], items[2], items[0]], desire).map((r) => r.item.id);
+      const run3 = rankSuggestionCandidates([items[1], items[2], items[0]], desire).map(
+        (r) => r.item.id,
+      );
 
       assert.deepEqual(run1, run2);
       assert.deepEqual(run2, run3);
@@ -482,12 +482,24 @@ describe('similarity and explainable suggestion ranking', () => {
       assert.ok(brokenIndex > 1);
 
       // Worn-out and sold items are completely excluded
-      assert.equal(ranked.some((r) => r.item.id === 'inv-08'), false);
-      assert.equal(ranked.some((r) => r.item.id === 'inv-09'), false);
+      assert.equal(
+        ranked.some((r) => r.item.id === 'inv-08'),
+        false,
+      );
+      assert.equal(
+        ranked.some((r) => r.item.id === 'inv-09'),
+        false,
+      );
 
       // Non-relevant categories (skillet, keyboard, coffee) have score 0 and are excluded
-      assert.equal(ranked.some((r) => r.item.id === 'inv-07'), false);
-      assert.equal(ranked.some((r) => r.item.id === 'inv-03'), false);
+      assert.equal(
+        ranked.some((r) => r.item.id === 'inv-07'),
+        false,
+      );
+      assert.equal(
+        ranked.some((r) => r.item.id === 'inv-03'),
+        false,
+      );
     });
 
     it('evaluates Scenario B: Coffee want -> Hario V60 ranks #1 with working & rarely used context', () => {
@@ -515,7 +527,10 @@ describe('similarity and explainable suggestion ranking', () => {
       const ranked = rankSuggestionCandidates(inventory, desireKeyboard);
       assert.ok(ranked.length >= 1);
       assert.equal(ranked[0].item.id, 'inv-03');
-      assert.ok(ranked[0].result.explanation.includes('Keyboards') || ranked[0].result.explanation.includes('typing'));
+      assert.ok(
+        ranked[0].result.explanation.includes('Keyboards') ||
+          ranked[0].result.explanation.includes('typing'),
+      );
     });
 
     it('computes quantitative evaluation benchmark metrics meeting release quality criteria', () => {

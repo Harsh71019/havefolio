@@ -884,10 +884,10 @@ export class DesireMatchesService {
         name: string;
         reason: string | null;
         classification: string | null;
-      }>(
-        'SELECT id, name, reason, classification FROM desires WHERE id = $1 AND owner_id = $2',
-        [desireId, owner],
-      );
+      }>('SELECT id, name, reason, classification FROM desires WHERE id = $1 AND owner_id = $2', [
+        desireId,
+        owner,
+      ]);
       const desireRow = desireRes.rows[0];
       if (!desireRow) {
         throw new NotFoundException('DESIRE_NOT_FOUND');
@@ -1179,11 +1179,7 @@ export class DesireMatchesService {
     });
   }
 
-  async deleteFeedback(
-    owner: string,
-    desireId: string,
-    feedbackIdOrItemId: string,
-  ): Promise<void> {
+  async deleteFeedback(owner: string, desireId: string, feedbackIdOrItemId: string): Promise<void> {
     return this.repo.transaction(owner, async (client) => {
       const res = await client.query(
         `DELETE FROM desire_suggestion_feedback
@@ -1201,10 +1197,7 @@ export class DesireMatchesService {
     });
   }
 
-  async listFeedback(
-    owner: string,
-    desireId: string,
-  ): Promise<DesireSuggestionFeedbackDto[]> {
+  async listFeedback(owner: string, desireId: string): Promise<DesireSuggestionFeedbackDto[]> {
     return this.repo.transaction(owner, async (client) => {
       // Check desire exists
       const desireRes = await client.query<{ id: string }>(

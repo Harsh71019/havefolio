@@ -1010,17 +1010,15 @@ describe('desire records, waiting periods, keyset pagination and private photo l
       ).toBe(true);
 
       // 7. Cross-desire scoping: desireB STILL suggests sonyXm4Id (not globally suppressed!)
-      const desireBSuggestions = (
-        await get(`/${desireB.id}/matches/suggestions`).expect(200)
-      ).body as {
+      const desireBSuggestions = (await get(`/${desireB.id}/matches/suggestions`).expect(200))
+        .body as {
         items: Array<{ id: string }>;
       };
       expect(desireBSuggestions.items.map((i) => i.id)).toContain(sonyXm4Id);
 
       // 8. List feedback endpoint returns the feedback record
-      const feedbackList = (
-        await get(`/${desireA.id}/matches/suggestions/feedback`).expect(200)
-      ).body as Array<{
+      const feedbackList = (await get(`/${desireA.id}/matches/suggestions/feedback`).expect(200))
+        .body as Array<{
         id: string;
         itemId: string;
         feedbackType: string;

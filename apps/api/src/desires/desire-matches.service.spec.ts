@@ -569,9 +569,7 @@ describe('DesireMatchesService application rules', () => {
         service.recordFeedback(owner, desireId, { itemId, feedbackType: 'dismissed' }),
       ).rejects.toThrow(new NotFoundException('DESIRE_NOT_FOUND'));
 
-      query
-        .mockResolvedValueOnce({ rows: [{ id: desireId }] })
-        .mockResolvedValueOnce({ rows: [] }); // item not found
+      query.mockResolvedValueOnce({ rows: [{ id: desireId }] }).mockResolvedValueOnce({ rows: [] }); // item not found
       await expect(
         service.recordFeedback(owner, desireId, { itemId, feedbackType: 'dismissed' }),
       ).rejects.toThrow(new NotFoundException('ITEM_NOT_FOUND'));
@@ -595,22 +593,20 @@ describe('DesireMatchesService application rules', () => {
 
     it('lists feedback for a desire', async () => {
       const now = new Date();
-      query
-        .mockResolvedValueOnce({ rows: [{ id: desireId }] })
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              id: 'fb-1',
-              desire_id: desireId,
-              item_id: itemId,
-              feedback_type: 'irrelevant',
-              scope: 'desire',
-              reason: null,
-              created_at: now,
-              updated_at: now,
-            },
-          ],
-        });
+      query.mockResolvedValueOnce({ rows: [{ id: desireId }] }).mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'fb-1',
+            desire_id: desireId,
+            item_id: itemId,
+            feedback_type: 'irrelevant',
+            scope: 'desire',
+            reason: null,
+            created_at: now,
+            updated_at: now,
+          },
+        ],
+      });
 
       const list = await service.listFeedback(owner, desireId);
       expect(list).toHaveLength(1);

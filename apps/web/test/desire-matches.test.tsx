@@ -159,16 +159,17 @@ const emptySuggestionsPage: DesireSuggestionsPage = {
 const mockSuggestion1: DesireSuggestionItem = {
   id: 's1000000-0000-4000-a000-000000000001',
   score: 85,
-  explanation: 'Shares category Kitchen Appliances and subcategory Pour-over Drippers with this want.',
+  explanation:
+    'Shares category Kitchen Appliances and subcategory Pour-over Drippers with this want.',
   factors: [
     {
-      kind: 'category',
+      kind: 'category_match',
       score: 20,
       label: 'Same category: Kitchen Appliances',
       detail: 'Category match',
     },
     {
-      kind: 'subcategory',
+      kind: 'subcategory_match',
       score: 35,
       label: 'Same subcategory: Pour-over Drippers',
       detail: 'Subcategory match',
@@ -987,9 +988,7 @@ describe('DesireMatches component', () => {
       if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
         suggestionsAttempt++;
         if (suggestionsAttempt === 1) {
-          return Promise.resolve(
-            jsonResponse({ message: 'MATCHES_UNAVAILABLE' }, 503),
-          );
+          return Promise.resolve(jsonResponse({ message: 'MATCHES_UNAVAILABLE' }, 503));
         }
         return Promise.resolve(
           jsonResponse({
@@ -1019,7 +1018,9 @@ describe('DesireMatches component', () => {
     render(<DesireMatches desireId={mockDesire.id} />);
 
     // Error alert
-    expect(await screen.findByText(/Possession matching is temporarily unavailable/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Possession matching is temporarily unavailable/i),
+    ).toBeInTheDocument();
 
     // Retry button
     const retryBtn = screen.getByRole('button', { name: /Retry loading suggestions/i });
