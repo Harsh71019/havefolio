@@ -5,6 +5,9 @@ import type {
   Desire,
   DesireMatch,
   DesireMatchesPage,
+  DesireSuggestionFeedback,
+  DesireSuggestionItem,
+  DesireSuggestionsPage,
   MatchCandidateItem,
   MatchCandidatesPage,
 } from '@havefolio/contracts';
@@ -146,6 +149,53 @@ const mockCandidate2: MatchCandidateItem = {
   },
 };
 
+const emptySuggestionsPage: DesireSuggestionsPage = {
+  items: [],
+  nextCursor: null,
+  hasMore: false,
+  totalCount: 0,
+};
+
+const mockSuggestion1: DesireSuggestionItem = {
+  id: 's1000000-0000-4000-a000-000000000001',
+  score: 85,
+  explanation: 'Shares category Kitchen Appliances and subcategory Pour-over Drippers with this want.',
+  factors: [
+    {
+      kind: 'category',
+      score: 20,
+      label: 'Same category: Kitchen Appliances',
+      detail: 'Category match',
+    },
+    {
+      kind: 'subcategory',
+      score: 35,
+      label: 'Same subcategory: Pour-over Drippers',
+      detail: 'Subcategory match',
+    },
+  ],
+  workingRarelyUsed: true,
+  conditionContext: 'Working condition · Rarely used',
+  isUsableAlternative: true,
+  item: {
+    id: 'i4000000-0000-4000-a000-000000000004',
+    name: 'Hario V60 Ceramic Dripper',
+    brand: 'Hario',
+    model: 'V60 02',
+    ownershipStatus: 'owned',
+    condition: 'working',
+    useFrequency: 'rarely',
+    categoryId: 'c1000000-0000-4000-a000-000000000001',
+    categoryName: 'Kitchen Appliances',
+    subcategoryId: null,
+    subcategoryName: 'Pour-over Drippers',
+    tags: ['coffee', 'ceramic'],
+    cover: null,
+    isUsableAlternative: true,
+  },
+  feedback: null,
+};
+
 describe('DesireMatches component', () => {
   const originalFetch = global.fetch;
 
@@ -167,6 +217,9 @@ describe('DesireMatches component', () => {
             hasMore: false,
           } satisfies MatchCandidatesPage),
         );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(jsonResponse(emptySuggestionsPage));
       }
       if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
         return Promise.resolve(
@@ -218,6 +271,9 @@ describe('DesireMatches component', () => {
             hasMore: false,
           } satisfies MatchCandidatesPage),
         );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(jsonResponse(emptySuggestionsPage));
       }
       if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
         return Promise.resolve(
@@ -272,6 +328,9 @@ describe('DesireMatches component', () => {
             hasMore: false,
           } satisfies MatchCandidatesPage),
         );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(jsonResponse(emptySuggestionsPage));
       }
       if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
         return Promise.resolve(
@@ -334,6 +393,9 @@ describe('DesireMatches component', () => {
           } satisfies MatchCandidatesPage),
         );
       }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(jsonResponse(emptySuggestionsPage));
+      }
       if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
         return Promise.resolve(
           jsonResponse({
@@ -387,6 +449,9 @@ describe('DesireMatches component', () => {
             hasMore: false,
           } satisfies MatchCandidatesPage),
         );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(jsonResponse(emptySuggestionsPage));
       }
       if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
         return Promise.resolve(
@@ -451,6 +516,9 @@ describe('DesireMatches component', () => {
             hasMore: false,
           } satisfies MatchCandidatesPage),
         );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(jsonResponse(emptySuggestionsPage));
       }
       if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
         return Promise.resolve(
@@ -526,6 +594,9 @@ describe('DesireMatches component', () => {
           } satisfies MatchCandidatesPage),
         );
       }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(jsonResponse(emptySuggestionsPage));
+      }
       if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
         return Promise.resolve(
           jsonResponse({
@@ -567,6 +638,395 @@ describe('DesireMatches component', () => {
     expect(
       await screen.findByText('“Can make rich morning coffee without needing espresso.”'),
     ).toBeInTheDocument();
+  });
+
+  it('PER-46: renders explainable suggestions with factors, summary explanation, and working & rarely used context', async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/candidates`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+          } satisfies MatchCandidatesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [mockSuggestion1],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 1,
+          } satisfies DesireSuggestionsPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 0,
+          } satisfies DesireMatchesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}`)) {
+        return Promise.resolve(jsonResponse(mockDesire));
+      }
+      return Promise.reject(new Error(`Unhandled fetch: ${url}`));
+    });
+
+    render(<DesireMatches desireId={mockDesire.id} />);
+
+    // Section header
+    expect(
+      await screen.findByRole('heading', { name: 'Suggested possessions' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Explainable suggestions based on your recorded possessions, categories, and purposes.',
+      ),
+    ).toBeInTheDocument();
+
+    // Suggestion item card
+    expect(await screen.findByText('Hario V60 Ceramic Dripper')).toBeInTheDocument();
+    expect(screen.getByText('Hario • V60 02')).toBeInTheDocument();
+
+    // Badges: Usable alternative, Working condition · Rarely used, Factors
+    expect(screen.getByText('Usable alternative')).toBeInTheDocument();
+    expect(screen.getByText('Working condition · Rarely used')).toBeInTheDocument();
+    expect(screen.getByText('Same category: Kitchen Appliances')).toBeInTheDocument();
+    expect(screen.getByText('Same subcategory: Pour-over Drippers')).toBeInTheDocument();
+
+    // Plain-language explanation
+    expect(
+      screen.getByText(
+        'Shares category Kitchen Appliances and subcategory Pour-over Drippers with this want.',
+      ),
+    ).toBeInTheDocument();
+
+    // Action buttons
+    expect(screen.getByRole('button', { name: /Connect as alternative/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Dismiss for this want/i })).toBeInTheDocument();
+  });
+
+  it('PER-46: allows connecting a suggestion as a match alternative', async () => {
+    const user = userEvent.setup();
+    const postCalls: Array<{ url: string; body: unknown }> = [];
+
+    const newMatchFromSuggestion: DesireMatch = {
+      id: 'm4000000-0000-4000-a000-000000000004',
+      desireId: mockDesire.id,
+      itemId: mockSuggestion1.item.id,
+      reason: mockSuggestion1.explanation,
+      relevance: 'relevant',
+      source: 'manual',
+      item: { ...mockSuggestion1.item },
+      hints: {
+        categoryHint: 'Category: Kitchen Appliances',
+        usageHint: 'Frequency: rarely',
+        conditionHint: 'Condition: working',
+        traitHints: ['coffee', 'ceramic'],
+      },
+      createdAt: '2026-10-16T12:20:00.000Z',
+      updatedAt: '2026-10-16T12:20:00.000Z',
+    };
+
+    global.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        postCalls.push({ url, body: JSON.parse(init.body as string) });
+        return Promise.resolve(jsonResponse(newMatchFromSuggestion, 201));
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/candidates`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+          } satisfies MatchCandidatesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [mockSuggestion1],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 1,
+          } satisfies DesireSuggestionsPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 0,
+          } satisfies DesireMatchesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}`)) {
+        return Promise.resolve(jsonResponse(mockDesire));
+      }
+      return Promise.reject(new Error(`Unhandled fetch: ${url}`));
+    });
+
+    render(<DesireMatches desireId={mockDesire.id} />);
+
+    expect(await screen.findByText('Hario V60 Ceramic Dripper')).toBeInTheDocument();
+
+    const connectBtn = screen.getByRole('button', { name: /Connect as alternative/i });
+    await user.click(connectBtn);
+
+    await waitFor(() => {
+      expect(postCalls).toHaveLength(1);
+    });
+    expect(postCalls[0]?.body).toEqual({
+      itemId: mockSuggestion1.item.id,
+      reason: mockSuggestion1.explanation,
+    });
+
+    // Success feedback and transition to connected possessions
+    expect(
+      await screen.findByText('Connected “Hario V60 Ceramic Dripper” to this want.'),
+    ).toBeInTheDocument();
+  });
+
+  it('PER-46: allows dismissing a suggestion for this want', async () => {
+    const user = userEvent.setup();
+    const feedbackCalls: Array<{ url: string; body: unknown }> = [];
+
+    const feedbackResponse: DesireSuggestionFeedback = {
+      id: 'fb100000-0000-4000-a000-000000000001',
+      desireId: mockDesire.id,
+      itemId: mockSuggestion1.item.id,
+      feedbackType: 'dismissed',
+      scope: 'desire',
+      reason: null,
+      createdAt: '2026-10-16T12:25:00.000Z',
+      updatedAt: '2026-10-16T12:25:00.000Z',
+    };
+
+    global.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        feedbackCalls.push({ url, body: JSON.parse(init.body as string) });
+        return Promise.resolve(jsonResponse(feedbackResponse, 201));
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/candidates`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+          } satisfies MatchCandidatesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [mockSuggestion1],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 1,
+          } satisfies DesireSuggestionsPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 0,
+          } satisfies DesireMatchesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}`)) {
+        return Promise.resolve(jsonResponse(mockDesire));
+      }
+      return Promise.reject(new Error(`Unhandled fetch: ${url}`));
+    });
+
+    render(<DesireMatches desireId={mockDesire.id} />);
+
+    expect(await screen.findByText('Hario V60 Ceramic Dripper')).toBeInTheDocument();
+
+    const dismissBtn = screen.getByRole('button', { name: /Dismiss for this want/i });
+    await user.click(dismissBtn);
+
+    await waitFor(() => {
+      expect(feedbackCalls).toHaveLength(1);
+    });
+    expect(feedbackCalls[0]?.url).toContain('/matches/suggestions/feedback');
+    expect(feedbackCalls[0]?.body).toEqual({
+      itemId: mockSuggestion1.item.id,
+      feedbackType: 'dismissed',
+      scope: 'desire',
+    });
+
+    // Dismissal status notice
+    expect(
+      await screen.findByText('Dismissed “Hario V60 Ceramic Dripper” for this want.'),
+    ).toBeInTheDocument();
+
+    // Toggle for dismissed appears
+    expect(screen.getByRole('button', { name: /View dismissed \(1\)/i })).toBeInTheDocument();
+  });
+
+  it('PER-46: allows expanding dismissed suggestions and undoing dismissal', async () => {
+    const user = userEvent.setup();
+    const deleteFeedbackCalls: string[] = [];
+
+    const dismissedItem: DesireSuggestionItem = {
+      ...mockSuggestion1,
+      feedback: {
+        id: 'fb100000-0000-4000-a000-000000000001',
+        desireId: mockDesire.id,
+        itemId: mockSuggestion1.item.id,
+        feedbackType: 'dismissed',
+        scope: 'desire',
+        reason: null,
+        createdAt: '2026-10-16T12:25:00.000Z',
+        updatedAt: '2026-10-16T12:25:00.000Z',
+      },
+    };
+
+    global.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === 'DELETE') {
+        deleteFeedbackCalls.push(url);
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/candidates`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+          } satisfies MatchCandidatesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        if (url.includes('includeDismissed=true')) {
+          return Promise.resolve(
+            jsonResponse({
+              items: [dismissedItem],
+              nextCursor: null,
+              hasMore: false,
+              totalCount: 1,
+            } satisfies DesireSuggestionsPage),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 0,
+          } satisfies DesireSuggestionsPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 0,
+          } satisfies DesireMatchesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}`)) {
+        return Promise.resolve(jsonResponse(mockDesire));
+      }
+      return Promise.reject(new Error(`Unhandled fetch: ${url}`));
+    });
+
+    render(<DesireMatches desireId={mockDesire.id} />);
+
+    // Dismissed toggle button should appear
+    const viewDismissedBtn = await screen.findByRole('button', {
+      name: /View dismissed \(1\)/i,
+    });
+    await user.click(viewDismissedBtn);
+
+    // Sub-heading and dismissed card
+    expect(await screen.findByText('Dismissed for this want (1)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Undo dismissal/i })).toBeInTheDocument();
+
+    // Click undo
+    const undoBtn = screen.getByRole('button', { name: /Undo dismissal/i });
+    await user.click(undoBtn);
+
+    await waitFor(() => {
+      expect(deleteFeedbackCalls).toHaveLength(1);
+    });
+    expect(deleteFeedbackCalls[0]).toContain(
+      `/matches/suggestions/feedback/${dismissedItem.feedback?.id}`,
+    );
+    expect(
+      await screen.findByText('Restored “Hario V60 Ceramic Dripper” to suggestions.'),
+    ).toBeInTheDocument();
+  });
+
+  it('PER-46: shows error and retry when suggestions fail to load', async () => {
+    const user = userEvent.setup();
+    let suggestionsAttempt = 0;
+
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/candidates`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+          } satisfies MatchCandidatesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches/suggestions`)) {
+        suggestionsAttempt++;
+        if (suggestionsAttempt === 1) {
+          return Promise.resolve(
+            jsonResponse({ message: 'MATCHES_UNAVAILABLE' }, 503),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            items: [mockSuggestion1],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 1,
+          } satisfies DesireSuggestionsPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}/matches`)) {
+        return Promise.resolve(
+          jsonResponse({
+            items: [],
+            nextCursor: null,
+            hasMore: false,
+            totalCount: 0,
+          } satisfies DesireMatchesPage),
+        );
+      }
+      if (url.includes(`/api/v1/desires/${mockDesire.id}`)) {
+        return Promise.resolve(jsonResponse(mockDesire));
+      }
+      return Promise.reject(new Error(`Unhandled fetch: ${url}`));
+    });
+
+    render(<DesireMatches desireId={mockDesire.id} />);
+
+    // Error alert
+    expect(await screen.findByText(/Possession matching is temporarily unavailable/i)).toBeInTheDocument();
+
+    // Retry button
+    const retryBtn = screen.getByRole('button', { name: /Retry loading suggestions/i });
+    await user.click(retryBtn);
+
+    // After retry, suggestions are loaded
+    expect(await screen.findByText('Hario V60 Ceramic Dripper')).toBeInTheDocument();
   });
 });
 
