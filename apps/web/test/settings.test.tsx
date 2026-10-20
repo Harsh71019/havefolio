@@ -3,6 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import type { SettingsOverview } from '@havefolio/contracts';
 import { SettingsView } from '../components/settings-view';
+import {
+  hasDraftConsent,
+  loadItemDraft,
+  saveItemDraft,
+  setDraftConsent,
+} from '../components/capture-drafts';
 
 const mockOverview: SettingsOverview = {
   preferences: {
@@ -275,6 +281,43 @@ describe('SettingsView (PER-34)', () => {
 
     // Session-2 is removed from the list
     expect(screen.queryByRole('button', { name: 'Revoke session' })).not.toBeInTheDocument();
+  });
+
+  it('PER-47: logs out of this device and removes local capture drafts first', async () => {
+    const user = userEvent.setup();
+    const replace = vi.fn();
+    vi.stubGlobal('location', { ...window.location, replace });
+    setDraftConsent('owner-1', true);
+    saveItemDraft('owner-1', {
+      name: 'Private draft',
+      ownershipStatus: 'owned',
+      currency: 'INR',
+      priceMode: 'unknown',
+      priceDisplay: '',
+      datePrecision: 'unknown',
+    });
+    render(<SettingsView />);
+    await screen.findByTestId('settings-view');
+    await user.click(screen.getByRole('button', { name: 'Log out of this device' }));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/login'));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/auth/logout',
+      expect.objectContaining({ method: 'POST', credentials: 'same-origin' }),
+    );
+    expect(loadItemDraft('owner-1')).toBeNull();
+    expect(hasDraftConsent('owner-1')).toBe(false);
+  });
+
+  it('PER-47: keeps the owner on Settings when logout cannot reach the server', async () => {
+    const user = userEvent.setup();
+    const replace = vi.fn();
+    vi.stubGlobal('location', { ...window.location, replace });
+    render(<SettingsView />);
+    await screen.findByTestId('settings-view');
+    fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError('offline')));
+    await user.click(screen.getByRole('button', { name: 'Log out of this device' }));
+    expect(await screen.findByText(/Unable to connect/)).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it('allows revoking all other sessions', async () => {

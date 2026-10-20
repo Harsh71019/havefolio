@@ -97,6 +97,22 @@ export async function revokeActiveSession(sessionId: string): Promise<void> {
   return request<void>(`/sessions/${encodeURIComponent(sessionId)}`, 'DELETE');
 }
 
+/** Ends this device's session. An already-expired session (401) counts as logged out. */
+export async function logoutThisDevice(): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch('/api/v1/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+  } catch {
+    throw new SettingsRequestError(0, 'Unable to connect. Check your connection and try again.');
+  }
+  if (!response.ok && response.status !== 401)
+    throw new SettingsRequestError(response.status, 'Could not log out. Try again.');
+}
+
 export async function revokeOtherSessions(): Promise<{ revokedCount: number }> {
   return request<{ revokedCount: number }>('/sessions', 'DELETE');
 }

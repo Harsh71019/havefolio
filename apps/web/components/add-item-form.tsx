@@ -53,20 +53,28 @@ import {
   FileEdit,
   PlusCircle,
   RotateCcw,
+  WifiOff,
 } from 'lucide-react';
+import { Switch } from '@havefolio/ui/components/switch';
 import { CategorySelector, TagSelector } from './taxonomy-selectors';
 import { amountEntryToMinor } from './money-entry';
 import { taxonomyRequest, TaxonomyRequestError } from './taxonomy-client';
-import {
-  createItem,
-  fetchCurrentOwner,
-  loadItemDraft,
-  saveItemDraft,
-  clearItemDraft,
-  ItemRequestError,
-  type ItemDraft,
-} from './items-client';
+import { createItem, fetchCurrentOwner, ItemRequestError } from './items-client';
 import { fetchOwnerPreferences } from './settings-client';
+import {
+  clearItemDraft,
+  draftLimits,
+  hasDraftConsent,
+  loadItemDraft,
+  purgeOtherOwnersDrafts,
+  saveItemDraft,
+  setDraftConsent,
+  takeLegacyItemDraft,
+  type ItemDraftFields,
+  type SaveDraftResult,
+} from './capture-drafts';
+import { randomId } from './random-id';
+import { useOnlineStatus } from './use-online-status';
 
 const statusLabels: Record<ItemStatus, string> = {
   owned: 'Currently owned',
@@ -164,11 +172,55 @@ export function AddItemForm(): ReactElement {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
-  const [draftRestored, setDraftRestored] = useState(false);
+  const [draftRestored, setDraftRestored] = useState<'device' | 'earlier' | false>(false);
+  // PER-47: device drafts are opt-in; without consent typed text lives only in page memory.
+  const [draftConsent, setDraftConsentState] = useState(false);
+  const [draftStatus, setDraftStatus] = useState<SaveDraftResult | 'storage-blocked' | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
+  // Reused across retries until the item is confirmed saved, so a lost response cannot duplicate it.
+  const [commandId, setCommandId] = useState<string | undefined>();
+  const [commandConflict, setCommandConflict] = useState(false);
   const [createdItem, setCreatedItem] = useState<ItemResponse | null>(null);
+  const online = useOnlineStatus();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  function applyDraft(draft: ItemDraftFields): void {
+    setName(draft.name || '');
+    setOwnershipStatus(draft.ownershipStatus || 'owned');
+    setCurrency(draft.currency || defaultCurrencyRef.current);
+    setPriceUnknown(draft.priceMode === 'unknown');
+    setPriceDisplay(draft.priceDisplay || '');
+
+    setDateUnknown(draft.datePrecision === 'unknown');
+    setDatePrecision(draft.datePrecision || 'exact');
+    if (draft.purchaseYear && draft.purchaseMonth && draft.purchaseDay) {
+      setExactDate(
+        `${draft.purchaseYear.padStart(4, '0')}-${draft.purchaseMonth.padStart(2, '0')}-${draft.purchaseDay.padStart(2, '0')}`,
+      );
+    }
+    if (draft.purchaseYear) setPurchaseYear(draft.purchaseYear);
+    if (draft.purchaseMonth) setPurchaseMonth(draft.purchaseMonth);
+
+    setCategoryId(draft.categoryId);
+    setSubcategoryId(draft.subcategoryId);
+    setTagIds(draft.tagIds || []);
+
+    setBrand(draft.brand || '');
+    setModel(draft.model || '');
+    setDescription(draft.description || '');
+    setNotes(draft.notes || '');
+    if (draft.acquisitionType) setAcquisitionType(draft.acquisitionType);
+    if (draft.condition) setCondition(draft.condition);
+    if (draft.useFrequency) setUseFrequency(draft.useFrequency);
+    if (draft.commandId) setCommandId(draft.commandId);
+
+    if (draft.brand || draft.model || draft.description || draft.notes || draft.tagIds?.length) {
+      setShowOptionalDetails(true);
+    }
+  }
 
   // Load initial owner and taxonomy
   useEffect(() => {
@@ -191,47 +243,16 @@ export function AddItemForm(): ReactElement {
             })
             .catch(() => undefined);
 
-          // Check for saved draft
-          const draft = loadItemDraft(currentOwner.id);
+          purgeOtherOwnersDrafts(currentOwner.id);
+          const consent = hasDraftConsent(currentOwner.id);
+          setDraftConsentState(consent);
+          const stored = consent ? loadItemDraft(currentOwner.id) : null;
+          const earlier = stored ? null : takeLegacyItemDraft(currentOwner.id);
+          const draft = stored ?? earlier;
           if (draft && active) {
-            setName(draft.name || '');
-            setOwnershipStatus(draft.ownershipStatus || 'owned');
-            setCurrency(draft.currency || defaultCurrencyRef.current);
-            setPriceUnknown(draft.priceMode === 'unknown');
-            setPriceDisplay(draft.priceDisplay || '');
-
-            setDateUnknown(draft.datePrecision === 'unknown');
-            setDatePrecision(draft.datePrecision || 'exact');
-            if (draft.purchaseYear && draft.purchaseMonth && draft.purchaseDay) {
-              setExactDate(
-                `${draft.purchaseYear.padStart(4, '0')}-${draft.purchaseMonth.padStart(2, '0')}-${draft.purchaseDay.padStart(2, '0')}`,
-              );
-            }
-            if (draft.purchaseYear) setPurchaseYear(draft.purchaseYear);
-            if (draft.purchaseMonth) setPurchaseMonth(draft.purchaseMonth);
-
-            setCategoryId(draft.categoryId);
-            setSubcategoryId(draft.subcategoryId);
-            setTagIds(draft.tagIds || []);
-
-            setBrand(draft.brand || '');
-            setModel(draft.model || '');
-            setDescription(draft.description || '');
-            setNotes(draft.notes || '');
-            if (draft.acquisitionType) setAcquisitionType(draft.acquisitionType);
-            if (draft.condition) setCondition(draft.condition);
-            if (draft.useFrequency) setUseFrequency(draft.useFrequency);
-
-            if (
-              draft.brand ||
-              draft.model ||
-              draft.description ||
-              draft.notes ||
-              draft.tagIds?.length
-            ) {
-              setShowOptionalDetails(true);
-            }
-            setDraftRestored(true);
+            applyDraft(draft);
+            if (stored) setDraftSavedAt(new Date(stored.updatedAt));
+            setDraftRestored(stored ? 'device' : 'earlier');
           }
         }
       } finally {
@@ -260,11 +281,11 @@ export function AddItemForm(): ReactElement {
     };
   }, []);
 
-  // Autosave draft on changes when owner is known and form has not succeeded
+  // Keep a consented device draft in step with the form until the item is saved.
   useEffect(() => {
-    if (!owner || createdItem || authLoading) return;
+    if (!owner || createdItem || authLoading || !draftConsent) return;
 
-    // Do not save an entirely blank state
+    // An emptied form leaves no stale draft behind.
     if (
       !name &&
       !priceDisplay &&
@@ -273,8 +294,10 @@ export function AddItemForm(): ReactElement {
       !categoryId &&
       !brand &&
       !model &&
+      !description &&
       !notes
     ) {
+      clearItemDraft(owner.id);
       return;
     }
 
@@ -291,7 +314,7 @@ export function AddItemForm(): ReactElement {
       }
     }
 
-    const draftData: Omit<ItemDraft, 'version' | 'updatedAt'> = {
+    const draftData: ItemDraftFields = {
       name,
       ownershipStatus,
       currency,
@@ -311,13 +334,21 @@ export function AddItemForm(): ReactElement {
       acquisitionType,
       condition,
       useFrequency,
+      commandId,
     };
 
-    saveItemDraft(owner.id, draftData);
+    const result = saveItemDraft(owner.id, draftData);
+    // Deferred so the status announcement never re-enters this effect synchronously.
+    queueMicrotask(() => {
+      setDraftStatus(result);
+      if (result === 'saved') setDraftSavedAt(new Date());
+    });
   }, [
     owner,
     createdItem,
     authLoading,
+    draftConsent,
+    commandId,
     name,
     ownershipStatus,
     currency,
@@ -340,10 +371,20 @@ export function AddItemForm(): ReactElement {
     useFrequency,
   ]);
 
-  function handleDiscardDraft(): void {
-    if (owner) {
-      clearItemDraft(owner.id);
+  function handleDraftConsent(granted: boolean): void {
+    if (!owner) return;
+    if (!setDraftConsent(owner.id, granted)) {
+      setDraftConsentState(false);
+      setDraftStatus('storage-blocked');
+      return;
     }
+    setDraftConsentState(granted);
+    setDraftStatus(null);
+    setDraftSavedAt(null);
+    if (!granted && draftRestored === 'device') setDraftRestored(false);
+  }
+
+  function clearForm(): void {
     setName('');
     setOwnershipStatus('owned');
     setCurrency(defaultCurrencyRef.current);
@@ -370,6 +411,16 @@ export function AddItemForm(): ReactElement {
     setValidationErrors({});
     setServerError(null);
     setDraftRestored(false);
+    setDraftSavedAt(null);
+    setDraftStatus(null);
+    setCommandId(undefined);
+    setCommandConflict(false);
+  }
+
+  function handleDiscardDraft(): void {
+    if (owner) clearItemDraft(owner.id);
+    clearForm();
+    nameInputRef.current?.focus();
   }
 
   function handleResetForNewItem(): void {
@@ -402,6 +453,10 @@ export function AddItemForm(): ReactElement {
     setValidationErrors({});
     setServerError(null);
     setDraftRestored(false);
+    setDraftSavedAt(null);
+    setDraftStatus(null);
+    setCommandId(undefined);
+    setCommandConflict(false);
     setCreatedItem(null);
   }
 
@@ -549,20 +604,30 @@ export function AddItemForm(): ReactElement {
 
     submittingRef.current = true;
     setIsSubmitting(true);
+    setCommandConflict(false);
+    // A failed attempt may still have been saved; every retry repeats its command.
+    const command = commandId ?? randomId();
+    setCommandId(command);
 
     try {
-      const result = await createItem(check.payload);
+      const result = await createItem({ ...check.payload, commandId: command });
       // Clear draft on successful creation
       if (owner) {
         clearItemDraft(owner.id);
       }
+      setCommandId(undefined);
       setCreatedItem(result);
     } catch (err) {
       if (err instanceof ItemRequestError) {
         if (err.status === 401) {
           setSessionExpired(true);
         }
-        setServerError(err.message);
+        if (err.code === 'ITEM_COMMAND_REUSED') setCommandConflict(true);
+        setServerError(
+          err.offline
+            ? `You appear to be offline. Your item was not confirmed saved; ${draftConsent ? 'your draft is kept on this device' : 'your text stays on this page'}. Save again when you are back online — a retry will not create a duplicate.`
+            : err.message,
+        );
       } else {
         setServerError(
           err instanceof Error
@@ -583,6 +648,12 @@ export function AddItemForm(): ReactElement {
   // Handle re-signing in when session expires
   async function handleSignedIn(): Promise<void> {
     const currentOwner = await fetchCurrentOwner();
+    if (currentOwner) purgeOtherOwnersDrafts(currentOwner.id);
+    // Another owner must never see or save the previous owner's typed text.
+    if (currentOwner?.id !== owner?.id) {
+      clearForm();
+      setDraftConsentState(currentOwner ? hasDraftConsent(currentOwner.id) : false);
+    }
     setOwner(currentOwner);
     setSessionExpired(false);
     setServerError(null);
@@ -721,28 +792,52 @@ export function AddItemForm(): ReactElement {
               Record a possession in under a minute without receipts or photos.
             </CardDescription>
           </div>
-          {draftRestored ? (
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
-                Draft restored
-              </Badge>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="min-h-11 min-w-11 px-2 text-xs text-muted-foreground hover:text-destructive"
-                onClick={handleDiscardDraft}
-              >
-                <RotateCcw className="mr-1 size-3" aria-hidden="true" />
-                Discard
-              </Button>
-            </div>
-          ) : null}
         </div>
+        {draftRestored ? (
+          <div
+            role="status"
+            className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 p-3"
+          >
+            <div className="min-w-0 space-y-1">
+              <Badge variant="secondary" className="text-xs">
+                {draftRestored === 'device' ? 'Draft restored' : 'Unsaved text recovered'}
+              </Badge>
+              <p className="text-xs text-muted-foreground">
+                {draftRestored === 'device'
+                  ? 'Restored from this device. It is not saved to your inventory yet.'
+                  : 'Recovered from an earlier visit and no longer kept on this device. It is not saved to your inventory yet.'}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-11 min-w-11 px-2 text-xs text-muted-foreground hover:text-destructive"
+              onClick={handleDiscardDraft}
+            >
+              <RotateCcw className="mr-1 size-3" aria-hidden="true" />
+              Discard draft
+            </Button>
+          </div>
+        ) : null}
+        {!online ? (
+          <p
+            role="status"
+            className="mt-3 flex items-start gap-2 rounded-lg border p-3 text-xs text-muted-foreground"
+          >
+            <WifiOff className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              You&apos;re offline. Keep typing —{' '}
+              {draftConsent ? 'your draft is kept on this device' : 'your text stays on this page'}.
+              Save when you&apos;re back online; nothing reaches your inventory until then.
+            </span>
+          </p>
+        ) : null}
       </CardHeader>
 
       <CardContent>
         <form
+          ref={formRef}
           id={`${formId}-form`}
           noValidate
           onSubmit={(e) => void handleSubmit(e)}
@@ -762,6 +857,24 @@ export function AddItemForm(): ReactElement {
               </h2>
               <ul className="mt-2 ml-4 list-disc space-y-1">
                 {serverError ? <li>{serverError}</li> : null}
+                {commandConflict ? (
+                  <li className="list-none">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-1 min-h-11"
+                      onClick={() => {
+                        // Explicit owner choice: a fresh command saves a separate item.
+                        setCommandId(undefined);
+                        setCommandConflict(false);
+                        setServerError(null);
+                        queueMicrotask(() => formRef.current?.requestSubmit());
+                      }}
+                    >
+                      Save as a new item
+                    </Button>
+                  </li>
+                ) : null}
                 {Object.entries(validationErrors).map(([key, err]) => (
                   <li key={key}>
                     <a
@@ -1331,6 +1444,39 @@ export function AddItemForm(): ReactElement {
                 </div>
               </div>
             ) : null}
+          </div>
+
+          {/* PER-47: explicit, bounded device draft */}
+          <div className="space-y-2 rounded-lg border p-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-0.5">
+                <Label htmlFor={`${formId}-draft-consent`} className="text-sm font-medium">
+                  Keep a draft on this device
+                </Label>
+                <p id={`${formId}-draft-help`} className="text-xs text-muted-foreground">
+                  Unsaved text is stored only in this browser for up to 7 days and removed when you
+                  save, discard or log out. Merchant, links and photos are never kept.
+                </p>
+              </div>
+              <Switch
+                id={`${formId}-draft-consent`}
+                className="relative mt-1 after:absolute after:-inset-3 after:content-['']"
+                checked={draftConsent}
+                onCheckedChange={handleDraftConsent}
+                aria-describedby={`${formId}-draft-help ${formId}-draft-status`}
+              />
+            </div>
+            <p id={`${formId}-draft-status`} role="status" className="text-xs">
+              {draftStatus === 'storage-blocked'
+                ? 'This browser is not allowing local storage, so your text stays on this page only.'
+                : draftStatus === 'too-large'
+                  ? `This draft is larger than ${draftLimits.maxBytes / 1024} KiB, so it is not kept on this device. It stays on this page until you save.`
+                  : draftConsent && draftSavedAt
+                    ? `Draft kept on this device at ${draftSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — not saved to your inventory yet.`
+                    : draftConsent
+                      ? 'Drafts will be kept on this device as you type.'
+                      : 'Off: your text stays on this page only.'}
+            </p>
           </div>
 
           {/* Submit Action */}
