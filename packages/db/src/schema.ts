@@ -1363,7 +1363,7 @@ export const enrichmentReviews = pgTable(
     unique('enrichment_review_command_unique').on(t.ownerId, t.commandId),
     check(
       'enrichment_review_field_check',
-      sql`${t.field} in ('name','brand','model','description')`,
+      sql`${t.field} in ('name','brand','model','description','pricePaid','purchaseDate')`,
     ),
     check(
       'enrichment_review_decision_check',

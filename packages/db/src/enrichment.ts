@@ -12,9 +12,49 @@ export interface EnrichmentClaim {
   attempts: number;
   baseRevision: number;
 }
+/** Storage identity of a ready private image original; never returned to browsers. */
+export interface EnrichmentImage {
+  objectKey: string;
+  format: 'jpg' | 'png' | 'webp';
+  byteSize: number;
+  checksum: string;
+}
 /** All locks use owner -> item -> work, matching manual edit/deletion admission. */
 export class EnrichmentStore {
   constructor(private readonly pool: Pool) {}
+  /**
+   * PER-45: resolves the queued opaque attachment ID strictly within the claimed owner and
+   * item. Absent, deleted, PDF or wrong-kind media yields null; callers then fail the work.
+   */
+  async readyImage(
+    ownerId: string,
+    itemId: string,
+    attachmentId: string,
+    kind: 'photo' | 'receipt',
+  ): Promise<EnrichmentImage | null> {
+    const row = (
+      await this.pool.query<{
+        object_key: string;
+        format: EnrichmentImage['format'];
+        byte_size: string | number;
+        checksum: string;
+      }>(
+        `SELECT m.object_key,m.format,m.byte_size,m.checksum FROM media_attachments m
+        JOIN users u ON u.id=m.owner_id AND u.deletion_requested_at IS NULL
+        WHERE m.id=$1 AND m.owner_id=$2 AND m.item_id=$3 AND m.kind=$4 AND m.variant='original'
+        AND m.state='ready' AND m.resource_type='image'`,
+        [attachmentId, ownerId, itemId, kind],
+      )
+    ).rows[0];
+    return row
+      ? {
+          objectKey: row.object_key,
+          format: row.format,
+          byteSize: Number(row.byte_size),
+          checksum: row.checksum,
+        }
+      : null;
+  }
   private async transaction<T>(operation: (c: PoolClient) => Promise<T>): Promise<T> {
     const c = await this.pool.connect();
     try {

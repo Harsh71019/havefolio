@@ -1,0 +1,2 @@
+ALTER TABLE "enrichment_reviews" DROP CONSTRAINT "enrichment_review_field_check";--> statement-breakpoint
+ALTER TABLE "enrichment_reviews" ADD CONSTRAINT "enrichment_review_field_check" CHECK ("enrichment_reviews"."field" in ('name','brand','model','description','pricePaid','purchaseDate'));

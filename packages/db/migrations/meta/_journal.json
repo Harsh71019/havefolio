@@ -169,6 +169,13 @@
       "when": 1792475525051,
       "tag": "0023_correctable_enrichment",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792483004414,
+      "tag": "0024_receipt_review_fields",
+      "breakpoints": true
     }
   ]
 }
