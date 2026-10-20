@@ -53,53 +53,65 @@ const mockDesire: Desire = {
 };
 
 const mockSuggestion1: DesireSuggestionItem = {
+  id: itemId1,
   item: {
     id: itemId1,
     name: 'Sony WH-1000XM4 Wireless Headphones',
     brand: 'Sony',
     model: 'WH-1000XM4',
-    categoryName: 'Electronics',
-    subcategoryName: 'Headphones',
-    cover: null,
+    ownershipStatus: 'owned',
     condition: 'working',
     useFrequency: 'rarely',
-    ownershipStatus: 'owned',
+    categoryId: 'c1000000-0000-4000-a000-000000000001',
+    categoryName: 'Electronics',
+    subcategoryId: 's1000000-0000-4000-a000-000000000001',
+    subcategoryName: 'Headphones',
+    tags: [],
+    cover: null,
+    isUsableAlternative: true,
   },
   score: 85,
   isUsableAlternative: true,
   explanation:
     'Matches headphones subcategory and electronics category, purpose overlaps (flights, coding), working condition and rarely used.',
   factors: [
-    { kind: 'subcategory_match', weight: 35, label: 'Same subcategory', detail: 'Headphones' },
-    { kind: 'category_match', weight: 20, label: 'Same category', detail: 'Electronics' },
-    { kind: 'purpose_overlap', weight: 15, label: 'Matching purpose', detail: 'flights, coding' },
-    { kind: 'rarely_used_working', weight: 5, label: 'Rarely used', detail: 'Working condition' },
+    { kind: 'subcategory_match', score: 35, label: 'Same subcategory', detail: 'Headphones' },
+    { kind: 'category_match', score: 20, label: 'Same category', detail: 'Electronics' },
+    { kind: 'purpose_match', score: 15, label: 'Matching purpose', detail: 'flights, coding' },
+    { kind: 'rarely_used_working', score: 5, label: 'Rarely used', detail: 'Working condition' },
   ],
   workingRarelyUsed: true,
+  conditionContext: null,
   feedback: null,
 };
 
 const mockSuggestion2: DesireSuggestionItem = {
+  id: itemId2,
   item: {
     id: itemId2,
     name: 'Bose QuietComfort Earbuds',
     brand: 'Bose',
     model: 'QC Earbuds',
-    categoryName: 'Electronics',
-    subcategoryName: 'Earphones',
-    cover: null,
+    ownershipStatus: 'owned',
     condition: 'working',
     useFrequency: 'often',
-    ownershipStatus: 'owned',
+    categoryId: 'c1000000-0000-4000-a000-000000000001',
+    categoryName: 'Electronics',
+    subcategoryId: 's2000000-0000-4000-a000-000000000002',
+    subcategoryName: 'Earphones',
+    tags: [],
+    cover: null,
+    isUsableAlternative: true,
   },
   score: 60,
   isUsableAlternative: true,
   explanation: 'Matches electronics category, purpose overlaps (flights).',
   factors: [
-    { kind: 'category_match', weight: 20, label: 'Same category', detail: 'Electronics' },
-    { kind: 'purpose_overlap', weight: 10, label: 'Matching purpose', detail: 'flights' },
+    { kind: 'category_match', score: 20, label: 'Same category', detail: 'Electronics' },
+    { kind: 'purpose_match', score: 10, label: 'Matching purpose', detail: 'flights' },
   ],
   workingRarelyUsed: false,
+  conditionContext: null,
   feedback: null,
 };
 
@@ -191,8 +203,8 @@ test.describe('PER-46: Explainable suggestions and feedback UX', () => {
             id: 'fb100000-0000-4000-a000-000000000046',
             desireId,
             itemId: body.itemId,
-            action: body.action,
-            scope: body.scope,
+            feedbackType: body.feedbackType,
+            scope: body.scope ?? 'desire',
             reason: body.reason ?? null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -216,7 +228,7 @@ test.describe('PER-46: Explainable suggestions and feedback UX', () => {
     );
 
     await page.route('**/api/v1/taxonomy', (r) =>
-      r.fulfill({ categories: [], subcategories: [], tags: [], defaultsSeeded: true }),
+      r.fulfill({ json: { categories: [], subcategories: [], tags: [], defaultsSeeded: true } }),
     );
 
     await page.goto(`/wants/${desireId}/matches`);
