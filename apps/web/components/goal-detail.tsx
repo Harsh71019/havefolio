@@ -44,6 +44,7 @@ import { PageLoadFailure } from './page-load-failure';
 import { calendarDay } from './home-presentation';
 import { amountEntryToMinor, minorToAmountEntry } from './money-entry';
 import { randomId } from './random-id';
+import { pageTitleClassName } from './page-heading';
 
 type Ledger = 'contribution' | 'correction' | 'reversal' | 'reinstate';
 type Dialog =
@@ -308,7 +309,7 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
       <header className="mt-2 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <p className="text-sm font-medium text-muted-foreground">Goal</p>
-          <h1 className="text-3xl font-semibold tracking-tight">{goal.name}</h1>
+          <h1 className={pageTitleClassName}>{goal.name}</h1>
           <Badge variant={archived ? 'outline' : 'secondary'}>
             {goalStatusLabels[goal.status]}
           </Badge>
