@@ -368,6 +368,11 @@ describe('item details rendering', () => {
       'href',
       `/api/v1/items/${uuid(1)}/documents/${uuid(401)}/download`,
     );
+    // PER-45: reading photos/receipts is an optional, separate review page.
+    expect(screen.getByRole('link', { name: 'Review suggestions' })).toHaveAttribute(
+      'href',
+      `/items/${uuid(1)}/text-suggestions`,
+    );
     // Internal provenance and provider metadata never reach the page.
     expect(container.innerHTML).not.toMatch(
       /cloudinary|providerAssetId|x9|internalHint|do-not-render/i,

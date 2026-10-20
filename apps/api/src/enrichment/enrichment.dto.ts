@@ -47,15 +47,20 @@ export class EnrichmentReviewDto implements EnrichmentReview {
   @IsString()
   @Matches(/^[a-zA-Z0-9_-]{1,80}$/)
   candidateId!: string;
-  @ApiProperty({ enum: ['name', 'brand', 'model', 'description'] })
-  @IsIn(['name', 'brand', 'model', 'description'])
+  @ApiProperty({
+    enum: ['name', 'brand', 'model', 'description', 'pricePaid', 'purchaseDate'],
+    description:
+      'pricePaid and purchaseDate are reviewable only for receipt work and use canonical values.',
+  })
+  @IsIn(['name', 'brand', 'model', 'description', 'pricePaid', 'purchaseDate'])
   field!: EnrichmentField;
   @ApiProperty({ enum: ['accept', 'reject', 'correct'] })
   @IsIn(['accept', 'reject', 'correct'])
   decision!: EnrichmentReview['decision'];
   @ApiPropertyOptional({
     maxLength: 5000,
-    description: 'Required only for correct; name/brand/model limited to 300.',
+    description:
+      'Required only for correct; name/brand/model limited to 300. pricePaid is "<ISO 4217> <integer minor units>" (e.g. "INR 89900"); purchaseDate is YYYY, YYYY-MM or YYYY-MM-DD.',
   })
   @ValidateIf((_o, v) => v !== undefined)
   @IsString()

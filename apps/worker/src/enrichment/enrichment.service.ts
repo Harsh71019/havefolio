@@ -7,7 +7,7 @@ import { EventLogger, jobContext, logContext } from '@havefolio/logging';
 import { Inject, Injectable } from '@nestjs/common';
 import { EnrichmentRepository } from './enrichment.repository.js';
 export const ENRICHMENT_PROVIDERS = 'ENRICHMENT_PROVIDERS';
-/** Empty in production. Only deterministic test adapters are registered in this ticket. */
+/** Empty unless explicitly enabled; PER-45 registers only the local photo/receipt OCR adapter. */
 @Injectable()
 export class EnrichmentWorkerService {
   private busy = false;
@@ -44,14 +44,19 @@ export class EnrichmentWorkerService {
         const bounded: EnrichmentProvider = {
           id: provider.id,
           kinds: provider.kinds,
-          suggest: (input, signal) => {
+          ...(provider.timeoutMs === undefined ? {} : { timeoutMs: provider.timeoutMs }),
+          suggest: (input, signal, context) => {
             this.outstanding.add(provider.id);
             return Promise.resolve()
-              .then(() => provider.suggest(input, signal))
+              .then(() => provider.suggest(input, signal, context))
               .finally(() => this.outstanding.delete(provider.id));
           },
         };
-        const result = await callEnrichmentProvider(bounded, claim.input);
+        // Adapters receive only the claimed owner/item scope, never other request data.
+        const result = await callEnrichmentProvider(bounded, claim.input, undefined, {
+          ownerId: claim.ownerId,
+          itemId: claim.itemId,
+        });
         circuit.success();
         await this.repository.store.finish(claim, 'succeeded', result);
       } catch {

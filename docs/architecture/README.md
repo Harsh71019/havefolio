@@ -305,3 +305,4 @@ See [private Cloudinary operations](../operations/cloudinary-media.md) and [ADR-
 - [PER-32 goals and money-alternatives screens](goals-screens.md): goal list/detail/forms over the PER-30 API, confirmed-ledger history with retry-safe commands, and hypothetical want-versus-goal comparison that defers to PER-31 allocation.
 
 - [PER-43 correctable enrichment](correctable-enrichment.md): private typed inputs, durable bounded work, explicit field review, correction history and disabled-provider behavior.
+- [PER-45 photo and receipt OCR](photo-receipt-ocr.md): opt-in local Tesseract reading in sandboxed worker children, receipt price/date review fields, honest confidence/caveats, retention and labelled synthetic evaluation.

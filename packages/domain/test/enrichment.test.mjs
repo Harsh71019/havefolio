@@ -4,6 +4,7 @@ import {
   callEnrichmentProvider,
   validateEnrichmentCandidates,
   EnrichmentCircuit,
+  enrichmentLimits,
 } from '../dist/index.js';
 const field = {
   field: 'brand',
@@ -29,6 +30,8 @@ test('ambiguous candidates retain per-field provenance/confidence; payload extra
 test('untrusted adapters cannot suggest financial/date/media fields, invalid confidence, duplicates or arbitrary payloads', () => {
   for (const bad of [
     { ...field, field: 'pricePaidMinor' },
+    { ...field, field: 'pricePaid', value: 'INR 100' },
+    { ...field, field: 'purchaseDate', value: '2026-08' },
     { ...field, confidence: -1 },
     { ...field, confidence: NaN },
     { ...field, confidence: 1.1 },
@@ -104,4 +107,29 @@ test('circuit opens after three failures, blocks until cooldown and resets on su
   c.success();
   c.failure();
   assert.equal(c.isOpen(), false);
+});
+test('per-provider deadlines are honoured but clamped inside the work lease; context reaches adapters', async () => {
+  let seen;
+  const slow = {
+    id: 'fake',
+    kinds: ['name'],
+    timeoutMs: 20,
+    suggest: (_input, signal, context) => {
+      seen = context;
+      return new Promise((_r, reject) =>
+        signal.addEventListener('abort', () => reject(new Error('x'))),
+      );
+    },
+  };
+  const started = Date.now();
+  await assert.rejects(
+    callEnrichmentProvider(slow, { kind: 'name', name: 'private' }, undefined, {
+      ownerId: 'o',
+      itemId: 'i',
+    }),
+    /ENRICHMENT_TIMEOUT/,
+  );
+  assert.ok(Date.now() - started < 1000);
+  assert.deepEqual(seen, { ownerId: 'o', itemId: 'i' });
+  assert.equal(enrichmentLimits.maxTimeoutMs < enrichmentLimits.leaseMs, true);
 });

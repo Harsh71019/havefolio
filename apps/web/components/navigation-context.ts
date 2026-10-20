@@ -47,3 +47,7 @@ export function itemDetailHref(id: string, returnTo = defaultReturnPath): string
 export function itemPhotosHref(id: string, returnTo = defaultReturnPath): string {
   return withReturn(`/items/${encodeURIComponent(id)}/photos`, safeReturnPath(returnTo));
 }
+
+export function itemTextSuggestionsHref(id: string, returnTo = defaultReturnPath): string {
+  return withReturn(`/items/${encodeURIComponent(id)}/text-suggestions`, safeReturnPath(returnTo));
+}

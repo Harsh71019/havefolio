@@ -1,5 +1,10 @@
-/** PER-43: owner-private review contract. No purchase money/date fields are accepted. */
-export type EnrichmentField = 'name' | 'brand' | 'model' | 'description';
+/**
+ * PER-43: owner-private review contract. PER-45 adds receipt-only `pricePaid` (`"INR 89900"`:
+ * ISO currency and integer minor units) and `purchaseDate` (`2026`, `2026-08` or
+ * `2026-08-14`). Only receipt evidence can suggest them and only an explicit review applies them.
+ */
+export type EnrichmentField =
+  'name' | 'brand' | 'model' | 'description' | 'pricePaid' | 'purchaseDate';
 export interface EnrichmentRequest {
   commandId: string;
   revision: number;
@@ -28,6 +33,10 @@ export interface EnrichmentReviewEvent extends EnrichmentReview {
 export interface EnrichmentWork {
   id: string;
   itemId: string;
+  /** PER-45: which typed input produced this work, so source-specific review stays separate. */
+  inputKind: EnrichmentRequest['kind'];
+  /** The owner's own private photo/receipt attachment ID; null for other inputs. */
+  attachmentId: string | null;
   baseRevision: number;
   state: 'pending' | 'processing' | 'retry' | 'succeeded' | 'failed' | 'unconfigured' | 'stale';
   attempts: number;
@@ -44,7 +53,10 @@ export interface EnrichmentWork {
   createdAt: string;
 }
 export interface EnrichmentPage {
-  providerStatus: 'unconfigured';
+  /** `available` when at least one input kind has a configured local adapter. */
+  providerStatus: 'available' | 'unconfigured';
+  /** Input kinds that can currently produce suggestions; others resolve as unconfigured. */
+  availableKinds: EnrichmentRequest['kind'][];
   items: EnrichmentWork[];
   nextBefore: string | null;
 }

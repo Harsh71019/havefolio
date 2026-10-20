@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { PoolClient } from 'pg';
 import { EnrichmentService } from './enrichment.service.js';
@@ -12,6 +13,7 @@ describe('PER-43 enrichment admission boundaries', () => {
     const module = await Test.createTestingModule({
       providers: [
         EnrichmentService,
+        { provide: ConfigService, useValue: new ConfigService({}) },
         {
           provide: ItemsRepository,
           useValue: {

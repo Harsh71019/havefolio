@@ -42,4 +42,5 @@ allowBuilds:
   esbuild: true
   msgpackr-extract: true
   sharp: true
+  tesseract.js: false
   unrs-resolver: true
