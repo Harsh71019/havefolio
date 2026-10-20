@@ -161,7 +161,7 @@ export function AppNavigation(): ReactElement {
 
       <nav
         aria-label="Primary"
-        className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
+        className="fixed right-(--mobile-nav-inset-right) bottom-(--mobile-nav-offset) left-(--mobile-nav-inset-left) z-50 grid h-(--mobile-nav-height) grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
       >
         {navigationItems.slice(0, 4).map((item) => {
           const active = isItemActive(item.href);
@@ -203,6 +203,8 @@ export function AppNavigation(): ReactElement {
           <DropdownMenuContent
             align="end"
             side="top"
+            // PER-85: clear the bar's border and padding (7px) as well as the usual 4px gap.
+            sideOffset={11}
             className="min-w-48 motion-reduce:animate-none motion-reduce:transition-none"
           >
             {navigationItems.slice(4).map((item) => {
