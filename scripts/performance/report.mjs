@@ -25,7 +25,7 @@ const lines = [
   '',
   'Browser values are median (minimum–maximum), five repeats per cell. These extrema are descriptive variability, not confidence intervals. Censored readiness is excluded and its completed n/5 is shown. LCP with an incomplete-media count is only an observed candidate and cannot establish a pass. Transfers include completed resources only.',
   '',
-  '| Items/owner | Profile | Route | Cache | Ready ms | LCP ms | JS KiB | Total KiB | Requests | Long task ms | Errors / incomplete media windows |',
+  '| Items/owner | Profile | Route | Cache | Ready ms | LCP ms | JS KiB | Total KiB | Requests | Long task ms | HTTP/JS errors / CDP failures-cancellations / incomplete media windows |',
   '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
 ];
 for (const row of result.cases) {
@@ -40,7 +40,7 @@ for (const row of result.cases) {
         const summarize = (key) => observed(values.map((b) => b[key])).summary;
         const lcps = values.map((b) => b.lcpMs).filter((v) => v !== null);
         lines.push(
-          `| ${row.sizePerOwner} | ${profile} | ${route} | ${condition} | ${range(summarize('readyMs')) + ' n=' + (summarize('readyMs')?.n ?? 0) + '/5'} | ${lcps.length === 5 ? range(summary(lcps)) : 'incomplete'} | ${summarize('jsBytes') ? (summarize('jsBytes').p50 / 1024).toFixed(1) : 'unavailable'} | ${summarize('transferBytes') ? (summarize('transferBytes').p50 / 1024).toFixed(1) : 'unavailable'} | ${range(summarize('requests'))} | ${range(summarize('longTaskMs'))} | ${values.reduce((n, b) => n + b.errors, 0)} / ${values.filter((b) => b.mediaTimedOut).length} |`,
+          `| ${row.sizePerOwner} | ${profile} | ${route} | ${condition} | ${range(summarize('readyMs')) + ' n=' + (summarize('readyMs')?.n ?? 0) + '/5'} | ${lcps.length === 5 ? range(summary(lcps)) : 'incomplete'} | ${summarize('jsBytes') ? (summarize('jsBytes').p50 / 1024).toFixed(1) : 'unavailable'} | ${summarize('transferBytes') ? (summarize('transferBytes').p50 / 1024).toFixed(1) : 'unavailable'} | ${range(summarize('requests'))} | ${range(summarize('longTaskMs'))} | ${values.reduce((n, b) => n + b.errors, 0)} / ${values.reduce((n, b) => n + (b.failedRequests ?? 0), 0)} / ${values.filter((b) => b.mediaTimedOut).length} |`,
         );
       }
 }

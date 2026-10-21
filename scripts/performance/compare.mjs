@@ -21,6 +21,8 @@ const lines = [
   `Same build \`${primary.metadata.sourceSha}\`, fingerprint \`${primary.metadata.runtimeFingerprint}\`.`,
   `Primary began ${primary.metadata.measuredAt}; separate instrumentation-off control began ${control.metadata.measuredAt}.`,
   '',
+  'The primary contains 166 unclassified CDP failures/cancellations; the instrumentation-off control contains 56. Both have zero observed HTTP/runtime errors. Cause codes were not retained, so the counts do not establish an application-network error rate.',
+  '',
   'This is a sequential A/B noise/overhead check, not proof of a causal speed difference. The control disables pool/query wrappers, wait sampling, EXPLAIN capture and browser PerformanceObservers. CDP network accounting/throttling, the dead outbound proxy, application logging, fixture shape and Playwright actionability remain common to both runs. Their absolute overhead is unquantified. Host/JIT/thermal drift and sample-order effects remain possible; negative deltas are not optimisations.',
   '',
   '| Endpoint | Concurrency | n each | Instrumented p50 / p95 ms | Control p50 / p95 ms | p50 relative delta |',

@@ -3,6 +3,8 @@
 Same build `2016fc40445d7d68a677d813b43e6772d3b357d7`, fingerprint `6437b9576304162c488a1aa5b9d270635b1b41b6412c21dd4209778fe7a78bbe`.
 Primary began 2026-10-21T13:51:13.791Z; separate instrumentation-off control began 2026-10-21T14:07:27.923Z.
 
+The primary contains 166 unclassified CDP failures/cancellations; the instrumentation-off control contains 56. Both have zero observed HTTP/runtime errors. Cause codes were not retained, so the counts do not establish an application-network error rate.
+
 This is a sequential A/B noise/overhead check, not proof of a causal speed difference. The control disables pool/query wrappers, wait sampling, EXPLAIN capture and browser PerformanceObservers. CDP network accounting/throttling, the dead outbound proxy, application logging, fixture shape and Playwright actionability remain common to both runs. Their absolute overhead is unquantified. Host/JIT/thermal drift and sample-order effects remain possible; negative deltas are not optimisations.
 
 | Endpoint | Concurrency | n each | Instrumented p50 / p95 ms | Control p50 / p95 ms | p50 relative delta |
