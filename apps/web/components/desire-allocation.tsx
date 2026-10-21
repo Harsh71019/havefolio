@@ -446,7 +446,10 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
           if (!open && !busy && !uncertain) setDialog(null);
         }}
       >
+        {/* PER-86: capped and scrollable so Confirm stays reachable on short or keyboard-reduced
+            viewports instead of being clipped off-screen. */}
         <AlertDialogContent
+          className="max-h-[92svh] overflow-y-auto"
           onCloseAutoFocus={(e) => {
             e.preventDefault();
             if (opener.current?.isConnected) opener.current.focus();

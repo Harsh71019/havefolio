@@ -21,6 +21,56 @@
   }
 }
 
+/* PER-86: software-keyboard contract. The viewport keeps the browser default (the keyboard
+   overlays the page rather than resizing it), and while a text-entry field has focus on a touch
+   phone the bottom bar is hidden, so it can never float above the keyboard over the field, its
+   error or the form's actions. It returns as soon as focus leaves the field. */
+@media (max-width: 767.98px) and (pointer: coarse) {
+  html:has(
+      :is(
+        input:not(
+          [type='checkbox'],
+          [type='radio'],
+          [type='range'],
+          [type='file'],
+          [type='color'],
+          [type='button'],
+          [type='submit'],
+          [type='reset'],
+          [type='image']
+        ),
+        textarea,
+        select
+      ):focus
+    )
+    .mobile-navigation {
+    /* Not `visibility`: the bar's buttons transition all properties, which would keep their
+       inherited visibility for the transition and leave the icons painted over the form. */
+    display: none;
+  }
+}
+
+/* PER-86: iOS Safari zooms the page when a text-entry field under 16px is focused. On touch
+   devices every such field is at least 16px; desktop keeps its compact sizes. Unlayered, so it
+   also wins over call-site `text-sm`/`md:text-sm` utilities. */
+@media (pointer: coarse) {
+  input:not(
+    [type='checkbox'],
+    [type='radio'],
+    [type='range'],
+    [type='file'],
+    [type='color'],
+    [type='button'],
+    [type='submit'],
+    [type='reset'],
+    [type='image']
+  ),
+  textarea,
+  select {
+    font-size: max(1rem, 16px);
+  }
+}
+
 /* PER-58: geometry is scoped to My Store; mobile/tablet ignores desktop preferences.
    PER-66: columns fill the space the navigation and filters leave, so a collapsed sidebar or a
    wider screen adds cards instead of stretching them.
