@@ -99,14 +99,16 @@ function OptionList({
         <Label
           key={option.value}
           htmlFor={`${id}-${index}`}
-          className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-md text-sm font-normal xl:min-h-8 ${option.nested ? 'pl-6' : ''}`}
+          className={`flex min-h-11 min-w-0 cursor-pointer items-center gap-3 rounded-md py-1 text-sm leading-snug font-normal xl:min-h-8 ${option.nested ? 'pl-6' : ''}`}
         >
           <RadioGroupItem id={`${id}-${index}`} value={option.value} />
-          <span className="min-w-0 truncate">{option.label}</span>
+          <span className="min-w-0 wrap-anywhere">{option.label}</span>
           {option.count !== null ? (
             <>
               {' '}
-              <span className="text-xs text-muted-foreground tabular-nums">({option.count})</span>
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                ({option.count})
+              </span>
             </>
           ) : null}
         </Label>
@@ -296,6 +298,8 @@ function PriceSlider({
   const label = `${format(value[0])} – ${format(value[1])}${value[1] >= ceiling ? '+' : ''}`;
   return (
     <div className="space-y-4 px-1">
+      {/* PER-91: thumbs centre on the track ends; the inset keeps them and their 4px focus ring
+          inside the scrolling filter rail instead of clipped at its edge. */}
       <Slider
         min={floor}
         max={ceiling}
@@ -305,7 +309,7 @@ function PriceSlider({
         thumbLabels={['Lowest price', 'Highest price']}
         onValueChange={(next) => setValue([next[0]!, next[1]!])}
         onValueCommit={(next) => onCommit([next[0]!, next[1]!])}
-        className="py-3"
+        className="mx-2 w-auto py-3"
       />
       <p className="text-sm tabular-nums" aria-live="polite">
         {label}

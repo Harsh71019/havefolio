@@ -65,7 +65,11 @@ function Action({
   primary = false,
 }: Readonly<{ href: string; children: ReactNode; primary?: boolean }>): ReactElement {
   return (
-    <Button asChild variant={primary ? 'default' : 'outline'} className="min-h-11">
+    <Button
+      asChild
+      variant={primary ? 'default' : 'outline'}
+      className="h-auto min-h-11 max-w-full whitespace-normal"
+    >
       <Link href={href}>
         {children}
         <ArrowRight aria-hidden="true" />
@@ -189,7 +193,7 @@ function Rediscovery({ summary: s }: Readonly<{ summary: HomeSummary }>): ReactE
           emptyLabel="No photo"
         />
         <div className="min-w-0 space-y-2">
-          <p className="text-lg font-medium break-words">{item.name}</p>
+          <p className="text-lg font-medium wrap-anywhere">{item.name}</p>
           <dl className="space-y-1 text-sm">
             <div className="flex flex-wrap gap-x-2">
               <dt className="text-muted-foreground">How often you use it:</dt>
@@ -237,7 +241,7 @@ function Spending({ summary: s }: Readonly<{ summary: HomeSummary }>): ReactElem
               <dt className="text-sm text-muted-foreground">
                 {row.currency} · purchases with a date
               </dt>
-              <dd className="text-2xl font-semibold break-words tabular-nums">
+              <dd className="text-2xl font-semibold wrap-anywhere tabular-nums">
                 {formatAggregate(row.dated?.netMinor ?? '0', row.currency)}
               </dd>
               {row.unknownDate ? (
@@ -311,7 +315,7 @@ function RecentItems({ summary: s }: Readonly<{ summary: HomeSummary }>): ReactE
                   emptyLabel="No photo"
                   announceFailure={false}
                 />
-                <span className="mt-2 line-clamp-2 text-sm font-medium break-words group-hover:underline">
+                <span className="mt-2 line-clamp-2 text-sm font-medium wrap-anywhere group-hover:underline">
                   {item.name}
                 </span>
                 {item.isDemo ? (
@@ -352,7 +356,7 @@ function Wants({ summary: s }: Readonly<{ summary: HomeSummary }>): ReactElement
             <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <Link
                 href={`/wants/${d.id}/compare`}
-                className="inline-flex min-h-11 min-w-0 items-center font-medium break-words hover:underline"
+                className="inline-flex min-h-11 min-w-0 items-center font-medium wrap-anywhere hover:underline"
               >
                 {d.name}
               </Link>
@@ -388,7 +392,7 @@ function Goals({ summary: s }: Readonly<{ summary: HomeSummary }>): ReactElement
             return (
               <li key={g.id} className="space-y-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <span className="font-medium break-words">{g.name}</span>
+                  <span className="font-medium wrap-anywhere">{g.name}</span>
                   {g.targetDate ? (
                     <span className="text-xs text-muted-foreground">
                       Target {calendarDay(g.targetDate)}
@@ -398,7 +402,7 @@ function Goals({ summary: s }: Readonly<{ summary: HomeSummary }>): ReactElement
                 {view.percent === null ? null : (
                   <Progress value={view.percent} aria-labelledby={textId} />
                 )}
-                <p id={textId} className="text-sm text-muted-foreground tabular-nums">
+                <p id={textId} className="text-sm text-muted-foreground tabular-nums wrap-anywhere">
                   {g.name}: {view.text}
                 </p>
               </li>

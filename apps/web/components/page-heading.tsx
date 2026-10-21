@@ -2,7 +2,8 @@ import type { ReactElement, ReactNode } from 'react';
 import { cn } from '@havefolio/ui/lib/utils';
 
 /** PER-75: the single page-title style, also used by flows that render their own h1. */
-export const pageTitleClassName = 'text-2xl font-semibold tracking-tight text-balance sm:text-3xl';
+export const pageTitleClassName =
+  'text-2xl font-semibold tracking-tight text-balance wrap-anywhere sm:text-3xl';
 
 /**
  * PER-75: compact page heading. Actions sit beside the title when they fit and wrap below it

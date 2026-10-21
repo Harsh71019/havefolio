@@ -245,7 +245,7 @@ export function ItemRefunds({
           ).map(([label, shown]) => (
             <div key={label} className="contents">
               <dt className="text-sm text-muted-foreground sm:text-base">{label}</dt>
-              <dd className="-mt-2 min-w-0 break-words sm:mt-0">
+              <dd className="-mt-2 min-w-0 wrap-anywhere sm:mt-0">
                 <span className={shown.muted ? 'text-muted-foreground' : undefined}>
                   {shown.value}
                 </span>
@@ -272,7 +272,9 @@ export function ItemRefunds({
                     <p className="font-medium">{amount}</p>
                     <p className="text-sm text-muted-foreground">{when}</p>
                     {refund.note ? (
-                      <p className="mt-1 text-sm break-words whitespace-pre-line">{refund.note}</p>
+                      <p className="mt-1 text-sm wrap-anywhere whitespace-pre-line">
+                        {refund.note}
+                      </p>
                     ) : null}
                   </div>
                   <div className="flex gap-1">

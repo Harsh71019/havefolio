@@ -87,7 +87,7 @@ export function DesireCard({
             {/* Content */}
             <div className="space-y-1.5 flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-1.5">
-                <h2 className="font-semibold text-base sm:text-lg leading-snug break-words">
+                <h2 className="font-semibold text-base sm:text-lg leading-snug wrap-anywhere">
                   {desire.name}
                 </h2>
               </div>
@@ -122,7 +122,7 @@ export function DesireCard({
 
               {/* Reason excerpt */}
               {desire.reason ? (
-                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 pt-1 break-words">
+                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 pt-1 wrap-anywhere">
                   {desire.reason}
                 </p>
               ) : null}
