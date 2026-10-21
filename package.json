@@ -18,7 +18,7 @@
     "lint": "pnpm build:packages && eslint .",
     "test": "pnpm test:unit && pnpm test:components",
     "typecheck": "pnpm build:packages && pnpm --filter './apps/**' -r --if-present typecheck",
-    "test:infra": "pnpm build:packages && python3 -m unittest discover -s scripts/shared-services -p \"test_*.py\" && python3 -m unittest discover -s scripts/monitoring -p \"test_*.py\" && node --test scripts/shared-services/config.test.mjs",
+    "test:infra": "pnpm build:packages && python3 -m unittest discover -s scripts/shared-services -p \"test_*.py\" && python3 -m unittest discover -s scripts/monitoring -p \"test_*.py\" && node --test scripts/shared-services/config.test.mjs && pnpm perf:test",
     "test:unit": "pnpm test:infra && pnpm --filter @havefolio/enrichment test && pnpm --filter @havefolio/logging test && pnpm --filter @havefolio/contracts test && pnpm --filter @havefolio/domain test && pnpm --filter @havefolio/db test && pnpm --filter @havefolio/test-utils test && pnpm --filter @havefolio/api test:unit && pnpm --filter @havefolio/worker test:unit && pnpm --filter @havefolio/monitoring test",
     "test:integration": "pnpm build:packages && pnpm --filter @havefolio/api test:integration && pnpm --filter @havefolio/worker test:integration",
     "test:components": "pnpm build:packages && pnpm --filter @havefolio/web test:components",
@@ -26,7 +26,10 @@
     "db:generate": "pnpm --filter @havefolio/db db:generate",
     "db:check": "pnpm --filter @havefolio/db db:check",
     "db:migrate": "pnpm --filter @havefolio/db db:migrate",
-    "test:proxy": "pnpm build:packages && node scripts/testing/production-proxy.mjs"
+    "test:proxy": "pnpm build:packages && node scripts/testing/production-proxy.mjs",
+    "perf:build": "node scripts/performance/build.mjs",
+    "perf:baseline": "node scripts/performance/run.mjs",
+    "perf:test": "node --test scripts/performance/core.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
