@@ -165,7 +165,7 @@ export function ProductEnrichment({
       </Button>
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">Product suggestions</h1>
-        <p className="break-words text-muted-foreground">{item?.name ?? 'Loading saved item…'}</p>
+        <p className="wrap-anywhere text-muted-foreground">{item?.name ?? 'Loading saved item…'}</p>
         <p>
           Choose a source, then review each field. Your original entry is kept. Price paid and
           purchase date stay under your control.
@@ -287,7 +287,7 @@ export function ProductEnrichment({
                         <Label
                           key={c.id}
                           htmlFor={`candidate-${w.id}-${c.id}`}
-                          className="flex min-h-11 items-center gap-3 break-words rounded-md border border-input p-3 hover:bg-muted/50 cursor-pointer"
+                          className="flex min-h-11 items-center gap-3 wrap-anywhere rounded-md border border-input p-3 hover:bg-muted/50 cursor-pointer"
                         >
                           <RadioGroupItem id={`candidate-${w.id}-${c.id}`} value={c.id} />
                           <span>
@@ -311,7 +311,7 @@ export function ProductEnrichment({
                     return (
                       <div key={f.field} className="space-y-3 rounded-md border p-4">
                         <h3 className="font-semibold">{label(f.field)}</h3>
-                        <p className="break-words text-sm text-muted-foreground">
+                        <p className="wrap-anywhere text-sm text-muted-foreground">
                           Current:{' '}
                           {current === null || current === undefined
                             ? 'Not recorded'
@@ -436,7 +436,7 @@ export function ProductEnrichment({
         </Button>
         <ul className="space-y-3">
           {events.map((e) => (
-            <li key={e.id} className="rounded-md border p-3 break-words">
+            <li key={e.id} className="rounded-md border p-3 wrap-anywhere">
               {label(e.field)} · {e.decision}
               <br />
               Previous: {e.previousValue ?? 'Not recorded'}

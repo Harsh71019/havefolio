@@ -382,7 +382,7 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
       </Link>
       <header className="space-y-2">
         <h1 className={pageTitleClassName}>Add to your inventory</h1>
-        <p className="break-words text-lg">{s.name}</p>
+        <p className="wrap-anywhere text-lg">{s.name}</p>
         <p className="text-sm text-muted-foreground">
           This is optional. Your bought decision is already recorded whether or not you add an item.
         </p>
@@ -426,7 +426,7 @@ export function DesireConversionFlow({ desireId }: { desireId: string }): ReactE
               Linked to this want’s private history. Correcting the decision later keeps the item.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm break-words">
+          <CardContent className="space-y-3 text-sm wrap-anywhere">
             <p>
               <Link href={`/items/${state.conversion.itemId}`} className="font-medium underline">
                 {state.conversion.itemName}

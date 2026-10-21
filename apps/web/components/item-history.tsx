@@ -76,7 +76,7 @@ export function ItemHistory({
                   </p>
                   {entry.detail ? <p className="text-sm">{entry.detail}</p> : null}
                   {entry.note ? (
-                    <p className="mt-1 text-sm break-words whitespace-pre-line">
+                    <p className="mt-1 text-sm wrap-anywhere whitespace-pre-line">
                       <span className="text-muted-foreground">Note: </span>
                       {entry.note}
                     </p>

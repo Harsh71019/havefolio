@@ -271,7 +271,7 @@ export function MerchantManagement(): ReactElement {
               className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
             >
               <div className="min-w-0 space-y-1">
-                <h3 className="break-words font-medium">{merchant.displayName}</h3>
+                <h3 className="wrap-anywhere font-medium">{merchant.displayName}</h3>
                 <p className="break-all text-sm text-muted-foreground">
                   {merchant.websiteHost ?? 'Website not recorded'}
                 </p>

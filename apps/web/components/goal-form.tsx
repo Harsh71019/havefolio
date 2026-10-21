@@ -254,7 +254,7 @@ export function GoalForm({ goalId }: Readonly<{ goalId?: string }>): ReactElemen
         {latest ? (
           <div role="alert" className="space-y-3 rounded-lg border p-4">
             <p className="font-medium">This goal was changed elsewhere.</p>
-            <p className="text-sm break-words">
+            <p className="text-sm wrap-anywhere">
               Latest saved version: {latest.name} · target{' '}
               {goalMoney(latest.targetMinor, latest.currency)}
               {latest.targetDate ? ` · ${latest.targetDate}` : ''}. Your edits below are kept.

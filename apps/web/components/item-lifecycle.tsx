@@ -406,7 +406,7 @@ export function DeleteItemSection({
                 aria-describedby={`${id}-confirm-hint`}
                 onChange={(e) => setTyped(e.target.value)}
               />
-              <p id={`${id}-confirm-hint`} className="text-sm break-words text-muted-foreground">
+              <p id={`${id}-confirm-hint`} className="text-sm wrap-anywhere text-muted-foreground">
                 Type “{item.name}”.
               </p>
             </div>

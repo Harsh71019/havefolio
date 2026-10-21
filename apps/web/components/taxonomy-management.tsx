@@ -391,7 +391,7 @@ export function TaxonomyManagement(): ReactElement {
                 >
                   <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 space-y-2">
-                      <h3 className="break-words font-medium">{category.name}</h3>
+                      <h3 className="wrap-anywhere font-medium">{category.name}</h3>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">
                           {category.isDemo ? 'Demo/default' : 'Custom'}
@@ -412,7 +412,7 @@ export function TaxonomyManagement(): ReactElement {
                           className="min-w-0 space-y-1 rounded-md border p-2"
                         >
                           <div className="flex min-w-0 flex-wrap items-center gap-2">
-                            <span className="min-w-0 break-words text-sm font-medium">
+                            <span className="min-w-0 wrap-anywhere text-sm font-medium">
                               {subcategory.name}
                             </span>
                             {subcategory.retiredAt || category.retiredAt ? (
@@ -480,7 +480,7 @@ export function TaxonomyManagement(): ReactElement {
                   className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-md border p-3"
                 >
                   <div className="min-w-0">
-                    <span className="break-words font-medium">{tag.name}</span>
+                    <span className="wrap-anywhere font-medium">{tag.name}</span>
                     <p className="text-xs text-muted-foreground">{tag.itemCount} items</p>
                   </div>
                   {controls('tags', tag)}

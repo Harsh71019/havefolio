@@ -62,7 +62,7 @@ export function OwnedItemCard({
       <p
         id={`${idPrefix}-name`}
         data-slot="owned-item-name"
-        className="mt-2.5 line-clamp-2 px-0.5 text-sm leading-snug font-medium break-words group-hover/card:underline group-hover/card:underline-offset-2"
+        className="mt-2.5 line-clamp-2 px-0.5 text-sm leading-snug font-medium wrap-anywhere group-hover/card:underline group-hover/card:underline-offset-2"
       >
         {name}
       </p>

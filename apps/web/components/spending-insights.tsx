@@ -321,7 +321,7 @@ function SpendingInsightsContent(): React.JSX.Element {
                         ).map(([label, amount]) => (
                           <div key={label}>
                             <dt className="text-sm text-muted-foreground">{label}</dt>
-                            <dd className="mt-1 break-words text-lg font-semibold tabular-nums">
+                            <dd className="mt-1 wrap-anywhere text-lg font-semibold tabular-nums">
                               {formatAggregate(amount, currency)}
                             </dd>
                           </div>
