@@ -1,5 +1,5 @@
 /* global window, requestAnimationFrame, document, innerHeight */
-import { primeWarm } from './core.mjs';
+import { primeWarm, censorObservation } from './core.mjs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 const require = createRequire(resolve(import.meta.dirname, '../../apps/web/package.json'));
@@ -146,25 +146,14 @@ export async function browserBaseline({ origin, fixture, runs, metadata }) {
             stage = `${profile.name}/${route}/${condition}`;
             console.log(`Measured browser start ${stage}`);
             const failed = (kind, elapsed) =>
-              output.push({
-                profile: profile.name,
-                repeat,
-                route,
-                condition,
-                readyMs: null,
-                readyLowerBoundMs: elapsed,
-                lcpMs: null,
-                longTasks: null,
-                longTaskMs: null,
-                domContentLoadedMs: null,
-                mediaTimedOut: true,
-                requests: kind === 'priming-timeout' ? null : requests,
-                transferBytes: kind === 'priming-timeout' ? null : transferBytes,
-                jsBytes: kind === 'priming-timeout' ? null : jsBytes,
-                errors: errors + 1,
-                failedRequests,
-                failureKind: kind,
-              });
+              output.push(
+                censorObservation(
+                  { profile: profile.name, repeat, route, condition },
+                  kind,
+                  elapsed,
+                  { requests, transferBytes, jsBytes, errors, failedRequests },
+                ),
+              );
             if (condition === 'warm') {
               try {
                 await primeWarm(cdp, profile, async () => {

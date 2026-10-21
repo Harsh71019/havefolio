@@ -158,3 +158,28 @@ export async function assertFreePorts(ports) {
     );
   }
 }
+
+export function censorObservation(identity, kind, elapsed, stats) {
+  if (!['priming-timeout', 'ready-timeout'].includes(kind))
+    throw new Error('Unknown censoring reason');
+  const priming = kind === 'priming-timeout';
+  return {
+    profile: identity.profile,
+    repeat: identity.repeat,
+    route: identity.route,
+    condition: identity.condition,
+    readyMs: null,
+    readyLowerBoundMs: priming ? null : elapsed,
+    lcpMs: null,
+    longTasks: null,
+    longTaskMs: null,
+    domContentLoadedMs: null,
+    mediaTimedOut: true,
+    requests: priming ? null : stats.requests,
+    transferBytes: priming ? null : stats.transferBytes,
+    jsBytes: priming ? null : stats.jsBytes,
+    errors: priming ? null : stats.errors,
+    failedRequests: priming ? null : stats.failedRequests,
+    failureKind: kind,
+  };
+}

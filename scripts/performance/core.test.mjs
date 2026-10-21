@@ -95,3 +95,25 @@ test('occupied service ports are rejected without connecting to or reusing the l
   }
   await assertFreePorts([0]);
 });
+test('readiness censoring never invents HTTP errors or merges network terminations', async () => {
+  const { censorObservation } = await import('./core.mjs');
+  const id = { profile: 'mobile', repeat: 0, route: 'store', condition: 'warm' };
+  const stats = {
+    requests: 10,
+    transferBytes: 100,
+    jsBytes: 10,
+    errors: 0,
+    failedRequests: 3,
+    cookie: 'private',
+  };
+  const ready = censorObservation(id, 'ready-timeout', 30000, stats);
+  assert.equal(ready.errors, 0);
+  assert.equal(ready.failedRequests, 3);
+  assert.equal(ready.readyMs, null);
+  assert.equal(ready.readyLowerBoundMs, 30000);
+  assert.doesNotMatch(JSON.stringify(ready), /cookie|private/);
+  const prime = censorObservation(id, 'priming-timeout', 30000, stats);
+  assert.equal(prime.readyLowerBoundMs, null);
+  assert.equal(prime.requests, null);
+  assert.equal(prime.errors, null);
+});
