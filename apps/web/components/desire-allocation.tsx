@@ -200,7 +200,7 @@ export function DesireAllocationFlow({ desireId }: { desireId: string }): ReactE
   };
   if (loading) return <p role="status">Loading allocation…</p>;
   return (
-    <div className="space-y-6 break-words">
+    <div className="space-y-6 wrap-anywhere">
       <Link
         className="inline-flex min-h-11 items-center underline underline-offset-4"
         href={`/wants/${desireId}/history`}

@@ -521,7 +521,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
                   </Badge>
                 </div>
               </div>
-              <h2 className="text-xl sm:text-2xl pt-2 break-words font-semibold leading-tight">
+              <h2 className="text-xl sm:text-2xl pt-2 wrap-anywhere font-semibold leading-tight">
                 {desire.name}
               </h2>
               <CardDescription className="text-sm font-medium text-foreground">
@@ -558,7 +558,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Why you wanted this
                 </h3>
-                <p className="text-muted-foreground break-words">
+                <p className="text-muted-foreground wrap-anywhere">
                   {desire.reason ?? 'No reflection reason was recorded.'}
                 </p>
               </div>
@@ -603,7 +603,12 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
                   intentional decision below, or connect items first.
                 </p>
                 <div className="pt-2">
-                  <Button asChild variant="outline" size="sm" className="min-h-11">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="h-auto min-h-11 max-w-full whitespace-normal"
+                  >
                     <Link href={`/wants/${desire.id}/matches`}>
                       <Boxes className="mr-1.5 size-4" aria-hidden="true" />
                       Search and connect possessions
@@ -651,7 +656,7 @@ export function DesireCompare({ desireId }: { desireId: string }): ReactElement 
                         {/* Details */}
                         <div className="space-y-2 flex-1 min-w-0 text-sm">
                           <div className="flex flex-wrap items-center justify-between gap-1.5">
-                            <h4 className="font-semibold text-base leading-tight break-words">
+                            <h4 className="font-semibold text-base leading-tight wrap-anywhere">
                               {item.name}
                             </h4>
                             {item.isUnavailable ? (

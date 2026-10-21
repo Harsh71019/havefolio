@@ -490,7 +490,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
       <Card className="border-muted bg-card shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button asChild variant="ghost" size="sm" className="min-h-11 px-2.5">
                 <Link href="/wants" aria-label="Back to wants list">
                   <ArrowLeft className="mr-1.5 size-4" aria-hidden="true" />
@@ -518,8 +518,10 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
         </CardHeader>
         <CardContent className="space-y-3 pt-0">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 border-t pt-4">
-            <div className="space-y-1">
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{desire.name}</h2>
+            <div className="min-w-0 space-y-1">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight wrap-anywhere">
+                {desire.name}
+              </h2>
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 {desire.classification ? (
                   <Badge variant="secondary" className="font-normal">
@@ -713,7 +715,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                         {/* Item and Match Details */}
                         <div className="space-y-2 flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-semibold text-base sm:text-lg leading-tight break-words">
+                            <h4 className="font-semibold text-base sm:text-lg leading-tight wrap-anywhere">
                               {match.item.name}
                             </h4>
                             {match.item.brand || match.item.model ? (
@@ -1049,7 +1051,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                         {/* Details */}
                         <div className="space-y-2 flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-semibold text-base sm:text-lg leading-tight break-words">
+                            <h4 className="font-semibold text-base sm:text-lg leading-tight wrap-anywhere">
                               {suggestion.item.name}
                             </h4>
                             {suggestion.item.brand || suggestion.item.model ? (
@@ -1325,7 +1327,7 @@ export function DesireMatches({ desireId }: { desireId: string }): ReactElement 
                         {/* Candidate info */}
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-semibold text-base leading-snug break-words">
+                            <h4 className="font-semibold text-base leading-snug wrap-anywhere">
                               {candidate.name}
                             </h4>
                             {candidate.brand || candidate.model ? (

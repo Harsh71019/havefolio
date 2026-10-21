@@ -90,7 +90,10 @@ export function StoreToolbar({
           ) : null}
         </Button>
         <Select value={sortKey(query)} onValueChange={handleSortChange}>
-          <SelectTrigger aria-label="Sort by" className="min-w-52 text-sm data-[size=default]:h-11">
+          <SelectTrigger
+            aria-label="Sort by"
+            className="max-w-full min-w-52 text-sm data-[size=default]:h-11"
+          >
             <span aria-hidden="true" className="text-muted-foreground">
               Sort by:
             </span>

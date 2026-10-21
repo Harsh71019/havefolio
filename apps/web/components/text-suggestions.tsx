@@ -674,7 +674,7 @@ function FieldReview({
           </Badge>
         ) : null}
       </div>
-      <p className="font-medium break-words">
+      <p className="font-medium wrap-anywhere">
         <span className="sr-only">Suggested {label.toLowerCase()}: </span>
         {displayValue(field, value)}
       </p>
@@ -691,7 +691,7 @@ function FieldReview({
           ))}
           {shown.text ? (
             <li>
-              Read from line {shown.line}: <q className="break-words">{shown.text}</q>
+              Read from line {shown.line}: <q className="wrap-anywhere">{shown.text}</q>
             </li>
           ) : null}
         </ul>
@@ -988,7 +988,7 @@ function DecisionHistory({ decisions }: { decisions: EnrichmentReviewEvent[] }):
                     ? 'corrected'
                     : 'used suggestion'}
               </p>
-              <p className="text-muted-foreground break-words">
+              <p className="text-muted-foreground wrap-anywhere">
                 Before: {displayValue(event.field, event.previousValue)} · After:{' '}
                 {displayValue(event.field, event.confirmedValue)}
               </p>

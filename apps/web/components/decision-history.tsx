@@ -220,7 +220,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
       </Link>
       <header className="space-y-2">
         <h1 className={pageTitleClassName}>Decision history</h1>
-        <h2 className="text-lg break-words">{desire.name}</h2>
+        <h2 className="text-lg wrap-anywhere">{desire.name}</h2>
         <p>{getEffectiveStateLabel(desire.effectiveState)}</p>
         <p className="text-sm text-muted-foreground">
           Record what happened and keep earlier decisions visible. Corrections add a new event.
@@ -230,7 +230,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
         ref={notice}
         tabIndex={-1}
         role={error ? 'alert' : 'status'}
-        className="text-sm break-words"
+        className="text-sm wrap-anywhere"
       >
         {error || success}
       </p>
@@ -263,7 +263,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
               <h2>Inventory</h2>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm break-words">
+          <CardContent className="space-y-3 text-sm wrap-anywhere">
             {conversion ? (
               <p>
                 Added to your inventory as{' '}
@@ -377,7 +377,10 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
                         {items.map((i) => (
                           <div key={i.id} className="flex gap-3 min-h-11 items-center">
                             <RadioGroupItem id={`item-${i.id}`} value={i.id} />
-                            <Label htmlFor={`item-${i.id}`} className="min-h-11 flex-1 break-words">
+                            <Label
+                              htmlFor={`item-${i.id}`}
+                              className="min-h-11 flex-1 wrap-anywhere"
+                            >
                               {i.name}
                             </Label>
                           </div>
@@ -478,7 +481,7 @@ export function DecisionHistory({ desireId }: { desireId: string }): ReactElemen
                       · Event {e.sequence}
                     </p>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-sm break-words">
+                  <CardContent className="space-y-2 text-sm wrap-anywhere">
                     {e.supersedesEventId ? (
                       <p>
                         Correction of event{' '}

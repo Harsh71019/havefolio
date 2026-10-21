@@ -1024,7 +1024,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
           </div>
 
           {/* Form Actions: Save, Cancel, and Delete */}
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t">
+          <div className="flex flex-col-reverse sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 pt-4 border-t">
             {/* Delete Trigger */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
@@ -1064,7 +1064,7 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
               </AlertDialogContent>
             </AlertDialog>
 
-            <div className="flex gap-2 justify-end">
+            <div className="flex flex-wrap gap-2 justify-end">
               <Button
                 type="button"
                 variant="outline"

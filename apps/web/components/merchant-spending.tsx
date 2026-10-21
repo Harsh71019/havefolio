@@ -116,7 +116,7 @@ export function MerchantSpending(): React.JSX.Element {
                   <li key={row.merchant?.id ?? 'none'} className="space-y-2 px-4 py-3">
                     <div className="flex items-baseline justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="truncate font-medium">{merchantName(row)}</p>
+                        <p className="font-medium wrap-anywhere">{merchantName(row)}</p>
                         <p className="text-xs text-muted-foreground">
                           {row.totalItemCount} {row.totalItemCount === 1 ? 'item' : 'items'}
                           {row.unknownPriceCount
