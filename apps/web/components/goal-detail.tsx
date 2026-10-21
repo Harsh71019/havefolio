@@ -42,6 +42,7 @@ import {
 import { goalMessage } from './goals-list';
 import { PageLoadFailure } from './page-load-failure';
 import { calendarDay } from './home-presentation';
+import { setReturnFocusGoal } from './navigation-context';
 import { amountEntryToMinor, minorToAmountEntry } from './money-entry';
 import { randomId } from './random-id';
 import { pageTitleClassName } from './page-heading';
@@ -303,6 +304,7 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
       <Link
         className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
         href="/goals"
+        onClick={() => setReturnFocusGoal(goal.id)}
       >
         Back to Goals
       </Link>

@@ -347,7 +347,13 @@ export function ItemEditDialog({
   return (
     <Dialog open={Boolean(section)} onOpenChange={(open) => (open ? undefined : onClose())}>
       {section ? (
-        <DialogContent className="max-h-[92svh] overflow-y-auto motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none sm:max-w-xl">
+        <DialogContent
+          className="max-h-[92svh] overflow-y-auto motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none sm:max-w-xl"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            onClose();
+          }}
+        >
           <EditForm
             key={section}
             item={item}

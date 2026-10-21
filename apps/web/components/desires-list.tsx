@@ -10,6 +10,7 @@ import { Heart, PlusCircle, RotateCcw, AlertCircle, LogIn } from 'lucide-react';
 import { CollectionEmptyState } from './collection-empty-state';
 import { DesireCard } from './desire-card';
 import { listDesires, DesireRequestError, effectiveStateInfo } from './desires-client';
+import { takeReturnFocusDesire } from './navigation-context';
 
 type FilterState = 'all' | DesireEffectiveState;
 
@@ -71,6 +72,22 @@ export function DesiresList(): ReactElement {
       abortControllerRef.current?.abort();
     };
   }, [filter, loadInitial]);
+
+  // PER-90: restore list position and focus when returning from desire sub-pages
+  useEffect(() => {
+    if (isLoading) return;
+    const returnDesireId = takeReturnFocusDesire();
+    if (!returnDesireId) return;
+
+    window.requestAnimationFrame(() => {
+      const card = document.querySelector<HTMLElement>(`[data-desire-id="${returnDesireId}"]`);
+      if (card) {
+        card.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+        const focusable = card.querySelector<HTMLElement>('a, button');
+        (focusable ?? card).focus({ preventScroll: true });
+      }
+    });
+  }, [isLoading]);
 
   const handleFilterChange = (newFilter: FilterState): void => {
     if (newFilter === filter) return;

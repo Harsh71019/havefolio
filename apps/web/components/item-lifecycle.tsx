@@ -299,6 +299,7 @@ export function DeleteItemSection({
   const [error, setError] = useState<{ title: string; text: string } | undefined>();
   const inFlight = useRef(false);
   const deleted = useRef(false);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const matches = typed.trim().toLocaleLowerCase() === item.name.trim().toLocaleLowerCase();
   const attachments = [
     photoCount ? `${photoCount} photo${photoCount === 1 ? '' : 's'}` : 'photos',
@@ -358,6 +359,7 @@ export function DeleteItemSection({
         keep its history.
       </p>
       <Button
+        ref={deleteButtonRef}
         variant="outline"
         className="min-h-11"
         disabled={!online}
@@ -371,7 +373,14 @@ export function DeleteItemSection({
         Delete item…
       </Button>
       <AlertDialog open={open} onOpenChange={(next) => (!busy ? setOpen(next) : undefined)}>
-        <AlertDialogContent className="max-h-[92svh] overflow-y-auto motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none">
+        <AlertDialogContent
+          className="max-h-[92svh] overflow-y-auto motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            const target = deleteButtonRef.current;
+            (target?.isConnected ? target : document.getElementById('item-heading'))?.focus();
+          }}
+        >
           <form noValidate onSubmit={(e) => void confirm(e)} className="grid min-w-0 gap-4">
             <AlertDialogHeader>
               <AlertDialogTitle>Delete “{item.name}” permanently?</AlertDialogTitle>

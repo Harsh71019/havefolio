@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,6 +68,10 @@ function SidebarTooltip({
 export function AppNavigation(): ReactElement {
   const pathname = usePathname();
   const collapsed = useSidebarState() === 'collapsed';
+  const [moreOpen, setMoreOpen] = useState(false);
+  const isNavigatingRef = useRef(false);
+  const isNavFocusedRef = useRef(false);
+  const lastFocusedNavHref = useRef<string | null>(null);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -82,6 +86,99 @@ export function AppNavigation(): ReactElement {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  // PER-90: responsive breakpoint synchronization.
+  // When viewport crosses between mobile (<768px) and desktop (>=768px):
+  // 1. Close mobile More menu immediately so no stale overlay or backdrop remains.
+  // 2. Transfer focus from the hidden navigation surface to the visible one
+  //    so focus is never stranded on a display:none element or dropped to body.
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 768px)');
+    const onChange = (event: MediaQueryListEvent | MediaQueryList): void => {
+      if (event.matches) {
+        setMoreOpen(false);
+        const active = document.activeElement;
+        const mobileNav = document.querySelector('.mobile-navigation');
+        const isInsideMobileNav = Boolean(active && mobileNav && mobileNav.contains(active));
+        const isInsideMoreMenu = Boolean(
+          active?.closest('[data-slot="dropdown-menu-content"], [role="menu"]') ||
+          document.querySelector('[data-slot="dropdown-menu-content"]'),
+        );
+        const shouldTransfer = isNavFocusedRef.current || isInsideMobileNav || isInsideMoreMenu;
+        const targetHref =
+          lastFocusedNavHref.current ??
+          active?.getAttribute('href') ??
+          active?.closest('a')?.getAttribute('href') ??
+          null;
+
+        if (shouldTransfer) {
+          const transferToDesktop = (): void => {
+            const sidebar = document.getElementById(sidebarId);
+            if (sidebar) {
+              const match = targetHref
+                ? sidebar.querySelector<HTMLElement>(`a[href="${targetHref}"]`)
+                : null;
+              if (match) {
+                match.focus();
+              } else {
+                sidebar.querySelector<HTMLElement>('a[aria-current="page"]')?.focus();
+              }
+            }
+          };
+          transferToDesktop();
+          window.requestAnimationFrame(transferToDesktop);
+        }
+      } else {
+        const active = document.activeElement;
+        const sidebar = document.getElementById(sidebarId);
+        const isInsideSidebar = Boolean(active && sidebar && sidebar.contains(active));
+        const shouldTransfer = isNavFocusedRef.current || isInsideSidebar;
+        const targetHref =
+          lastFocusedNavHref.current ??
+          active?.getAttribute('href') ??
+          active?.closest('a')?.getAttribute('href') ??
+          null;
+
+        if (shouldTransfer) {
+          const transferToMobile = (): void => {
+            const mobileNav = document.querySelector('.mobile-navigation');
+            if (mobileNav) {
+              const match = targetHref
+                ? mobileNav.querySelector<HTMLElement>(`a[href="${targetHref}"]`)
+                : null;
+              if (match) {
+                match.focus();
+              } else {
+                const moreButton = mobileNav.querySelector<HTMLElement>(
+                  'button[aria-label*="More destinations"]',
+                );
+                if (moreButton) {
+                  moreButton.focus();
+                } else {
+                  mobileNav.querySelector<HTMLElement>('a[aria-current="page"]')?.focus();
+                }
+              }
+            }
+          };
+          transferToMobile();
+          window.requestAnimationFrame(transferToMobile);
+        }
+      }
+    };
+
+    if (typeof mql?.addEventListener === 'function') {
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    }
+    if (typeof (mql as unknown as { addListener?: unknown })?.addListener === 'function') {
+      const legacyMql = mql as unknown as {
+        addListener: (cb: typeof onChange) => void;
+        removeListener: (cb: typeof onChange) => void;
+      };
+      legacyMql.addListener(onChange);
+      return () => legacyMql.removeListener(onChange);
+    }
+  }, []);
+
   function isItemActive(href: string): boolean {
     if (!pathname) return false;
     if (
@@ -89,6 +186,9 @@ export function AppNavigation(): ReactElement {
       (pathname === '/settings/taxonomy' || pathname.startsWith('/settings/taxonomy/'))
     )
       return false;
+    if (href === '/store' && (pathname === '/items' || pathname.startsWith('/items/'))) {
+      return true;
+    }
     return pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
   }
 
@@ -96,6 +196,21 @@ export function AppNavigation(): ReactElement {
     <>
       <aside
         id={sidebarId}
+        onFocusCapture={(e) => {
+          isNavFocusedRef.current = true;
+          const a = e.target instanceof Element ? e.target.closest('a') : null;
+          lastFocusedNavHref.current = a?.getAttribute('href') ?? null;
+        }}
+        onBlurCapture={(e) => {
+          if (
+            e.relatedTarget &&
+            !e.currentTarget.contains(e.relatedTarget) &&
+            !document.querySelector('.mobile-navigation')?.contains(e.relatedTarget)
+          ) {
+            isNavFocusedRef.current = false;
+            lastFocusedNavHref.current = null;
+          }
+        }}
         className="sticky top-0 hidden h-svh w-68 flex-col overflow-x-hidden border-r bg-background px-5 py-6 transition-[width,padding] duration-200 ease-out motion-reduce:transition-none md:flex sidebar-collapsed:w-16 sidebar-collapsed:px-2"
       >
         {/* The rail keeps only the toggle; Home is already the first destination. */}
@@ -164,6 +279,21 @@ export function AppNavigation(): ReactElement {
           widen meanwhile. It is a no-op with overlay scrollbars. */}
       <nav
         aria-label="Primary"
+        onFocusCapture={(e) => {
+          isNavFocusedRef.current = true;
+          const a = e.target instanceof Element ? e.target.closest('a') : null;
+          lastFocusedNavHref.current = a?.getAttribute('href') ?? null;
+        }}
+        onBlurCapture={(e) => {
+          if (
+            e.relatedTarget &&
+            !e.currentTarget.contains(e.relatedTarget) &&
+            !document.getElementById(sidebarId)?.contains(e.relatedTarget)
+          ) {
+            isNavFocusedRef.current = false;
+            lastFocusedNavHref.current = null;
+          }
+        }}
         className="mobile-navigation width-before-scroll-bar fixed right-(--mobile-nav-inset-right) bottom-(--mobile-nav-offset) left-(--mobile-nav-inset-left) z-50 grid h-(--mobile-nav-height) grid-cols-5 rounded-lg border bg-background p-1.5 shadow-sm md:hidden"
       >
         {navigationItems.slice(0, 4).map((item) => {
@@ -184,7 +314,7 @@ export function AppNavigation(): ReactElement {
             </Button>
           );
         })}
-        <DropdownMenu>
+        <DropdownMenu open={moreOpen} onOpenChange={setMoreOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               variant={
@@ -209,13 +339,33 @@ export function AppNavigation(): ReactElement {
             // PER-85: clear the bar's border and padding (7px) as well as the usual 4px gap.
             sideOffset={11}
             className="min-w-48 motion-reduce:animate-none motion-reduce:transition-none"
+            onCloseAutoFocus={(event) => {
+              if (window.matchMedia('(min-width: 768px)').matches) {
+                event.preventDefault();
+                const sidebar = document.getElementById(sidebarId);
+                const current =
+                  sidebar?.querySelector<HTMLElement>('a[aria-current="page"]') ??
+                  sidebar?.querySelector<HTMLElement>('a');
+                current?.focus();
+              } else if (isNavigatingRef.current) {
+                event.preventDefault();
+                isNavigatingRef.current = false;
+              }
+            }}
           >
             {navigationItems.slice(4).map((item) => {
               const active = isItemActive(item.href);
               const Icon = item.icon;
               return (
                 <DropdownMenuItem key={item.href} asChild className="min-h-11">
-                  <Link href={item.href} aria-current={active ? 'page' : undefined}>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    onClick={() => {
+                      isNavigatingRef.current = true;
+                      setMoreOpen(false);
+                    }}
+                  >
                     <Icon aria-hidden="true" className="size-4" />
                     {item.label}
                   </Link>

@@ -13,6 +13,7 @@ import { DesireRequestError, desireMessages } from './desires-client';
 import { listGoals } from './goals-client';
 import { goalProgressSummary, goalStatusLabels } from './goal-presentation';
 import { calendarDay } from './home-presentation';
+import { setReturnFocusGoal, takeReturnFocusGoal } from './navigation-context';
 
 type Filter = 'all' | GoalStatus;
 const filters: readonly Filter[] = ['all', ...goalStatuses];
@@ -34,6 +35,8 @@ export function GoalCard({ goal }: Readonly<{ goal: Goal }>): ReactElement {
           <h2 className="min-w-0 text-lg font-semibold break-words">
             <Link
               href={`/goals/${goal.id}`}
+              data-goal-id={goal.id}
+              onClick={() => setReturnFocusGoal(goal.id)}
               className="inline-flex min-h-11 items-center underline-offset-4 hover:underline focus-visible:underline"
             >
               {goal.name}
@@ -93,6 +96,21 @@ export function GoalsList(): ReactElement {
     fetchPage('all');
     return () => controller.current?.abort();
   }, [fetchPage]);
+
+  // PER-90: restore list position and focus when returning from goal details
+  useEffect(() => {
+    if (loading) return;
+    const returnGoalId = takeReturnFocusGoal();
+    if (!returnGoalId) return;
+
+    window.requestAnimationFrame(() => {
+      const card = document.querySelector<HTMLElement>(`[data-goal-id="${returnGoalId}"]`);
+      if (card) {
+        card.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+        card.focus({ preventScroll: true });
+      }
+    });
+  }, [loading]);
   const load = (next: Filter): void => {
     setLoading(true);
     setError('');

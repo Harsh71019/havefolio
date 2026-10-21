@@ -68,6 +68,7 @@ import {
   DesireRequestError,
 } from './desires-client';
 import { formatReviewDateTime, validateProductUrlString } from './desire-presentation';
+import { setReturnFocusDesire } from './navigation-context';
 import { randomId } from './random-id';
 
 export function EditDesireForm({ desireId }: { desireId: string }): ReactElement {
@@ -1069,7 +1070,10 @@ export function EditDesireForm({ desireId }: { desireId: string }): ReactElement
                 type="button"
                 variant="outline"
                 className="min-h-11"
-                onClick={() => router.push('/wants')}
+                onClick={() => {
+                  setReturnFocusDesire(desireId);
+                  router.push('/wants');
+                }}
                 disabled={isSubmitting}
               >
                 Cancel
