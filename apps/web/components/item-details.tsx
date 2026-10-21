@@ -976,13 +976,46 @@ function DetailSkeleton({ returnTo }: { returnTo: string }): ReactElement {
           Back to My Store
         </Link>
       </Button>
-      <div aria-hidden="true" className="space-y-4">
+      <div aria-hidden="true" className="space-y-4" data-testid="item-detail-skeleton">
         <Skeleton className="h-6 w-24 motion-reduce:animate-none" />
         <Skeleton className="h-10 w-2/3 motion-reduce:animate-none" />
         <Skeleton className="h-11 w-full max-w-md motion-reduce:animate-none" />
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-          <Skeleton className="h-64 motion-reduce:animate-none" />
-          <Skeleton className="h-64 motion-reduce:animate-none" />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">
+          <div className="min-w-0 space-y-6">
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <Skeleton className="h-6 w-32 motion-reduce:animate-none" />
+                <div className="space-y-3">
+                  <Skeleton className="h-5 w-48 motion-reduce:animate-none" />
+                  <Skeleton className="h-5 w-40 motion-reduce:animate-none" />
+                  <Skeleton className="h-5 w-44 motion-reduce:animate-none" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <Skeleton className="h-6 w-48 motion-reduce:animate-none" />
+                <Skeleton className="h-16 w-full motion-reduce:animate-none" />
+              </CardContent>
+            </Card>
+          </div>
+          <div className="min-w-0 space-y-6">
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <div className="flex justify-between">
+                  <Skeleton className="h-6 w-20 motion-reduce:animate-none" />
+                  <Skeleton className="h-11 w-28 motion-reduce:animate-none" />
+                </div>
+                <Skeleton className="aspect-[4/3] w-full rounded-xl motion-reduce:animate-none" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <Skeleton className="h-6 w-28 motion-reduce:animate-none" />
+                <Skeleton className="h-20 w-full motion-reduce:animate-none" />
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </PageShell>

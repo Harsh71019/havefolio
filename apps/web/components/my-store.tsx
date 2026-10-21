@@ -196,7 +196,17 @@ export function MyStore({
 
   useEffect(() => {
     let active = true;
-    void fetchFirst().then((next) => active && setLoad(next));
+    void fetchFirst().then((next) => {
+      if (!active) return;
+      setLoad((current) => {
+        // PER-88: preserve usable items on background refresh failures
+        if (current.kind === 'ready' && next.kind === 'failed') {
+          setAnnouncement(next.error.message);
+          return current;
+        }
+        return next;
+      });
+    });
     return () => {
       active = false;
     };
@@ -373,7 +383,10 @@ function StoreSkeleton(): React.JSX.Element {
         {[0, 1, 2, 3, 4, 5].map((n) => (
           <div key={n} className="space-y-2.5">
             <Skeleton className="aspect-square rounded-lg motion-reduce:animate-none" />
-            <Skeleton className="h-4 w-3/4 motion-reduce:animate-none" />
+            <div className="space-y-1.5 pt-0.5">
+              <Skeleton className="h-4 w-3/4 motion-reduce:animate-none" />
+              <Skeleton className="h-3.5 w-1/2 motion-reduce:animate-none" />
+            </div>
           </div>
         ))}
       </div>

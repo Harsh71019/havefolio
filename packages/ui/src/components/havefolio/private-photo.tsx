@@ -61,16 +61,28 @@ export function PrivatePhoto({
     return (
       <div
         className={cn(
-          'absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted p-3 text-center text-sm text-muted-foreground',
+          'absolute inset-0 flex flex-col items-center justify-center gap-2 overflow-hidden bg-muted p-2 text-center text-sm text-muted-foreground sm:p-3',
           className,
         )}
       >
-        <ImageOffIcon aria-hidden="true" className="size-6" />
-        <p className="text-foreground" {...(announceFailure ? { role: 'alert' } : {})}>
+        <ImageOffIcon aria-hidden="true" className="size-6 shrink-0" />
+        <p
+          className="line-clamp-2 max-w-full break-words text-xs text-foreground sm:text-sm"
+          {...(announceFailure ? { role: 'alert' } : {})}
+        >
           {failedLabel}
         </p>
         {onRetry ? (
-          <Button className="min-h-11" onClick={onRetry} size="sm" type="button" variant="outline">
+          <Button
+            className="min-h-11"
+            onClick={() => {
+              setStatus('loading');
+              onRetry();
+            }}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
             <RotateCcwIcon aria-hidden="true" />
             Retry
           </Button>

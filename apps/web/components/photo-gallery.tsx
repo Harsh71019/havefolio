@@ -436,11 +436,26 @@ export function PhotoGallery({
 
       {!snapshot && !loadError ? (
         <div aria-busy="true" aria-label="Loading photos" className="space-y-6">
-          <Skeleton className="aspect-[4/3] w-full max-w-80 motion-reduce:animate-none" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {[0, 1, 2, 3].map((n) => (
-              <Skeleton key={n} className="aspect-square motion-reduce:animate-none" />
-            ))}
+          <Card className="gap-4">
+            <CardHeader>
+              <CardTitle>
+                <Skeleton className="h-6 w-16 motion-reduce:animate-none" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-[minmax(0,20rem)_1fr] sm:items-center">
+              <Skeleton className="aspect-[4/3] w-full max-w-80 rounded-lg motion-reduce:animate-none" />
+              <Skeleton className="h-4 w-3/4 max-w-md motion-reduce:animate-none" />
+            </CardContent>
+          </Card>
+          <div className="space-y-3">
+            <Skeleton className="h-6 w-28 motion-reduce:animate-none" />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((n) => (
+                <Card key={n} className="gap-0 overflow-hidden py-0">
+                  <Skeleton className="aspect-square rounded-none motion-reduce:animate-none" />
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       ) : null}
