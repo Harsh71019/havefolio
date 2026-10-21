@@ -30,6 +30,7 @@ import {
   formatReviewDateTime,
   getEffectiveStateLabel,
 } from './desire-presentation';
+import { setReturnFocusDesire } from './navigation-context';
 
 export function DesireCard({
   desire,
@@ -65,7 +66,10 @@ export function DesireCard({
   };
 
   return (
-    <Card className="overflow-hidden transition-colors hover:border-foreground/20">
+    <Card
+      data-desire-id={desire.id}
+      className="overflow-hidden transition-colors hover:border-foreground/20"
+    >
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
@@ -148,28 +152,45 @@ export function DesireCard({
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-1 self-end pt-2 xl:shrink-0 xl:self-start xl:pt-0">
             <Button asChild variant="outline" size="sm" className="min-h-11 px-3">
-              <Link href={`/wants/${desire.id}/compare`}>
+              <Link
+                href={`/wants/${desire.id}/compare`}
+                onClick={() => setReturnFocusDesire(desire.id)}
+              >
                 <Scale className="mr-1.5 size-3.5" aria-hidden="true" />
                 Compare
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="min-h-11 px-3">
-              <Link href={`/wants/${desire.id}/matches`}>
+              <Link
+                href={`/wants/${desire.id}/matches`}
+                onClick={() => setReturnFocusDesire(desire.id)}
+              >
                 <Boxes className="mr-1.5 size-3.5" aria-hidden="true" />
                 Matches
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="min-h-11 px-3">
-              <Link href={`/wants/${desire.id}/goals`}>
+              <Link
+                href={`/wants/${desire.id}/goals`}
+                onClick={() => setReturnFocusDesire(desire.id)}
+              >
                 <Target className="mr-1.5 size-3.5" aria-hidden="true" />
                 Goals
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="min-h-11">
-              <Link href={`/wants/${desire.id}/history`}>Decision history</Link>
+              <Link
+                href={`/wants/${desire.id}/history`}
+                onClick={() => setReturnFocusDesire(desire.id)}
+              >
+                Decision history
+              </Link>
             </Button>
             <Button asChild variant="ghost" size="sm" className="min-h-11 px-3">
-              <Link href={`/wants/${desire.id}/edit`}>
+              <Link
+                href={`/wants/${desire.id}/edit`}
+                onClick={() => setReturnFocusDesire(desire.id)}
+              >
                 <Pencil className="mr-1.5 size-3.5" aria-hidden="true" />
                 Edit
               </Link>

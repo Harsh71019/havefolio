@@ -96,6 +96,7 @@ import {
   itemPhotosHref,
   itemTextSuggestionsHref,
   safeReturnPath,
+  setReturnFocusItem,
 } from './navigation-context';
 import { fetchPhotos, PhotoRequestError } from './photos-client';
 import { taxonomyRequest } from './taxonomy-client';
@@ -237,6 +238,11 @@ export function ItemDetails({
     () => navigator.onLine,
     () => true,
   );
+
+  useEffect(() => {
+    // PER-90: remember current item for focus recovery when navigating back to My Store
+    setReturnFocusItem(itemId);
+  }, [itemId]);
 
   const announce = useCallback((text: string, visible = true): void => {
     setAnnouncement('');
@@ -423,7 +429,7 @@ export function ItemDetails({
         {announcement}
       </p>
       <Button asChild variant="ghost" className="-ml-3 min-h-11">
-        <Link href={returnTo}>
+        <Link href={returnTo} onClick={() => setReturnFocusItem(current.id)}>
           <ArrowLeftIcon aria-hidden="true" />
           Back to My Store
         </Link>

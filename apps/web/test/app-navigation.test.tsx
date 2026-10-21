@@ -26,6 +26,16 @@ describe('primary navigation', () => {
       );
     }
   });
+  it('keeps My Store active on nested item routes in both surfaces (PER-90)', () => {
+    pathname = '/items/00000000-0000-4000-a000-000000000001';
+    render(<AppNavigation />);
+    for (const navigation of screen.getAllByRole('navigation', { name: 'Primary' })) {
+      expect(within(navigation).getByRole('link', { name: 'My Store' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+    }
+  });
   it('labels both responsive navigation surfaces and exposes the current page', () => {
     render(<AppNavigation />);
     const navigations = screen.getAllByRole('navigation', { name: 'Primary' });
@@ -59,6 +69,18 @@ describe('primary navigation', () => {
     expect(screen.getByRole('menuitem', { name: 'Settings' })).toHaveAttribute('href', '/settings');
     await userEvent.keyboard('{Escape}');
     expect(trigger).toHaveFocus();
+  });
+  it('selects a mobile destination from More and closes without returning focus to More (PER-90)', async () => {
+    render(<AppNavigation />);
+    const trigger = screen.getByRole('button', { name: 'More destinations' });
+    trigger.focus();
+    await userEvent.keyboard('{Enter}');
+    const goalsLink = screen.getByRole('menuitem', { name: 'Goals' });
+    expect(goalsLink).toBeInTheDocument();
+    await userEvent.click(goalsLink);
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitem', { name: 'Goals' })).not.toBeInTheDocument();
+    });
   });
   it('highlights Categories exclusively on taxonomy, and Settings on merchants', () => {
     pathname = '/settings/taxonomy';

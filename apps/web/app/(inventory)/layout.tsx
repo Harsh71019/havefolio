@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { AppNavigation } from '@/components/app-navigation';
 import { HeaderSearch } from '@/components/header-search';
 import { pageGutterClassName } from '@/components/page-shell';
+import { RouteFocusManager } from '@/components/route-focus-manager';
 import { mainContentId, SkipLink } from '@/components/skip-link';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -11,6 +12,7 @@ export default function InventoryLayout({
   return (
     <div className="min-h-svh md:grid md:grid-cols-[auto_minmax(0,1fr)]">
       <SkipLink />
+      <RouteFocusManager />
       <AppNavigation />
       {/* PER-85: page overflow is clipped on phones so it cannot widen the layout viewport, which
           zooms out and moves the fixed bottom navigation. */}

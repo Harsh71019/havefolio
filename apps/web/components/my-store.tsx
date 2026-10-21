@@ -61,7 +61,12 @@ import {
   type InventoryPatch,
 } from './inventory-query-state';
 import { isInactive, itemHref, statusLabel } from './item-presentation';
-import { deletedFlashKey, storeReturnPath } from './navigation-context';
+import {
+  deletedFlashKey,
+  setReturnFocusItem,
+  storeReturnPath,
+  takeReturnFocusItem,
+} from './navigation-context';
 import { photoSource } from './photos-client';
 import { groupInventory } from './store-grouping';
 import { StoreFilters, countActiveFilters } from './store-filters';
@@ -143,6 +148,23 @@ export function MyStore({
     const timer = window.setTimeout(() => setDeleted(name), 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  // PER-90: restore list position and focus when returning from item details
+  useEffect(() => {
+    if (load.kind !== 'ready') return;
+    const returnItemId = takeReturnFocusItem();
+    if (!returnItemId) return;
+
+    window.requestAnimationFrame(() => {
+      const card = document.querySelector<HTMLElement>(`[data-item-id="${returnItemId}"]`);
+      if (card) {
+        card.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+        card.focus({ preventScroll: true });
+      } else {
+        (document.querySelector('h1') ?? document.getElementById('main-content'))?.focus();
+      }
+    });
+  }, [load.kind]);
 
   // Synchronize location search params with local query state
   const search = useSyncExternalStore(
@@ -677,6 +699,8 @@ function StoreCard({
   return (
     <Link
       href={itemHref(item.id, returnTo)}
+      data-item-id={item.id}
+      onClick={() => setReturnFocusItem(item.id)}
       aria-labelledby={`${id}-name ${id}-status`}
       {...(context ? { 'aria-describedby': `${id}-context` } : {})}
       className="block h-full rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
