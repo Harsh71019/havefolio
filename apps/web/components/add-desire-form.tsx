@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactElement } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { flushSync } from 'react-dom';
+import { focusValidationControl } from './focus-validation-control';
 import {
   popularCurrencies,
   type CreateDesireRequest,
@@ -119,6 +121,11 @@ export function AddDesireForm(): ReactElement {
   const submittingRef = useRef(false);
   const [createdDesire, setCreatedDesire] = useState<Desire | null>(null);
 
+  function validationTarget(key: string): string {
+    const suffix = key === 'waiting' ? 'custom-date' : key;
+    return `${formId}-${suffix}`;
+  }
+
   // Clean up object URLs
   useEffect(() => {
     return () => {
@@ -226,9 +233,6 @@ export function AddDesireForm(): ReactElement {
 
     setValidationErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setTimeout(() => {
-        errorSummaryRef.current?.focus();
-      }, 50);
       return false;
     }
     return true;
@@ -240,7 +244,11 @@ export function AddDesireForm(): ReactElement {
     setPhotoUploadError(null);
 
     if (isSubmitting || submittingRef.current) return;
-    if (!validateForm()) return;
+    const valid = flushSync(() => validateForm());
+    if (!valid) {
+      errorSummaryRef.current?.focus();
+      return;
+    }
 
     submittingRef.current = true;
     setIsSubmitting(true);
@@ -479,13 +487,19 @@ export function AddDesireForm(): ReactElement {
                 {Object.entries(validationErrors).map(([key, err]) => (
                   <li key={key}>
                     <a
-                      href={`#${formId}-${key}`}
+                      href={`#${validationTarget(key)}`}
                       className="underline underline-offset-2 hover:opacity-80"
                       onClick={(ev) => {
                         ev.preventDefault();
-                        const el = document.getElementById(`${formId}-${key}`);
-                        el?.focus();
-                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Mount the target before transferring focus from the summary link.
+                        flushSync(() => {
+                          if (key === 'price') setShowPrice(true);
+                          if (key === 'waiting') setShowWaiting(true);
+                          if (key === 'productUrl') setShowProductUrl(true);
+                          if (key === 'reason') setShowReason(true);
+                          if (key === 'photo') setShowPhoto(true);
+                        });
+                        focusValidationControl(validationTarget(key));
                       }}
                     >
                       {err}
@@ -808,6 +822,7 @@ export function AddDesireForm(): ReactElement {
                 </p>
                 <Input
                   id={`${formId}-productUrl`}
+                  aria-label="Product link"
                   type="url"
                   value={productUrl}
                   onChange={(e) => {
@@ -867,6 +882,7 @@ export function AddDesireForm(): ReactElement {
                 </p>
                 <Textarea
                   id={`${formId}-reason`}
+                  aria-label="Private reason"
                   value={reason}
                   maxLength={2000}
                   onChange={(e) => {
@@ -947,20 +963,29 @@ export function AddDesireForm(): ReactElement {
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    <Label
-                      htmlFor={`${formId}-photo-file`}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                    <Button
+                      id={`${formId}-photo`}
+                      type="button"
+                      variant="outline"
+                      className="min-h-11"
+                      aria-invalid={Boolean(validationErrors.photo)}
+                      aria-describedby={
+                        validationErrors.photo ? `${formId}-photo-error` : undefined
+                      }
+                      onClick={() => document.getElementById(`${formId}-photo-file`)?.click()}
                     >
                       <Upload className="size-4" aria-hidden="true" />
                       Choose photo
-                      <input
-                        id={`${formId}-photo-file`}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="sr-only"
-                        onChange={(e) => handlePhotoSelect(e.target.files?.[0] ?? null)}
-                      />
-                    </Label>
+                    </Button>
+                    <input
+                      id={`${formId}-photo-file`}
+                      aria-label="Choose photo file"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      tabIndex={-1}
+                      className="sr-only"
+                      onChange={(e) => handlePhotoSelect(e.target.files?.[0] ?? null)}
+                    />
                     <Label
                       htmlFor={`${formId}-photo-camera`}
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer"
@@ -969,6 +994,10 @@ export function AddDesireForm(): ReactElement {
                       Take photo
                       <input
                         id={`${formId}-photo-camera`}
+                        aria-invalid={Boolean(validationErrors.photo)}
+                        aria-describedby={
+                          validationErrors.photo ? `${formId}-photo-error` : undefined
+                        }
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         capture="environment"
