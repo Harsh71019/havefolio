@@ -27,7 +27,7 @@ export function DemoItemDetails({
       </Button>
       <header className="space-y-3">
         <Badge>Demo · read-only example</Badge>
-        <h1 className={`${pageTitleClassName} break-words`}>{item.name}</h1>
+        <h1 className={pageTitleClassName}>{item.name}</h1>
         <p className="text-muted-foreground">
           A fictional household example. Amounts and dates are illustrative, excluded from your real
           spending. These details cannot be edited. Add your own item through manual entry.

@@ -457,12 +457,12 @@ export function ItemDetails({
           <h1
             id="item-heading"
             tabIndex={-1}
-            className={`${pageTitleClassName} break-words outline-none`}
+            className={`${pageTitleClassName} wrap-anywhere outline-none`}
           >
             {current.name}
           </h1>
           {current.brand || current.model ? (
-            <p className="text-lg break-words text-muted-foreground">
+            <p className="text-lg wrap-anywhere text-muted-foreground">
               {[current.brand, current.model].filter(Boolean).join(' · ')}
             </p>
           ) : null}
@@ -630,8 +630,10 @@ export function ItemDetails({
               {current.tagIds.length ? (
                 <ul className="mt-2 flex flex-wrap gap-2" aria-label="Tags">
                   {current.tagIds.map((tagId) => (
-                    <li key={tagId}>
-                      <Pill>{taxonomy?.tags.find((t) => t.id === tagId)?.name ?? 'Tag'}</Pill>
+                    <li key={tagId} className="max-w-full">
+                      <Pill className="max-w-full whitespace-normal wrap-anywhere">
+                        {taxonomy?.tags.find((t) => t.id === tagId)?.name ?? 'Tag'}
+                      </Pill>
                     </li>
                   ))}
                 </ul>
@@ -659,7 +661,7 @@ export function ItemDetails({
               ]}
             />
             {current.description ? (
-              <p className="mt-4 break-words whitespace-pre-line">{current.description}</p>
+              <p className="mt-4 wrap-anywhere whitespace-pre-line">{current.description}</p>
             ) : null}
           </DetailCard>
 
@@ -670,7 +672,7 @@ export function ItemDetails({
           >
             <h3 className="text-sm text-muted-foreground">Notes</h3>
             {current.notes ? (
-              <p className="mt-1 break-words whitespace-pre-line">{current.notes}</p>
+              <p className="mt-1 wrap-anywhere whitespace-pre-line">{current.notes}</p>
             ) : (
               <p className="mt-1 text-muted-foreground">No notes yet</p>
             )}
@@ -679,8 +681,8 @@ export function ItemDetails({
               <dl className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
                 {Object.entries(current.specifications).map(([key, value]) => (
                   <div key={key} className="contents">
-                    <dt className="break-words text-muted-foreground">{key}</dt>
-                    <dd className="break-words">
+                    <dt className="wrap-anywhere text-muted-foreground">{key}</dt>
+                    <dd className="wrap-anywhere">
                       {typeof value === 'string' ? value : JSON.stringify(value)}
                     </dd>
                   </div>
@@ -793,7 +795,7 @@ export function ItemDetails({
           {related?.items.length ? (
             <Card>
               <CardContent className="space-y-3">
-                <h2 id="related-heading" className="text-lg font-semibold">
+                <h2 id="related-heading" className="text-lg font-semibold wrap-anywhere">
                   {related.label === 'category'
                     ? `Also in ${categoryName(current.categoryId) ?? 'this category'}`
                     : `Also tagged ${taxonomy?.tags.find((t) => t.id === current.tagIds[0])?.name ?? 'the same'}`}
@@ -805,7 +807,7 @@ export function ItemDetails({
                         href={itemDetailHref(other.id, returnTo)}
                         className="flex min-h-11 items-center justify-between gap-3 py-2 underline-offset-4 hover:underline focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none"
                       >
-                        <span className="min-w-0 break-words">{other.name}</span>
+                        <span className="min-w-0 wrap-anywhere">{other.name}</span>
                         <span className="shrink-0 text-sm text-muted-foreground">
                           {statusLabel(other.ownershipStatus)}
                         </span>
@@ -958,7 +960,7 @@ function Facts({ facts }: { facts: [string, Shown][] }): ReactElement {
       {facts.map(([label, shown]) => (
         <div key={label} className="contents">
           <dt className="text-sm text-muted-foreground sm:text-base">{label}</dt>
-          <dd className="-mt-2 min-w-0 break-words sm:mt-0">
+          <dd className="-mt-2 min-w-0 wrap-anywhere sm:mt-0">
             <span className={shown.muted ? 'text-muted-foreground' : undefined}>{shown.value}</span>
             {shown.note ? (
               <span className="block text-sm text-muted-foreground">{shown.note}</span>

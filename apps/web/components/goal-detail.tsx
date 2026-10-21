@@ -300,7 +300,7 @@ export function GoalDetail({ goalId }: Readonly<{ goalId: string }>): ReactEleme
     dialog && dialog.kind !== 'status' && dialog.kind !== 'delete' ? dialog : null;
 
   return (
-    <div className="space-y-6 break-words">
+    <div className="space-y-6 wrap-anywhere">
       <Link
         className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
         href="/goals"

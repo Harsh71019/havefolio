@@ -32,7 +32,7 @@ export function GoalCard({ goal }: Readonly<{ goal: Goal }>): ReactElement {
     <Card className="py-0">
       <CardContent className="space-y-3 p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h2 className="min-w-0 text-lg font-semibold break-words">
+          <h2 className="min-w-0 text-lg font-semibold wrap-anywhere">
             <Link
               href={`/goals/${goal.id}`}
               data-goal-id={goal.id}
@@ -47,7 +47,7 @@ export function GoalCard({ goal }: Readonly<{ goal: Goal }>): ReactElement {
           </Badge>
         </div>
         {view.bar === null ? null : <Progress value={view.bar} aria-labelledby={textId} />}
-        <p id={textId} className="text-sm tabular-nums break-words">
+        <p id={textId} className="text-sm tabular-nums wrap-anywhere">
           {goal.name}: {view.text}
         </p>
         <p className="text-sm text-muted-foreground">

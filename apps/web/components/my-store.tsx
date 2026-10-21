@@ -286,7 +286,7 @@ export function MyStore({
       {deleted ? (
         <div role="status" className="flex items-center gap-3 rounded-lg border p-3 text-sm">
           <CircleCheckIcon aria-hidden="true" className="size-4 shrink-0" />
-          <span className="min-w-0 break-words">
+          <span className="min-w-0 wrap-anywhere">
             “{deleted}” and its private photos and documents were deleted.
           </span>
         </div>
@@ -352,7 +352,7 @@ export function MyStore({
             filtersButtonRef={filtersButton}
             summary={summary}
           >
-            <div className="hidden items-center gap-3 lg:flex">
+            <div className="hidden flex-wrap items-center gap-x-3 lg:flex">
               <span id="store-density-label" className="text-sm font-medium">
                 View density
               </span>
@@ -361,7 +361,7 @@ export function MyStore({
                 orientation="horizontal"
                 value={density}
                 onValueChange={selectDensity}
-                className="flex gap-3"
+                className="flex flex-wrap gap-x-3"
               >
                 {storeDensities.map((mode) => (
                   <Label key={mode} className="flex min-h-11 cursor-pointer items-center gap-2">

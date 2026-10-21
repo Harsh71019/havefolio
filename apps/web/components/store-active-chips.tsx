@@ -103,9 +103,10 @@ export function StoreActiveChips({
           type="button"
           onClick={chip.onRemove}
           aria-label={`Remove filter: ${chip.label}`}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border bg-secondary/60 px-3 text-xs font-medium outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/50 xl:min-h-8"
+          title={chip.label}
+          className="inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-full border bg-secondary/60 px-3 text-xs font-medium outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/50 xl:min-h-8"
         >
-          <span className="max-w-60 truncate">{chip.label}</span>
+          <span className="max-w-60 min-w-0 truncate">{chip.label}</span>
           <XIcon aria-hidden="true" className="size-3.5 text-muted-foreground" />
         </button>
       ))}

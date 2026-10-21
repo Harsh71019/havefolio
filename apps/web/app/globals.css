@@ -77,13 +77,13 @@
    PER-67: cards are a photo and a name, so density only sets how wide each column is. */
 @media (min-width: 1024px) {
   .my-store .store-grid {
-    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
   }
   html[data-store-density='compact'] .my-store .store-grid {
-    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
   }
   html[data-store-density='large'] .my-store .store-grid {
-    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
   }
   html[data-store-density='large'] .my-store .store-card [data-slot='owned-item-name'] {
     font-size: 1rem;

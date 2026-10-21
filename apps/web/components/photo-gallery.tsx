@@ -552,7 +552,7 @@ export function PhotoGallery({
                               Photo {index + 1}
                               {isCover ? <span className="sr-only"> (cover)</span> : null}
                             </p>
-                            <p className="line-clamp-2 text-xs break-words text-muted-foreground">
+                            <p className="line-clamp-2 text-xs wrap-anywhere text-muted-foreground">
                               {photo.decorative
                                 ? 'Decorative — skipped by screen readers'
                                 : (photo.altText ?? 'No description yet')}

@@ -94,7 +94,7 @@ export function DesireGoalComparison({ desireId }: Readonly<{ desireId: string }
   const result = chosen ? comparePriceWithGoal(price, chosen) : null;
 
   return (
-    <div className="space-y-6 break-words">
+    <div className="space-y-6 wrap-anywhere">
       <Card>
         <CardHeader>
           <CardTitle>
