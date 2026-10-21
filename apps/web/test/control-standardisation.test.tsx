@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { Button } from '@havefolio/ui/components/button';
@@ -210,6 +210,7 @@ describe('PER-89: Shared control sizing, labels, and interaction states standard
       await user.click(button);
 
       expect(mockSubmit).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled());
     });
 
     it('Pending form announces aria-busy and disables interactive buttons without premature success', () => {
