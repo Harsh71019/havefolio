@@ -412,27 +412,178 @@ function Goals({ summary: s }: Readonly<{ summary: HomeSummary }>): ReactElement
   );
 }
 
+function HomeSkeleton(): ReactElement {
+  return (
+    <div className="mt-8 space-y-4" data-testid="home-skeleton">
+      <p role="status" className="sr-only">
+        Loading your Home summary…
+      </p>
+      <div aria-hidden="true" className="space-y-4">
+        {/* At a glance row */}
+        <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-3">
+          {[0, 1, 2].map((n) => (
+            <div key={n} className="rounded-xl border bg-card p-4 space-y-2">
+              <Skeleton className="h-4 w-24 motion-reduce:animate-none" />
+              <Skeleton className="h-8 w-16 motion-reduce:animate-none" />
+              <Skeleton className="h-3.5 w-32 motion-reduce:animate-none" />
+            </div>
+          ))}
+        </div>
+        {/* Five responsive section cards */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Rediscovery card */}
+          <Card className="min-w-0">
+            <CardHeader className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-5 rounded motion-reduce:animate-none" />
+                <Skeleton className="h-5 w-48 motion-reduce:animate-none" />
+              </div>
+              <Skeleton className="h-4 w-3/4 motion-reduce:animate-none" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-4">
+                <Skeleton className="aspect-[4/3] w-24 shrink-0 rounded-lg sm:w-32 motion-reduce:animate-none" />
+                <div className="min-w-0 flex-1 space-y-2.5">
+                  <Skeleton className="h-5 w-36 motion-reduce:animate-none" />
+                  <Skeleton className="h-4 w-28 motion-reduce:animate-none" />
+                  <Skeleton className="h-4 w-32 motion-reduce:animate-none" />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="mt-auto flex-wrap gap-2">
+              <Skeleton className="h-11 w-32 rounded-md motion-reduce:animate-none" />
+            </CardFooter>
+          </Card>
+
+          {/* Spending card */}
+          <Card className="min-w-0">
+            <CardHeader className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-5 rounded motion-reduce:animate-none" />
+                <Skeleton className="h-5 w-40 motion-reduce:animate-none" />
+              </div>
+              <Skeleton className="h-4 w-4/5 motion-reduce:animate-none" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-36 motion-reduce:animate-none" />
+                <Skeleton className="h-7 w-28 motion-reduce:animate-none" />
+              </div>
+            </CardContent>
+            <CardFooter className="mt-auto flex-wrap gap-2">
+              <Skeleton className="h-11 w-36 rounded-md motion-reduce:animate-none" />
+            </CardFooter>
+          </Card>
+
+          {/* Recent items card */}
+          <Card className="min-w-0">
+            <CardHeader className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-5 rounded motion-reduce:animate-none" />
+                <Skeleton className="h-5 w-32 motion-reduce:animate-none" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                {[0, 1].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="aspect-[4/3] w-full rounded-lg motion-reduce:animate-none" />
+                    <Skeleton className="h-4 w-3/4 motion-reduce:animate-none" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="mt-auto flex-wrap gap-2">
+              <Skeleton className="h-11 w-32 rounded-md motion-reduce:animate-none" />
+            </CardFooter>
+          </Card>
+
+          {/* Wants card */}
+          <Card className="min-w-0">
+            <CardHeader className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-5 rounded motion-reduce:animate-none" />
+                <Skeleton className="h-5 w-28 motion-reduce:animate-none" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[0, 1].map((i) => (
+                <div key={i} className="flex items-center justify-between py-2">
+                  <Skeleton className="h-5 w-36 motion-reduce:animate-none" />
+                  <Skeleton className="h-6 w-20 rounded-full motion-reduce:animate-none" />
+                </div>
+              ))}
+            </CardContent>
+            <CardFooter className="mt-auto flex-wrap gap-2">
+              <Skeleton className="h-11 w-28 rounded-md motion-reduce:animate-none" />
+            </CardFooter>
+          </Card>
+
+          {/* Goals card */}
+          <Card className="min-w-0">
+            <CardHeader className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-5 rounded motion-reduce:animate-none" />
+                <Skeleton className="h-5 w-24 motion-reduce:animate-none" />
+              </div>
+              <Skeleton className="h-4 w-3/4 motion-reduce:animate-none" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-28 motion-reduce:animate-none" />
+                  <Skeleton className="h-3.5 w-24 motion-reduce:animate-none" />
+                </div>
+                <Skeleton className="h-2 w-full rounded-full motion-reduce:animate-none" />
+              </div>
+            </CardContent>
+            <CardFooter className="mt-auto flex-wrap gap-2">
+              <Skeleton className="h-11 w-28 rounded-md motion-reduce:animate-none" />
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Product composition of existing shadcn primitives; one bounded owner-scoped request. */
 export function HomeDashboard({
   request = readHome,
 }: Readonly<{ request?: typeof readHome }>): ReactElement {
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [attempt, setAttempt] = useState(0);
+  const [refreshError, setRefreshError] = useState<string | undefined>();
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
     const abort = new AbortController();
     request(abort.signal)
-      .then((summary) => setLoad({ state: 'ready', summary }))
+      .then((summary) => {
+        setLoad({ state: 'ready', summary });
+        setRefreshError(undefined);
+        setRefreshing(false);
+      })
       .catch((error: unknown) => {
         if (abort.signal.aborted) return;
-        setLoad({
-          state: 'error',
-          error:
-            error instanceof HomeRequestError
-              ? error
-              : new HomeRequestError(503, 'Your Home summary is temporarily unavailable.'),
+        setRefreshing(false);
+        const reqError =
+          error instanceof HomeRequestError
+            ? error
+            : new HomeRequestError(503, 'Your Home summary is temporarily unavailable.');
+        // PER-88: preserve existing usable dashboard on background refresh failures
+        setLoad((current) => {
+          if (current.state === 'ready') {
+            setRefreshError(reqError.message);
+            return current;
+          }
+          return { state: 'error', error: reqError };
         });
       });
-    const refresh = (): void => setAttempt((n) => n + 1);
+    const refresh = (): void => {
+      setRefreshing(true);
+      setAttempt((n) => n + 1);
+    };
     window.addEventListener('havefolio-inventory-changed', refresh);
     window.addEventListener('online', refresh);
     return () => {
@@ -442,26 +593,10 @@ export function HomeDashboard({
     };
   }, [request, attempt]);
 
-  if (load.state === 'loading')
-    return (
-      <div className="mt-8">
-        <p role="status" className="sr-only">
-          Loading your Home summary…
-        </p>
-        <div aria-hidden="true" className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-3">
-            {[0, 1, 2].map((n) => (
-              <Skeleton key={n} className="h-28 motion-reduce:animate-none" />
-            ))}
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            {[0, 1, 2, 3].map((n) => (
-              <Skeleton key={n} className="h-56 motion-reduce:animate-none" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+  if (load.state === 'loading') {
+    return <HomeSkeleton />;
+  }
+
   if (load.state === 'error')
     return (
       <Alert role="alert" className="mt-8">
@@ -496,9 +631,15 @@ export function HomeDashboard({
         </AlertDescription>
       </Alert>
     );
+
   const s = load.summary;
   return (
-    <div className="mt-8 space-y-4">
+    <div className="mt-8 space-y-4" aria-busy={refreshing}>
+      {refreshError ? (
+        <p role="status" aria-live="polite" className="sr-only">
+          {refreshError}
+        </p>
+      ) : null}
       <AtAGlance summary={s} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Rediscovery summary={s} />

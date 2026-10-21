@@ -243,7 +243,13 @@ export function ItemDocuments({
         </p>
       </div>
       {state.kind === 'loading' ? (
-        <Skeleton aria-hidden="true" className="h-16 w-full motion-reduce:animate-none" />
+        <div aria-hidden="true" className="space-y-3">
+          <Skeleton className="h-14 w-full rounded-lg motion-reduce:animate-none" />
+          <div className="rounded-lg border p-3 space-y-3">
+            <Skeleton className="h-4 w-28 motion-reduce:animate-none" />
+            <Skeleton className="h-11 w-full rounded-md motion-reduce:animate-none" />
+          </div>
+        </div>
       ) : null}
       {state.kind === 'failed' ? (
         state.disabled ? (
