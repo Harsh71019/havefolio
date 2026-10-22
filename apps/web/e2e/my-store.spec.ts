@@ -448,10 +448,12 @@ test('PER-58 desktop density geometry, facts, images, keyboard, persistence and 
       expect(sizing.hintedWidth).toBeGreaterThanOrEqual(sizing.width);
       expect(sizing.hintedWidth / sizing.width).toBeLessThan(1.6);
       expect(sizing.width / sizing.height).toBeCloseTo(1, 1);
-      // PER-97: ordinary cards stay on the 320px thumbnail; Large slots still get display.
-      await expect
-        .poll(() => image.evaluate((el) => (el as HTMLImageElement).currentSrc))
-        .toContain(mode === 'Large' ? '/display' : '/thumbnail');
+      // PER-97: ordinary cards stay on the 320px thumbnail; Large slots still get display. Once
+      // display has loaded, the browser keeps reusing it for smaller slots instead of refetching.
+      if (mode === 'Large' || index === 0)
+        await expect
+          .poll(() => image.evaluate((el) => (el as HTMLImageElement).currentSrc))
+          .toContain(mode === 'Large' ? '/display' : '/thumbnail');
       await expectNoOverflow(page);
       if (width === 1440) {
         for (const theme of ['light', 'dark'] as const) {
