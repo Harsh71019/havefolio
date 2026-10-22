@@ -420,6 +420,49 @@ describe('private item photo HTTP and recovery', () => {
       .expect(503);
     expect(JSON.stringify(tampered.body)).not.toMatch(/havefolio\/|cloudinary|example\.test/);
   });
+  it('PER-97 denies variant bytes across items, after revocation and after deletion', async () => {
+    const item = await create();
+    await upload(item.id).attach('photos', bytes, 'synthetic.jpg').expect(201);
+    const state = await snapshot(item.id),
+      photo = state.photos[0]!;
+    const foreign = (
+      await run.runtime.query<{ id: string }>(
+        "INSERT INTO items(owner_id,name,currency,original_entry,original_source) VALUES($1,'Foreign','INR','{}','manual') RETURNING id",
+        [other],
+      )
+    ).rows[0]!.id;
+    for (const variant of ['thumbnail', 'display'])
+      await http()
+        .get(`/api/v1/items/${foreign}/photos/${photo.id}/content/${variant}`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .expect(404);
+    // A separate session, so revoking it leaves the suite's session usable.
+    const second = newToken();
+    await run.runtime.query(
+      "INSERT INTO auth_sessions(owner_id,token_hash,idle_expires_at,absolute_expires_at) VALUES($1,$2,now()+interval '1 hour',now()+interval '1 day')",
+      [owner, hashToken(second)],
+    );
+    const path = `/api/v1/items/${item.id}/photos/${photo.id}/content`;
+    await http().get(`${path}/thumbnail`).set('Cookie', `havefolio_session=${second}`).expect(200);
+    await run.runtime.query('UPDATE auth_sessions SET revoked_at=now() WHERE token_hash=$1', [
+      hashToken(second),
+    ]);
+    for (const variant of ['thumbnail', 'display'])
+      await http()
+        .get(`${path}/${variant}`)
+        .set('Cookie', `havefolio_session=${second}`)
+        .expect(401);
+    await http()
+      .delete(`/api/v1/items/${item.id}/photos/${photo.id}`)
+      .set('Cookie', `havefolio_session=${token}`)
+      .send({ revision: state.revision })
+      .expect(200);
+    for (const variant of ['thumbnail', 'display'])
+      await http()
+        .get(`${path}/${variant}`)
+        .set('Cookie', `havefolio_session=${token}`)
+        .expect(404);
+  });
   it('excludes receipts and warranties from gallery, cover, description and delivery', async () => {
     const item = await create();
     await upload(item.id).attach('photos', bytes, 'synthetic.jpg').expect(201);
