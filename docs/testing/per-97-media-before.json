@@ -1,0 +1,5138 @@
+{
+  "metadata": {
+    "measuredAt": "2026-10-22T16:09:34.688Z",
+    "sourceSha": "d0813186f6e138d607483c2184c571d36d789ca5",
+    "runtimeFingerprint": "a588312a8a4b3726b1c3a79efc2b4eb4f70d6b16ef89fad7d293bf2e68f39e4b",
+    "buildId": "R8y3jSRuhdiRlc20k4DWG",
+    "mode": "production-build",
+    "apiConfiguration": "test-with-local-storage-adapter",
+    "harnessSha": "0e5bb5d97bf6038ce4e3e6bfefbbd93fe54c81c6",
+    "sourceDirty": false,
+    "node": "v24.18.0",
+    "postgres": "postgres (PostgreSQL) 18.6 (Homebrew)",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M4",
+    "logicalCpus": 10,
+    "memoryGiB": 16,
+    "config": {
+      "sizes": [1000],
+      "runs": 5,
+      "samples": 1000,
+      "browser": true,
+      "api": false,
+      "instrument": true,
+      "mediaAudit": true
+    },
+    "browser": "153.0.8010.12",
+    "mediaProfiles": [
+      {
+        "name": "desktop",
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "isMobile": false,
+        "deviceScaleFactor": 1,
+        "cpu": 1,
+        "latency": 0,
+        "download": -1,
+        "upload": -1
+      },
+      {
+        "name": "retina",
+        "viewport": {
+          "width": 1512,
+          "height": 982
+        },
+        "isMobile": false,
+        "deviceScaleFactor": 2,
+        "cpu": 1,
+        "latency": 0,
+        "download": -1,
+        "upload": -1
+      },
+      {
+        "name": "mobile",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "isMobile": true,
+        "deviceScaleFactor": 3,
+        "cpu": 4,
+        "latency": 150,
+        "download": 200000,
+        "upload": 93750
+      }
+    ]
+  },
+  "cases": [
+    {
+      "sizePerOwner": 1000,
+      "fixture": {
+        "items": 2000,
+        "events": 2868,
+        "refunds": 240,
+        "media": 738
+      },
+      "api": [],
+      "browser": [],
+      "media": [
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": 234.07679199999984,
+          "visibleMediaMs": 243.866583,
+          "mediaTimedOut": false,
+          "lcpMs": 384,
+          "decodeMs": {
+            "decodeImageMs": 8.17,
+            "imageDecodeTaskMs": 9.309
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 6,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.151, 1.151, 1.151, 1.151, 1.151, 1.151],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 1.997
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 540696,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 0,
+          "readyMs": 191.90820899999926,
+          "visibleMediaMs": 202.60183400000005,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 14.409,
+            "imageDecodeTaskMs": 14.944
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 8,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185],
+            "visibleSlotCssWidths": [202],
+            "decodedMegapixels": 2.15
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 582288,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": 191.37537499999962,
+          "visibleMediaMs": 202.0823330000003,
+          "mediaTimedOut": false,
+          "lcpMs": 344,
+          "decodeMs": {
+            "decodeImageMs": 141.544,
+            "imageDecodeTaskMs": 146.378
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "itemOpenMs": 864.8361670000004,
+          "inFlightAtOpen": 0,
+          "readyMs": 84.20529200000055,
+          "visibleMediaMs": 85.22541699999965,
+          "mediaTimedOut": false,
+          "lcpMs": 344,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.057
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 0,
+          "readyMs": 190.98424999999952,
+          "visibleMediaMs": 201.33033299999988,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 211.579,
+            "imageDecodeTaskMs": 216.6
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.324, 4.324, 4.324, 4.324, 4.324, 4.324],
+            "visibleSlotCssWidths": [277],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": 192.41458300000158,
+          "visibleMediaMs": 201.28908300000148,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 143.171,
+            "imageDecodeTaskMs": 148.622
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 0,
+          "readyMs": 191.16691700000047,
+          "visibleMediaMs": 199.30358400000114,
+          "mediaTimedOut": false,
+          "lcpMs": 324,
+          "decodeMs": {
+            "decodeImageMs": 142.059,
+            "imageDecodeTaskMs": 144.849
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.802, 2.802],
+            "visibleSlotCssWidths": [428],
+            "decodedMegapixels": 26.88
+          },
+          "variants": {
+            "display": {
+              "requests": 14,
+              "completed": 14,
+              "bytes": 10308242,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "item",
+          "repeat": 0,
+          "readyMs": 196.3015409999989,
+          "visibleMediaMs": 203.17649999999958,
+          "mediaTimedOut": false,
+          "lcpMs": 348,
+          "decodeMs": {
+            "decodeImageMs": 36.268,
+            "imageDecodeTaskMs": 37.115
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.819],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "gallery",
+          "repeat": 0,
+          "readyMs": 131.59087499999987,
+          "visibleMediaMs": 138.26962500000081,
+          "mediaTimedOut": false,
+          "lcpMs": 264,
+          "decodeMs": {
+            "decodeImageMs": 1.162,
+            "imageDecodeTaskMs": 1.212
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 2,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1, 1.067],
+            "visibleSlotCssWidths": [320, 225],
+            "decodedMegapixels": 0.154
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": 176.35999999999876,
+          "visibleMediaMs": 187.71137500000077,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 553.286,
+            "imageDecodeTaskMs": 571.055
+          },
+          "images": {
+            "total": 29,
+            "visible": 12,
+            "visibleComplete": 12,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 12,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883
+            ],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 53.76
+          },
+          "variants": {
+            "display": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 20616484,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 10
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 0,
+          "readyMs": 193.96300000000338,
+          "visibleMediaMs": 203.41120800000135,
+          "mediaTimedOut": false,
+          "lcpMs": 364,
+          "decodeMs": {
+            "decodeImageMs": 685.036,
+            "imageDecodeTaskMs": 702.604
+          },
+          "images": {
+            "total": 29,
+            "visible": 15,
+            "visibleComplete": 15,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 15,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 14,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952,
+              2.952, 2.952, 2.952
+            ],
+            "visibleSlotCssWidths": [203],
+            "decodedMegapixels": 55.68
+          },
+          "variants": {
+            "display": {
+              "requests": 29,
+              "completed": 29,
+              "bytes": 21352787,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 15
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": 181.14083299999766,
+          "visibleMediaMs": 192.4564169999976,
+          "mediaTimedOut": false,
+          "lcpMs": 336,
+          "decodeMs": {
+            "decodeImageMs": 321.739,
+            "imageDecodeTaskMs": 330.114
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "itemOpenMs": 117.53479100000186,
+          "inFlightAtOpen": 0,
+          "readyMs": 65.29641700000138,
+          "visibleMediaMs": 66.07787500000268,
+          "mediaTimedOut": false,
+          "lcpMs": 336,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.068
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 0,
+          "readyMs": 194.3037919999988,
+          "visibleMediaMs": 207.46391700000095,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 427.183,
+            "imageDecodeTaskMs": 434.781
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 8,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305],
+            "visibleSlotCssWidths": [260],
+            "decodedMegapixels": 51.84
+          },
+          "variants": {
+            "display": {
+              "requests": 27,
+              "completed": 27,
+              "bytes": 19880181,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 7
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": 175.73125000000073,
+          "visibleMediaMs": 188.16733300000124,
+          "mediaTimedOut": false,
+          "lcpMs": 280,
+          "decodeMs": {
+            "decodeImageMs": 155.498,
+            "imageDecodeTaskMs": 158.335
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 4,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.363, 1.363, 1.363, 1.363],
+            "visibleSlotCssWidths": [440],
+            "decodedMegapixels": 30.72
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 16,
+              "bytes": 11780848,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 0,
+          "readyMs": 156.42466599999898,
+          "visibleMediaMs": 168.6512909999983,
+          "mediaTimedOut": false,
+          "lcpMs": 324,
+          "decodeMs": {
+            "decodeImageMs": 312.886,
+            "imageDecodeTaskMs": 321.138
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.69, 1.69, 1.69, 1.69, 1.69, 1.69],
+            "visibleSlotCssWidths": [355],
+            "decodedMegapixels": 48
+          },
+          "variants": {
+            "display": {
+              "requests": 25,
+              "completed": 25,
+              "bytes": 18407575,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "item",
+          "repeat": 0,
+          "readyMs": 151.88933400000315,
+          "visibleMediaMs": 158.43041700000322,
+          "mediaTimedOut": false,
+          "lcpMs": 324,
+          "decodeMs": {
+            "decodeImageMs": 34.361,
+            "imageDecodeTaskMs": 35.22
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.41],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "gallery",
+          "repeat": 0,
+          "readyMs": 129.47145799999998,
+          "visibleMediaMs": 135.99429099999907,
+          "mediaTimedOut": false,
+          "lcpMs": 284,
+          "decodeMs": {
+            "decodeImageMs": 36.162,
+            "imageDecodeTaskMs": 37.222
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.5, 2.119],
+            "visibleSlotCssWidths": [320, 283],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": 3380.179874999998,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 492,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": 3370.4489579999936,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 488,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": null,
+          "censored": true,
+          "itemOpenMs": null,
+          "itemOpenLowerBoundMs": 30063.352708000006,
+          "inFlightAtOpen": 4
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 0,
+          "readyMs": 3437.743625000003,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 504,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "item",
+          "repeat": 0,
+          "readyMs": 3456.508750000008,
+          "visibleMediaMs": 3474.5653750000056,
+          "mediaTimedOut": false,
+          "lcpMs": 3320,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 1,
+            "visible": 0,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 1,
+            "placeholders": 1,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            },
+            "display": {
+              "requests": 1,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "gallery",
+          "repeat": 0,
+          "readyMs": 3430.2506670000002,
+          "visibleMediaMs": 7489.4884170000005,
+          "mediaTimedOut": false,
+          "lcpMs": 3604,
+          "decodeMs": {
+            "decodeImageMs": 38.845,
+            "imageDecodeTaskMs": 40.729
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.732, 2.339],
+            "visibleSlotCssWidths": [308, 171],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "interaction",
+          "repeat": 0,
+          "navigationMs": 985.4479579999752,
+          "loadMoreMs": 116.23124999998254,
+          "filterMs": 22105.33587500002,
+          "inFlightAtFilter": 17,
+          "variantsBeforeFilter": {
+            "display": {
+              "requests": 17,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            }
+          },
+          "variants": {
+            "display": {
+              "requests": 17,
+              "completed": 5,
+              "bytes": 3681515,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": 196.6837499999965,
+          "visibleMediaMs": 203.85487499999,
+          "mediaTimedOut": false,
+          "lcpMs": 300,
+          "decodeMs": {
+            "decodeImageMs": 7.7,
+            "imageDecodeTaskMs": 8.061
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 6,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.151, 1.151, 1.151, 1.151, 1.151, 1.151],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 1.997
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 540696,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 5
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 1,
+          "readyMs": 193.33941600000253,
+          "visibleMediaMs": 204.2695829999866,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 15.694,
+            "imageDecodeTaskMs": 16.014
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 8,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185],
+            "visibleSlotCssWidths": [202],
+            "decodedMegapixels": 2.15
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 582288,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 7
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": 191.50183400002425,
+          "visibleMediaMs": 202.98375000001397,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 143.428,
+            "imageDecodeTaskMs": 148.228
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "itemOpenMs": 120.48962499998743,
+          "inFlightAtOpen": 0,
+          "readyMs": 62.958207999996375,
+          "visibleMediaMs": 63.70579199999338,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.081
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 1,
+          "readyMs": 195.28783399998792,
+          "visibleMediaMs": 205.69699999998556,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 214.378,
+            "imageDecodeTaskMs": 220.162
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.324, 4.324, 4.324, 4.324, 4.324, 4.324],
+            "visibleSlotCssWidths": [277],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 5
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": 160.71383299998706,
+          "visibleMediaMs": 170.93454099999508,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 143.356,
+            "imageDecodeTaskMs": 147.868
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 1,
+          "readyMs": 193.50479199999245,
+          "visibleMediaMs": 204.5556669999787,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 146.362,
+            "imageDecodeTaskMs": 149.262
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.802, 2.802],
+            "visibleSlotCssWidths": [428],
+            "decodedMegapixels": 26.88
+          },
+          "variants": {
+            "display": {
+              "requests": 14,
+              "completed": 14,
+              "bytes": 10308242,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "item",
+          "repeat": 1,
+          "readyMs": 151.66712500000722,
+          "visibleMediaMs": 163.50391699999454,
+          "mediaTimedOut": false,
+          "lcpMs": 320,
+          "decodeMs": {
+            "decodeImageMs": 36.944,
+            "imageDecodeTaskMs": 37.78
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.819],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "gallery",
+          "repeat": 1,
+          "readyMs": 144.80704099999275,
+          "visibleMediaMs": 151.71604100000695,
+          "mediaTimedOut": false,
+          "lcpMs": 280,
+          "decodeMs": {
+            "decodeImageMs": 1.286,
+            "imageDecodeTaskMs": 1.354
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 2,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1, 1.067],
+            "visibleSlotCssWidths": [320, 225],
+            "decodedMegapixels": 0.154
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": 198.29824999999255,
+          "visibleMediaMs": 212.27683399998932,
+          "mediaTimedOut": false,
+          "lcpMs": 320,
+          "decodeMs": {
+            "decodeImageMs": 565.604,
+            "imageDecodeTaskMs": 584.879
+          },
+          "images": {
+            "total": 29,
+            "visible": 12,
+            "visibleComplete": 12,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 12,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883
+            ],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 53.76
+          },
+          "variants": {
+            "display": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 20616484,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 12
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 1,
+          "readyMs": 176.44579200001317,
+          "visibleMediaMs": 238.2530840000254,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 707.722,
+            "imageDecodeTaskMs": 728.727
+          },
+          "images": {
+            "total": 29,
+            "visible": 15,
+            "visibleComplete": 15,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 15,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 14,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952,
+              2.952, 2.952, 2.952
+            ],
+            "visibleSlotCssWidths": [203],
+            "decodedMegapixels": 55.68
+          },
+          "variants": {
+            "display": {
+              "requests": 29,
+              "completed": 29,
+              "bytes": 21352787,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 14
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": 191.63670899998397,
+          "visibleMediaMs": 204.3435419999878,
+          "mediaTimedOut": false,
+          "lcpMs": 360,
+          "decodeMs": {
+            "decodeImageMs": 324.927,
+            "imageDecodeTaskMs": 336.703
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 5
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "itemOpenMs": 119.86658400000306,
+          "inFlightAtOpen": 0,
+          "readyMs": 76.88649999999325,
+          "visibleMediaMs": 78.24237500000163,
+          "mediaTimedOut": false,
+          "lcpMs": 360,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.138
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 1,
+          "readyMs": 194.81795799999963,
+          "visibleMediaMs": 208.1632910000044,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 425.861,
+            "imageDecodeTaskMs": 435.403
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 8,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305],
+            "visibleSlotCssWidths": [260],
+            "decodedMegapixels": 51.84
+          },
+          "variants": {
+            "display": {
+              "requests": 27,
+              "completed": 27,
+              "bytes": 19880181,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 8
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": 225.27866700000595,
+          "visibleMediaMs": 237.56599999999162,
+          "mediaTimedOut": false,
+          "lcpMs": 368,
+          "decodeMs": {
+            "decodeImageMs": 156.723,
+            "imageDecodeTaskMs": 160.286
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 4,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.363, 1.363, 1.363, 1.363],
+            "visibleSlotCssWidths": [440],
+            "decodedMegapixels": 30.72
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 16,
+              "bytes": 11780848,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 1,
+          "readyMs": 190.03899999998976,
+          "visibleMediaMs": 200.40937499998836,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 318.551,
+            "imageDecodeTaskMs": 327.83
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.69, 1.69, 1.69, 1.69, 1.69, 1.69],
+            "visibleSlotCssWidths": [355],
+            "decodedMegapixels": 48
+          },
+          "variants": {
+            "display": {
+              "requests": 25,
+              "completed": 25,
+              "bytes": 18407575,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "item",
+          "repeat": 1,
+          "readyMs": 155.32770799999707,
+          "visibleMediaMs": 161.91170799999963,
+          "mediaTimedOut": false,
+          "lcpMs": 308,
+          "decodeMs": {
+            "decodeImageMs": 36.078,
+            "imageDecodeTaskMs": 36.857
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.41],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "gallery",
+          "repeat": 1,
+          "readyMs": 134.23662499999045,
+          "visibleMediaMs": 148.5793340000091,
+          "mediaTimedOut": false,
+          "lcpMs": 272,
+          "decodeMs": {
+            "decodeImageMs": 38.204,
+            "imageDecodeTaskMs": 39.292
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.5, 2.119],
+            "visibleSlotCssWidths": [320, 283],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": 3352.5878749999974,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 476,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": 3371.3498749999853,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 488,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": null,
+          "censored": true,
+          "itemOpenMs": null,
+          "itemOpenLowerBoundMs": 30048.837624999986,
+          "inFlightAtOpen": 4
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 1,
+          "readyMs": 3413.6398749999935,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 512,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "item",
+          "repeat": 1,
+          "readyMs": 3480.540707999957,
+          "visibleMediaMs": 3498.033582999953,
+          "mediaTimedOut": false,
+          "lcpMs": 3316,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 1,
+            "visible": 0,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 1,
+            "placeholders": 1,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            },
+            "display": {
+              "requests": 1,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "gallery",
+          "repeat": 1,
+          "readyMs": 3439.4907080000266,
+          "visibleMediaMs": 7502.973750000005,
+          "mediaTimedOut": false,
+          "lcpMs": 3628,
+          "decodeMs": {
+            "decodeImageMs": 36.167,
+            "imageDecodeTaskMs": 37.77
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.732, 2.339],
+            "visibleSlotCssWidths": [308, 171],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "interaction",
+          "repeat": 1,
+          "navigationMs": 1420.1328750000102,
+          "loadMoreMs": 100.7852079999866,
+          "filterMs": 21803.10600000003,
+          "inFlightAtFilter": 17,
+          "variantsBeforeFilter": {
+            "display": {
+              "requests": 17,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 3
+            }
+          },
+          "variants": {
+            "display": {
+              "requests": 17,
+              "completed": 5,
+              "bytes": 3681515,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": 194.5082499999553,
+          "visibleMediaMs": 200.93524999998044,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 7.31,
+            "imageDecodeTaskMs": 7.466
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 6,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.151, 1.151, 1.151, 1.151, 1.151, 1.151],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 1.997
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 540696,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 2,
+          "readyMs": 190.14241700002458,
+          "visibleMediaMs": 200.31925000000047,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 14.606,
+            "imageDecodeTaskMs": 14.843
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 8,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185],
+            "visibleSlotCssWidths": [202],
+            "decodedMegapixels": 2.15
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 582288,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 8
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": 163.84849999996368,
+          "visibleMediaMs": 175.55845899996348,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 145.571,
+            "imageDecodeTaskMs": 151.885
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "itemOpenMs": 113.00829199998407,
+          "inFlightAtOpen": 0,
+          "readyMs": 62.75729099998716,
+          "visibleMediaMs": 63.59916600002907,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.025
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 2,
+          "readyMs": 163.07633300003363,
+          "visibleMediaMs": 173.84412500000326,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 214.347,
+            "imageDecodeTaskMs": 219.838
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.324, 4.324, 4.324, 4.324, 4.324, 4.324],
+            "visibleSlotCssWidths": [277],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": 195.06875000003492,
+          "visibleMediaMs": 210.16712500003632,
+          "mediaTimedOut": false,
+          "lcpMs": 296,
+          "decodeMs": {
+            "decodeImageMs": 147.944,
+            "imageDecodeTaskMs": 153.835
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 2,
+          "readyMs": 195.9704999999958,
+          "visibleMediaMs": 210.717667000019,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 143.517,
+            "imageDecodeTaskMs": 146.187
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.802, 2.802],
+            "visibleSlotCssWidths": [428],
+            "decodedMegapixels": 26.88
+          },
+          "variants": {
+            "display": {
+              "requests": 14,
+              "completed": 14,
+              "bytes": 10308242,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "item",
+          "repeat": 2,
+          "readyMs": 150.29208399995696,
+          "visibleMediaMs": 159.755291999958,
+          "mediaTimedOut": false,
+          "lcpMs": 320,
+          "decodeMs": {
+            "decodeImageMs": 35.731,
+            "imageDecodeTaskMs": 36.504
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.819],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "gallery",
+          "repeat": 2,
+          "readyMs": 145.9550000000163,
+          "visibleMediaMs": 153.0738329999731,
+          "mediaTimedOut": false,
+          "lcpMs": 300,
+          "decodeMs": {
+            "decodeImageMs": 1.615,
+            "imageDecodeTaskMs": 1.721
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 2,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1, 1.067],
+            "visibleSlotCssWidths": [320, 225],
+            "decodedMegapixels": 0.154
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": 211.82824999996228,
+          "visibleMediaMs": 225.42966700001853,
+          "mediaTimedOut": false,
+          "lcpMs": 348,
+          "decodeMs": {
+            "decodeImageMs": 562.772,
+            "imageDecodeTaskMs": 581.689
+          },
+          "images": {
+            "total": 29,
+            "visible": 12,
+            "visibleComplete": 12,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 12,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883
+            ],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 53.76
+          },
+          "variants": {
+            "display": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 20616484,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 12
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 2,
+          "readyMs": 175.59687500004657,
+          "visibleMediaMs": 185.1916659999988,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 693.136,
+            "imageDecodeTaskMs": 712.137
+          },
+          "images": {
+            "total": 29,
+            "visible": 15,
+            "visibleComplete": 15,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 15,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 14,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952,
+              2.952, 2.952, 2.952
+            ],
+            "visibleSlotCssWidths": [203],
+            "decodedMegapixels": 55.68
+          },
+          "variants": {
+            "display": {
+              "requests": 29,
+              "completed": 29,
+              "bytes": 21352787,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 15
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": 178.79024999996182,
+          "visibleMediaMs": 189.58666699996684,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 317.25,
+            "imageDecodeTaskMs": 325.039
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "itemOpenMs": 108.94870899996022,
+          "inFlightAtOpen": 0,
+          "readyMs": 66.609167000046,
+          "visibleMediaMs": 67.2886250000447,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.085
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 2,
+          "readyMs": 180.96420799999032,
+          "visibleMediaMs": 195.26283300004434,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 422.934,
+            "imageDecodeTaskMs": 432.295
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 8,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305],
+            "visibleSlotCssWidths": [260],
+            "decodedMegapixels": 51.84
+          },
+          "variants": {
+            "display": {
+              "requests": 27,
+              "completed": 27,
+              "bytes": 19880181,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 8
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": 158.07279200002085,
+          "visibleMediaMs": 166.20129200001247,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 142.493,
+            "imageDecodeTaskMs": 146.187
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 4,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.363, 1.363, 1.363, 1.363],
+            "visibleSlotCssWidths": [440],
+            "decodedMegapixels": 30.72
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 16,
+              "bytes": 11780848,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 2,
+          "readyMs": 198.76095799996983,
+          "visibleMediaMs": 209.3842499999446,
+          "mediaTimedOut": false,
+          "lcpMs": 304,
+          "decodeMs": {
+            "decodeImageMs": 314.835,
+            "imageDecodeTaskMs": 323.707
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.69, 1.69, 1.69, 1.69, 1.69, 1.69],
+            "visibleSlotCssWidths": [355],
+            "decodedMegapixels": 48
+          },
+          "variants": {
+            "display": {
+              "requests": 25,
+              "completed": 25,
+              "bytes": 18407575,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 5
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "item",
+          "repeat": 2,
+          "readyMs": 153.1659590000054,
+          "visibleMediaMs": 160.10858399997232,
+          "mediaTimedOut": false,
+          "lcpMs": 288,
+          "decodeMs": {
+            "decodeImageMs": 36.213,
+            "imageDecodeTaskMs": 37.011
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.41],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "gallery",
+          "repeat": 2,
+          "readyMs": 130.28716700000223,
+          "visibleMediaMs": 137.54387499997392,
+          "mediaTimedOut": false,
+          "lcpMs": 268,
+          "decodeMs": {
+            "decodeImageMs": 38.166,
+            "imageDecodeTaskMs": 39.072
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.5, 2.119],
+            "visibleSlotCssWidths": [320, 283],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": 3353.4530410000007,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 476,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": 3353.363040999975,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 476,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": null,
+          "censored": true,
+          "itemOpenMs": null,
+          "itemOpenLowerBoundMs": 30048.82504200004,
+          "inFlightAtOpen": 4
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 2,
+          "readyMs": 3354.6895829999703,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 480,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "item",
+          "repeat": 2,
+          "readyMs": 3370.930209000013,
+          "visibleMediaMs": 3388.415834000043,
+          "mediaTimedOut": false,
+          "lcpMs": 3188,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 1,
+            "visible": 0,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 1,
+            "placeholders": 1,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            },
+            "display": {
+              "requests": 1,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "gallery",
+          "repeat": 2,
+          "readyMs": 3429.460541999957,
+          "visibleMediaMs": 7488.804917000001,
+          "mediaTimedOut": false,
+          "lcpMs": 3612,
+          "decodeMs": {
+            "decodeImageMs": 35.793,
+            "imageDecodeTaskMs": 36.776
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.732, 2.339],
+            "visibleSlotCssWidths": [308, 171],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "interaction",
+          "repeat": 2,
+          "navigationMs": 1372.0941669999738,
+          "loadMoreMs": 100.70554200001061,
+          "filterMs": 21849.821125000017,
+          "inFlightAtFilter": 17,
+          "variantsBeforeFilter": {
+            "display": {
+              "requests": 17,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 3
+            }
+          },
+          "variants": {
+            "display": {
+              "requests": 17,
+              "completed": 5,
+              "bytes": 3681515,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": 191.0346660000505,
+          "visibleMediaMs": 200.4710410000407,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 8.453,
+            "imageDecodeTaskMs": 8.709
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 6,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.151, 1.151, 1.151, 1.151, 1.151, 1.151],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 1.997
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 540696,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 3,
+          "readyMs": 190.03770899999654,
+          "visibleMediaMs": 196.82683400000678,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 14.678,
+            "imageDecodeTaskMs": 15.127
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 8,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185],
+            "visibleSlotCssWidths": [202],
+            "decodedMegapixels": 2.15
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 582288,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": 178.92574999999488,
+          "visibleMediaMs": 190.39016700000502,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 141.614,
+            "imageDecodeTaskMs": 146.65
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "itemOpenMs": 818.9841250000172,
+          "inFlightAtOpen": 0,
+          "readyMs": 80.59716599999228,
+          "visibleMediaMs": 81.53691600001184,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.053
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 3,
+          "readyMs": 156.31733400002122,
+          "visibleMediaMs": 169.0293749999837,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 212.324,
+            "imageDecodeTaskMs": 217.784
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.324, 4.324, 4.324, 4.324, 4.324, 4.324],
+            "visibleSlotCssWidths": [277],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": 179.29129200003808,
+          "visibleMediaMs": 189.54383400001097,
+          "mediaTimedOut": false,
+          "lcpMs": 296,
+          "decodeMs": {
+            "decodeImageMs": 144.075,
+            "imageDecodeTaskMs": 148.789
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 3,
+          "readyMs": 192.2000420000404,
+          "visibleMediaMs": 198.72950000001583,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 139.921,
+            "imageDecodeTaskMs": 142.434
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.802, 2.802],
+            "visibleSlotCssWidths": [428],
+            "decodedMegapixels": 26.88
+          },
+          "variants": {
+            "display": {
+              "requests": 14,
+              "completed": 14,
+              "bytes": 10308242,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "item",
+          "repeat": 3,
+          "readyMs": 150.68733300000895,
+          "visibleMediaMs": 157.16579200001433,
+          "mediaTimedOut": false,
+          "lcpMs": 304,
+          "decodeMs": {
+            "decodeImageMs": 35.606,
+            "imageDecodeTaskMs": 36.467
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.819],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "gallery",
+          "repeat": 3,
+          "readyMs": 127.14891699998407,
+          "visibleMediaMs": 133.4424579999759,
+          "mediaTimedOut": false,
+          "lcpMs": 264,
+          "decodeMs": {
+            "decodeImageMs": 1.283,
+            "imageDecodeTaskMs": 1.333
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 2,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1, 1.067],
+            "visibleSlotCssWidths": [320, 225],
+            "decodedMegapixels": 0.154
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": 158.58474999997998,
+          "visibleMediaMs": 170.40904100000625,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 547.961,
+            "imageDecodeTaskMs": 565.762
+          },
+          "images": {
+            "total": 29,
+            "visible": 12,
+            "visibleComplete": 12,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 12,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883
+            ],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 53.76
+          },
+          "variants": {
+            "display": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 20616484,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 12
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 3,
+          "readyMs": 156.2044590000296,
+          "visibleMediaMs": 168.9245420000516,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 686.284,
+            "imageDecodeTaskMs": 705.607
+          },
+          "images": {
+            "total": 29,
+            "visible": 15,
+            "visibleComplete": 15,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 15,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 14,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952,
+              2.952, 2.952, 2.952
+            ],
+            "visibleSlotCssWidths": [203],
+            "decodedMegapixels": 55.68
+          },
+          "variants": {
+            "display": {
+              "requests": 29,
+              "completed": 29,
+              "bytes": 21352787,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 15
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": 194.00966700003482,
+          "visibleMediaMs": 205.43258399999468,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 323.241,
+            "imageDecodeTaskMs": 331.966
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "itemOpenMs": 107.42933299997821,
+          "inFlightAtOpen": 0,
+          "readyMs": 66.8045839999686,
+          "visibleMediaMs": 67.54874999995809,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.087
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 3,
+          "readyMs": 159.0314580000122,
+          "visibleMediaMs": 172.85812500002794,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 416.599,
+            "imageDecodeTaskMs": 425.573
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 8,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305],
+            "visibleSlotCssWidths": [260],
+            "decodedMegapixels": 51.84
+          },
+          "variants": {
+            "display": {
+              "requests": 27,
+              "completed": 27,
+              "bytes": 19880181,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 8
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": 190.05541599995922,
+          "visibleMediaMs": 197.06874999997672,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 142.151,
+            "imageDecodeTaskMs": 146.062
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 4,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.363, 1.363, 1.363, 1.363],
+            "visibleSlotCssWidths": [440],
+            "decodedMegapixels": 30.72
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 16,
+              "bytes": 11780848,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 3,
+          "readyMs": 159.92574999999488,
+          "visibleMediaMs": 171.40970900002867,
+          "mediaTimedOut": false,
+          "lcpMs": 332,
+          "decodeMs": {
+            "decodeImageMs": 314.331,
+            "imageDecodeTaskMs": 323.181
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.69, 1.69, 1.69, 1.69, 1.69, 1.69],
+            "visibleSlotCssWidths": [355],
+            "decodedMegapixels": 48
+          },
+          "variants": {
+            "display": {
+              "requests": 25,
+              "completed": 25,
+              "bytes": 18407575,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "item",
+          "repeat": 3,
+          "readyMs": 146.75254099996528,
+          "visibleMediaMs": 153.20812499994645,
+          "mediaTimedOut": false,
+          "lcpMs": 300,
+          "decodeMs": {
+            "decodeImageMs": 35.974,
+            "imageDecodeTaskMs": 36.753
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.41],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "gallery",
+          "repeat": 3,
+          "readyMs": 128.86999999999534,
+          "visibleMediaMs": 135.91466700000456,
+          "mediaTimedOut": false,
+          "lcpMs": 280,
+          "decodeMs": {
+            "decodeImageMs": 37.304,
+            "imageDecodeTaskMs": 38.138
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.5, 2.119],
+            "visibleSlotCssWidths": [320, 283],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": 3352.5554160000174,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 476,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": 3388.7735000000102,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 504,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": null,
+          "censored": true,
+          "itemOpenMs": null,
+          "itemOpenLowerBoundMs": 30045.56770799996,
+          "inFlightAtOpen": 4
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 3,
+          "readyMs": 3362.42954199994,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 492,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "item",
+          "repeat": 3,
+          "readyMs": 3421.324709000066,
+          "visibleMediaMs": 3438.969374999986,
+          "mediaTimedOut": false,
+          "lcpMs": 3224,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 1,
+            "visible": 0,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 1,
+            "placeholders": 1,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            },
+            "display": {
+              "requests": 1,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "gallery",
+          "repeat": 3,
+          "readyMs": 3420.8633329999866,
+          "visibleMediaMs": 7499.068291999982,
+          "mediaTimedOut": false,
+          "lcpMs": 3608,
+          "decodeMs": {
+            "decodeImageMs": 35.698,
+            "imageDecodeTaskMs": 36.742
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.732, 2.339],
+            "visibleSlotCssWidths": [308, 171],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "interaction",
+          "repeat": 3,
+          "navigationMs": 1387.543457999942,
+          "loadMoreMs": 101.1517500000773,
+          "filterMs": 21854.893833999988,
+          "inFlightAtFilter": 17,
+          "variantsBeforeFilter": {
+            "display": {
+              "requests": 17,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 3
+            }
+          },
+          "variants": {
+            "display": {
+              "requests": 17,
+              "completed": 5,
+              "bytes": 3681515,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": 192.77516700001433,
+          "visibleMediaMs": 199.17445900000166,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 7.579,
+            "imageDecodeTaskMs": 7.777
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 6,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.151, 1.151, 1.151, 1.151, 1.151, 1.151],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 1.997
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 540696,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 4,
+          "readyMs": 191.85262499994133,
+          "visibleMediaMs": 203.15858299995307,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 13.737,
+            "imageDecodeTaskMs": 14.057
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 8,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185, 1.185],
+            "visibleSlotCssWidths": [202],
+            "decodedMegapixels": 2.15
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 582288,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 8
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": 191.95462500001304,
+          "visibleMediaMs": 203.9794169999659,
+          "mediaTimedOut": false,
+          "lcpMs": 296,
+          "decodeMs": {
+            "decodeImageMs": 143.687,
+            "imageDecodeTaskMs": 148.259
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "itemOpenMs": 112.80562500003725,
+          "inFlightAtOpen": 0,
+          "readyMs": 59.9947079999838,
+          "visibleMediaMs": 60.666291999979876,
+          "mediaTimedOut": false,
+          "lcpMs": 296,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.037
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 4,
+          "readyMs": 158.33679199998733,
+          "visibleMediaMs": 170.36358399991877,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 216.967,
+            "imageDecodeTaskMs": 223.929
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.324, 4.324, 4.324, 4.324, 4.324, 4.324],
+            "visibleSlotCssWidths": [277],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": 175.40091699990444,
+          "visibleMediaMs": 188.5618339999346,
+          "mediaTimedOut": false,
+          "lcpMs": 292,
+          "decodeMs": {
+            "decodeImageMs": 143.782,
+            "imageDecodeTaskMs": 149.17
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [3.704, 3.704],
+            "visibleSlotCssWidths": [324],
+            "decodedMegapixels": 34.56
+          },
+          "variants": {
+            "display": {
+              "requests": 18,
+              "completed": 18,
+              "bytes": 13253454,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 4,
+          "readyMs": 180.19966699997894,
+          "visibleMediaMs": 187.44020899990574,
+          "mediaTimedOut": false,
+          "lcpMs": 316,
+          "decodeMs": {
+            "decodeImageMs": 139.457,
+            "imageDecodeTaskMs": 141.884
+          },
+          "images": {
+            "total": 29,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.802, 2.802],
+            "visibleSlotCssWidths": [428],
+            "decodedMegapixels": 26.88
+          },
+          "variants": {
+            "display": {
+              "requests": 14,
+              "completed": 14,
+              "bytes": 10308242,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 2
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "item",
+          "repeat": 4,
+          "readyMs": 150.2392079998972,
+          "visibleMediaMs": 157.12358299992047,
+          "mediaTimedOut": false,
+          "lcpMs": 336,
+          "decodeMs": {
+            "decodeImageMs": 36.163,
+            "imageDecodeTaskMs": 36.942
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [4.819],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "desktop",
+          "view": "gallery",
+          "repeat": 4,
+          "readyMs": 145.4434590000892,
+          "visibleMediaMs": 151.87933400005568,
+          "mediaTimedOut": false,
+          "lcpMs": 280,
+          "decodeMs": {
+            "decodeImageMs": 1.765,
+            "imageDecodeTaskMs": 1.837
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 2,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1, 1.067],
+            "visibleSlotCssWidths": [320, 225],
+            "decodedMegapixels": 0.154
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": 176.73400000005495,
+          "visibleMediaMs": 189.00208400003612,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 554.186,
+            "imageDecodeTaskMs": 572.189
+          },
+          "images": {
+            "total": 29,
+            "visible": 12,
+            "visibleComplete": 12,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 12,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 16,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883, 2.883
+            ],
+            "visibleSlotCssWidths": [208],
+            "decodedMegapixels": 53.76
+          },
+          "variants": {
+            "display": {
+              "requests": 28,
+              "completed": 28,
+              "bytes": 20616484,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 12
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "collapsed",
+          "repeat": 4,
+          "readyMs": 177.8244999999879,
+          "visibleMediaMs": 191.1797909999732,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 685.87,
+            "imageDecodeTaskMs": 703.426
+          },
+          "images": {
+            "total": 29,
+            "visible": 15,
+            "visibleComplete": 15,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 15,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 14,
+            "placeholders": 0,
+            "visibleSupplyRatio": [
+              2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952, 2.952,
+              2.952, 2.952, 2.952
+            ],
+            "visibleSlotCssWidths": [203],
+            "decodedMegapixels": 55.68
+          },
+          "variants": {
+            "display": {
+              "requests": 29,
+              "completed": 29,
+              "bytes": 21352787,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 15
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": 157.76520899997558,
+          "visibleMediaMs": 169.53833400004078,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 313.028,
+            "imageDecodeTaskMs": 321.158
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {
+            "display": {
+              "requests": 26,
+              "completed": 26,
+              "bytes": 19143878,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "itemOpenMs": 117.75754099991173,
+          "inFlightAtOpen": 0,
+          "readyMs": 66.61445899994578,
+          "visibleMediaMs": 67.47683399997186,
+          "mediaTimedOut": false,
+          "lcpMs": 328,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0.096
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 20,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.105, 2.105, 2.105, 2.105, 2.105, 2.105],
+            "visibleSlotCssWidths": [285],
+            "decodedMegapixels": 49.92
+          },
+          "variants": {},
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "collapsed",
+          "repeat": 4,
+          "readyMs": 190.90445799997542,
+          "visibleMediaMs": 202.10129200003576,
+          "mediaTimedOut": false,
+          "lcpMs": 296,
+          "decodeMs": {
+            "decodeImageMs": 425.418,
+            "imageDecodeTaskMs": 434.082
+          },
+          "images": {
+            "total": 29,
+            "visible": 8,
+            "visibleComplete": 8,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 8,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305, 2.305],
+            "visibleSlotCssWidths": [260],
+            "decodedMegapixels": 51.84
+          },
+          "variants": {
+            "display": {
+              "requests": 27,
+              "completed": 27,
+              "bytes": 19880181,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 8
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": 190.09679099998903,
+          "visibleMediaMs": 201.5164999999106,
+          "mediaTimedOut": false,
+          "lcpMs": 312,
+          "decodeMs": {
+            "decodeImageMs": 147.394,
+            "imageDecodeTaskMs": 150.218
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 4,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 12,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.363, 1.363, 1.363, 1.363],
+            "visibleSlotCssWidths": [440],
+            "decodedMegapixels": 30.72
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 16,
+              "bytes": 11780848,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "store",
+          "density": "large",
+          "sidebar": "collapsed",
+          "repeat": 4,
+          "readyMs": 198.188833000022,
+          "visibleMediaMs": 208.09787499997765,
+          "mediaTimedOut": false,
+          "lcpMs": 336,
+          "decodeMs": {
+            "decodeImageMs": 328.845,
+            "imageDecodeTaskMs": 338.49
+          },
+          "images": {
+            "total": 29,
+            "visible": 6,
+            "visibleComplete": 6,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 6,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 19,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.69, 1.69, 1.69, 1.69, 1.69, 1.69],
+            "visibleSlotCssWidths": [355],
+            "decodedMegapixels": 48
+          },
+          "variants": {
+            "display": {
+              "requests": 25,
+              "completed": 25,
+              "bytes": 18407575,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "item",
+          "repeat": 4,
+          "readyMs": 167.03720799996518,
+          "visibleMediaMs": 173.71508299990091,
+          "mediaTimedOut": false,
+          "lcpMs": 320,
+          "decodeMs": {
+            "decodeImageMs": 34.256,
+            "imageDecodeTaskMs": 35.091
+          },
+          "images": {
+            "total": 1,
+            "visible": 1,
+            "visibleComplete": 1,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 1,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.41],
+            "visibleSlotCssWidths": [332],
+            "decodedMegapixels": 1.92
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "retina",
+          "view": "gallery",
+          "repeat": 4,
+          "readyMs": 127.70362499996554,
+          "visibleMediaMs": 134.5100000000093,
+          "mediaTimedOut": false,
+          "lcpMs": 280,
+          "decodeMs": {
+            "decodeImageMs": 36.643,
+            "imageDecodeTaskMs": 37.795
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [2.5, 2.119],
+            "visibleSlotCssWidths": [320, 283],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "compact",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": 3352.371000000043,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 480,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": 3408.3201249999693,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 508,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "revisit",
+          "density": "comfortable",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": null,
+          "censored": true,
+          "itemOpenMs": null,
+          "itemOpenLowerBoundMs": 30049.4283749999,
+          "inFlightAtOpen": 4
+        },
+        {
+          "profile": "mobile",
+          "view": "store",
+          "density": "large",
+          "sidebar": "expanded",
+          "repeat": 4,
+          "readyMs": 3369.5739169999724,
+          "visibleMediaMs": null,
+          "mediaTimedOut": true,
+          "lcpMs": 476,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 29,
+            "visible": 4,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 4,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [171],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "display": {
+              "requests": 16,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 4
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "item",
+          "repeat": 4,
+          "readyMs": 3410.8164170000236,
+          "visibleMediaMs": 3428.262750000111,
+          "mediaTimedOut": false,
+          "lcpMs": 3228,
+          "decodeMs": {
+            "decodeImageMs": 0,
+            "imageDecodeTaskMs": 0
+          },
+          "images": {
+            "total": 1,
+            "visible": 0,
+            "visibleComplete": 0,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 0,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 1,
+            "placeholders": 1,
+            "visibleSupplyRatio": [],
+            "visibleSlotCssWidths": [],
+            "decodedMegapixels": 0
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            },
+            "display": {
+              "requests": 1,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 0
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "gallery",
+          "repeat": 4,
+          "readyMs": 3420.965957999928,
+          "visibleMediaMs": 7475.993832999957,
+          "mediaTimedOut": false,
+          "lcpMs": 3592,
+          "decodeMs": {
+            "decodeImageMs": 35.59,
+            "imageDecodeTaskMs": 36.537
+          },
+          "images": {
+            "total": 2,
+            "visible": 2,
+            "visibleComplete": 2,
+            "visibleThumbnail": 0,
+            "visibleDisplay": 2,
+            "visibleHighPriority": 0,
+            "offscreenEagerOrLoaded": 0,
+            "placeholders": 0,
+            "visibleSupplyRatio": [1.732, 2.339],
+            "visibleSlotCssWidths": [308, 171],
+            "decodedMegapixels": 3.84
+          },
+          "variants": {
+            "thumbnail": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 20796,
+              "maxBytes": 20796,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            },
+            "display": {
+              "requests": 1,
+              "completed": 1,
+              "bytes": 736303,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 1
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        },
+        {
+          "profile": "mobile",
+          "view": "interaction",
+          "repeat": 4,
+          "navigationMs": 1375.314250000054,
+          "loadMoreMs": 100.8961249999702,
+          "filterMs": 21873.26212500001,
+          "inFlightAtFilter": 17,
+          "variantsBeforeFilter": {
+            "display": {
+              "requests": 17,
+              "completed": 0,
+              "bytes": 0,
+              "maxBytes": 0,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 3
+            }
+          },
+          "variants": {
+            "display": {
+              "requests": 17,
+              "completed": 5,
+              "bytes": 3681515,
+              "maxBytes": 736303,
+              "duplicates": 0,
+              "errorResponses": 0,
+              "highPriority": 6
+            }
+          },
+          "errors": 0,
+          "failedRequests": 0
+        }
+      ],
+      "fixtureRestored": true
+    }
+  ],
+  "cleanup": true,
+  "clusterCleanup": true
+}

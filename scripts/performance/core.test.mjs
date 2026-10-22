@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { summary, options, sample } from './core.mjs';
+import { summary, options, sample, mediaVariant, decodeMs, validateReport } from './core.mjs';
 test('nearest-rank tails retain outliers and small-sample limits', () => {
   const values = Array.from({ length: 1000 }, (_, i) => i + 1);
   assert.deepEqual(summary(values), { n: 1000, min: 1, p50: 500, p95: 950, p99: 990, max: 1000 });
@@ -116,4 +116,36 @@ test('readiness censoring never invents HTTP errors or merges network terminatio
   assert.equal(prime.readyLowerBoundMs, null);
   assert.equal(prime.requests, null);
   assert.equal(prime.errors, null);
+});
+test('PER-97 media audit keeps variant labels and decode totals only', () => {
+  const id = '00000000-0000-4000-8000-000000000000';
+  assert.equal(
+    mediaVariant(`http://127.0.0.1:3195/api/v1/items/${id}/photos/${id}/content/thumbnail`),
+    'thumbnail',
+  );
+  assert.equal(
+    mediaVariant(`http://127.0.0.1:3195/api/v1/items/${id}/photos/${id}/content/display?attempt=2`),
+    'display',
+  );
+  for (const url of [
+    `http://127.0.0.1:3195/api/v1/items/${id}/photos/${id}/access/display`,
+    `http://127.0.0.1:3195/api/v1/items/${id}/photos/${id}/content/original`,
+    'not a url',
+  ])
+    assert.equal(mediaVariant(url), null);
+  assert.deepEqual(
+    decodeMs({
+      traceEvents: [
+        { ph: 'X', name: 'Decode Image', dur: 1500, args: { url: 'private' } },
+        { ph: 'X', name: 'ImageDecodeTask', dur: 2500 },
+        { ph: 'B', name: 'Decode Image', dur: 9000 },
+      ],
+    }),
+    { decodeImageMs: 1.5, imageDecodeTaskMs: 2.5 },
+  );
+  assert.equal(options(['--media-audit', '--browser-only']).mediaAudit, true);
+  assert.doesNotThrow(() =>
+    validateReport({ profile: 'retina', view: 'revisit', density: 'large', sidebar: 'collapsed' }),
+  );
+  assert.throws(() => validateReport({ view: '/api/v1/items' }));
 });

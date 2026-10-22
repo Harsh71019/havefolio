@@ -129,8 +129,9 @@ try {
 
 if (result && !process.exitCode) {
   result.clusterCleanup = true;
+  // The PER-97 media audit has its own artifact so it never overwrites the PER-94 baseline.
   await writeFile(
-    join(root, 'docs/testing/per-94-baseline.json'),
+    join(root, `docs/testing/${config.mediaAudit ? 'per-97-media' : 'per-94-baseline'}.json`),
     JSON.stringify(result, null, 2) + '\n',
   );
   console.log('PASS: validated numerical baseline published after verified cleanup');

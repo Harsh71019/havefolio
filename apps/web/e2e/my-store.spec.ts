@@ -248,6 +248,10 @@ test('populated, mixed-lifecycle store is responsive, private and keyboard navig
     'src',
     `/api/v1/items/${id(1)}/photos/${id(501)}/content/thumbnail`,
   );
+  // PER-97: default cards select the thumbnail on the phone (2.625×) and desktop (1×) profiles.
+  await expect
+    .poll(() => kettle.locator('img').evaluate((el) => (el as HTMLImageElement).currentSrc))
+    .toContain('/thumbnail');
   // Keyboard: tab from the Add item action into the first card and onward.
   await page.getByRole('link', { name: 'Add item', exact: true }).focus();
   await page.keyboard.press('Tab');
@@ -414,16 +418,19 @@ test('PER-58 desktop density geometry, facts, images, keyboard, persistence and 
       const image = first.locator('img');
       expect(await page.locator('.my-store img[loading="eager"]').count()).toBe(4);
       expect(await page.locator('.my-store img[loading="lazy"]').count()).toBe(8);
-      // Compare the browser's resolved sizes hint to the real slot, including sidebar/gaps.
+      // Compare the browser's resolved slot to the real one, including sidebar/gaps. PER-97
+      // reports each slot scaled as `calc(<slot> * <grid policy>)`; the slot itself is checked.
       const sizing = await image.evaluate((el) => {
         const img = el as HTMLImageElement;
         const hint = img.sizes
           .split(', ')
-          .find((part) => {
-            const match = part.match(/^\(min-width: (\d+)px\)/);
-            return !match || innerWidth >= Number(match[1]);
-          })!
-          .replace(/^\(min-width: \d+px\) /, '');
+          .map((part) => {
+            const at = part.lastIndexOf(' calc(');
+            const value = at >= 0 ? part.slice(at + 1) : part.slice(part.lastIndexOf(' ') + 1);
+            return { condition: part.slice(0, part.length - value.length).trim(), value };
+          })
+          .find(({ condition }) => !condition || matchMedia(condition).matches)!
+          .value.replace(/^calc\((.*) \* [\d.]+\)$/, '$1');
         const probe = document.createElement('div');
         probe.style.cssText = `position:fixed;visibility:hidden;width:${hint}`;
         document.body.append(probe);
@@ -441,11 +448,12 @@ test('PER-58 desktop density geometry, facts, images, keyboard, persistence and 
       expect(sizing.hintedWidth).toBeGreaterThanOrEqual(sizing.width);
       expect(sizing.hintedWidth / sizing.width).toBeLessThan(1.6);
       expect(sizing.width / sizing.height).toBeCloseTo(1, 1);
-      if (width === 1024 && mode === 'Large') {
+      // PER-97: ordinary cards stay on the 320px thumbnail; Large slots still get display. Once
+      // display has loaded, the browser keeps reusing it for smaller slots instead of refetching.
+      if (mode === 'Large' || index === 0)
         await expect
           .poll(() => image.evaluate((el) => (el as HTMLImageElement).currentSrc))
-          .toContain('/display');
-      }
+          .toContain(mode === 'Large' ? '/display' : '/thumbnail');
       await expectNoOverflow(page);
       if (width === 1440) {
         for (const theme of ['light', 'dark'] as const) {
@@ -633,7 +641,7 @@ test('PER-58 invalid and obsolete preferences fall back, resilient states align 
   await page.screenshot({ path: densityShot('taxonomy-fallback-large'), animations: 'disabled' });
 });
 
-for (const density of ['compact', 'large'] as const) {
+for (const density of ['compact', 'comfortable', 'large'] as const) {
   test(`PER-58 fresh ${density} image candidate and image layout stability`, async ({
     page,
   }, testInfo) => {
@@ -669,7 +677,8 @@ for (const density of ['compact', 'large'] as const) {
     const image = card.locator('img');
     await expect(image).toHaveCSS('opacity', '1');
     expect(await image.evaluate((el) => (el as HTMLImageElement).currentSrc)).toContain(
-      density === 'compact' ? '/thumbnail' : '/display',
+      // PER-97 grid policy: only Large slots exceed the thumbnail tolerance at 1×.
+      density === 'large' ? '/display' : '/thumbnail',
     );
     expect(await card.boundingBox()).toEqual(before);
   });

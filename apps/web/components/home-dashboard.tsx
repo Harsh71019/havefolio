@@ -20,7 +20,12 @@ import { effectiveStateInfo } from './desires-client';
 import { HomeRequestError, readHome } from './home-client';
 import { calendarDay, goalProgress, plural, spendingByCurrency } from './home-presentation';
 import { conditionLabels, eventDay } from './item-detail-presentation';
-import { photoSource } from './photos-client';
+import { gridSizes, photoSource } from './photos-client';
+
+const recentSizes = gridSizes([
+  ['(min-width: 1024px)', '160px'],
+  [null, '45vw'],
+]);
 import { formatAggregate } from './spending-presentation';
 
 type Load =
@@ -308,7 +313,7 @@ function RecentItems({ summary: s }: Readonly<{ summary: HomeSummary }>): ReactE
                           item.cover.decorative
                             ? ''
                             : (item.cover.altText ?? `Photo of ${item.name}`),
-                          '(min-width: 1024px) 160px, 45vw',
+                          recentSizes,
                         )
                       : null
                   }

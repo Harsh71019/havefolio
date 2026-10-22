@@ -20,6 +20,8 @@ export function options(args) {
     if (arg === '--route=store') result.route = 'store';
     else if (arg === '--profile=mobile') result.profile = 'mobile';
     else if (arg === '--calibration') result.calibration = true;
+    else if (arg === '--media-audit') result.mediaAudit = true;
+    else if (/^--runs=[1-5]$/.test(arg)) result.runs = Number(arg.slice(7));
     else if (arg === '--browser-only') result.api = false;
     else if (arg === '--api-only') result.browser = false;
     else if (arg === '--no-instrument') result.instrument = false;
@@ -77,8 +79,11 @@ const strings = {
   cpu: /^[A-Za-z0-9()@ ._+-]{1,100}$/,
   browser: /^[0-9.]{1,32}$/,
   measuredAt: /^[0-9TZ:.+-]{20,32}$/,
-  name: /^(desktop|mobile)$/,
-  profile: /^(desktop|mobile)$/,
+  name: /^(desktop|retina|mobile)$/,
+  profile: /^(desktop|retina|mobile)$/,
+  view: /^(store|revisit|item|gallery|interaction)$/,
+  density: /^(compact|comfortable|large)$/,
+  sidebar: /^(expanded|collapsed)$/,
   route: /^(home|store|item|add|insights)$/,
   condition: /^(cold|warm)$/,
   endpoint: /^(home|items|filtered|facets|item|spending|merchants)$/,
@@ -131,6 +136,34 @@ export async function primeWarm(cdp, profile, prepare) {
     });
   }
 }
+// PER-97: classify an authenticated photo request by variant label only; the URL is discarded.
+export function mediaVariant(url) {
+  let pathname;
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    return null;
+  }
+  return (
+    pathname.match(/^\/api\/v1\/items\/[^/]+\/photos\/[^/]+\/content\/(thumbnail|display)$/)?.[1] ??
+    null
+  );
+}
+
+// Sum complete-event durations (microseconds) for image decoding; other trace data is ignored.
+export function decodeMs(trace) {
+  const totals = { decodeImageMs: 0, imageDecodeTaskMs: 0 };
+  for (const event of trace.traceEvents ?? []) {
+    if (event.ph !== 'X' || typeof event.dur !== 'number') continue;
+    if (event.name === 'Decode Image') totals.decodeImageMs += event.dur / 1000;
+    if (event.name === 'ImageDecodeTask') totals.imageDecodeTaskMs += event.dur / 1000;
+  }
+  return {
+    decodeImageMs: Number(totals.decodeImageMs.toFixed(3)),
+    imageDecodeTaskMs: Number(totals.imageDecodeTaskMs.toFixed(3)),
+  };
+}
+
 export function observed(values) {
   const completed = values.filter((value) => typeof value === 'number' && Number.isFinite(value));
   return {

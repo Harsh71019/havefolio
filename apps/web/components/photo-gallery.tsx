@@ -62,6 +62,7 @@ import {
   deletePhoto,
   describePhoto,
   fetchPhotos,
+  gridSizes,
   PhotoRequestError,
   photoAlt,
   photoName,
@@ -72,7 +73,11 @@ import { PageShell } from './page-shell';
 import { pageTitleClassName } from './page-heading';
 
 const limit = itemPhotoLimits.maxPhotosPerItem;
-const tileSizes = '(min-width: 1024px) 14rem, (min-width: 640px) 30vw, 45vw';
+const tileSizes = gridSizes([
+  ['(min-width: 1024px)', '14rem'],
+  ['(min-width: 640px)', '30vw'],
+  [null, '45vw'],
+]);
 const coverSizes = '(min-width: 640px) 20rem, 90vw';
 const message = (error: unknown): string =>
   error instanceof PhotoRequestError ? error.message : 'Something went wrong. Try again.';

@@ -201,9 +201,33 @@ export function photoName(photo: ItemPhoto, index: number): string {
   return photo.altText ?? `Photo ${index + 1}`;
 }
 
+// PER-97 grid policy: request at most 2× density, and accept up to 1.25× thumbnail upscaling.
+const gridScale = 1 / 1.25;
+const denseGridScale = (gridScale * 2) / 3;
+
+/**
+ * `sizes` for covers in grids. Only 320px thumbnails and up-to-1600px display variants exist, and
+ * most card slots need slightly more than 320 device pixels, so honest sizes make the browser
+ * fetch a display file with about 25× the pixels for nearly every card. Each slot is reported
+ * scaled by the grid policy instead, so the browser's own selection keeps thumbnails for ordinary
+ * cards and still switches to display for genuinely large slots. Layout is unaffected: covers are
+ * sized by their container, never by `sizes`.
+ */
+export function gridSizes(
+  slots: ReadonlyArray<readonly [condition: string | null, slot: string]>,
+): string {
+  return slots
+    .flatMap(([condition, slot]) => [
+      `${condition ? `${condition} and ` : ''}(min-resolution: 2.5dppx) calc(${slot} * ${denseGridScale.toFixed(4)})`,
+      `${condition ? `${condition} ` : ''}calc(${slot} * ${gridScale})`,
+    ])
+    .join(', ');
+}
+
 /**
  * Same-origin sources only. Thumbnails (320px) serve small slots; display (1600px) serves large
- * slots or dense screens. `attempt` busts a failed request without persisting any URL.
+ * slots or dense screens; grid covers pass `gridSizes`. `attempt` busts a failed request without
+ * persisting any URL.
  */
 export function photoSource(
   itemId: string,
