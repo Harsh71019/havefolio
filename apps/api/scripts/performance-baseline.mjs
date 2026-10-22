@@ -19,6 +19,7 @@ import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { summary, sample } from '../../../scripts/performance/core.mjs';
 import { browserBaseline } from '../../../scripts/performance/browser.mjs';
+import { mediaAudit } from '../../../scripts/performance/media.mjs';
 import { seed } from './performance-fixture.mjs';
 const directory = process.env.PER94_DIRECTORY;
 const metadata = JSON.parse(process.env.PER94_METADATA ?? '{}');
@@ -307,7 +308,10 @@ try {
       }
       if (!ready) throw new Error('Production web unavailable');
       stage = 'browser';
-      row.browser = await browserBaseline({
+      // PER-97 media audit replaces the route matrix; the API phase is unchanged.
+      row[config.mediaAudit ? 'media' : 'browser'] = await (
+        config.mediaAudit ? mediaAudit : browserBaseline
+      )({
         origin,
         fixture,
         runs: config.runs,
