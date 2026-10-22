@@ -72,7 +72,17 @@ import {
   purchaseDateText,
   type Shown,
 } from './item-detail-presentation';
-import { ItemEditDialog, type EditSection, type ItemDraft } from './item-edit-dialog';
+import dynamic from 'next/dynamic';
+import type { EditSection, ItemDraft } from './item-edit-dialog';
+
+const preloadItemEditDialog = (): void => {
+  void import('./item-edit-dialog');
+};
+
+const ItemEditDialog = dynamic(
+  () => import('./item-edit-dialog').then((mod) => mod.ItemEditDialog),
+  { ssr: false },
+);
 import { ItemHistory, type HistoryState } from './item-history';
 import { DeleteItemSection, LifecycleActions } from './item-lifecycle';
 import { ItemRefunds } from './item-refunds';
@@ -414,6 +424,8 @@ export function ItemDetails({
       variant="ghost"
       className="min-h-11"
       aria-label={`Edit ${label}`}
+      onMouseEnter={preloadItemEditDialog}
+      onFocus={preloadItemEditDialog}
       onClick={(e) => openEditor(section, undefined, e.currentTarget)}
     >
       <PencilIcon aria-hidden="true" />
@@ -910,6 +922,8 @@ export function ItemDetails({
                 <Button
                   variant="outline"
                   className="min-h-11 w-full justify-start"
+                  onMouseEnter={preloadItemEditDialog}
+                  onFocus={preloadItemEditDialog}
                   onClick={() => {
                     setAddDetails(false);
                     openEditor(m.section, m.field, null);

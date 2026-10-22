@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Switch as SwitchPrimitive } from 'radix-ui';
+import * as SwitchPrimitive from 'radix-ui/switch';
 import { cn } from 'cn';
 
 function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimitive.Root>) {

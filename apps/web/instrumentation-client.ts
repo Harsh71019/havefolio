@@ -1,4 +1,11 @@
-import * as Sentry from '@sentry/nextjs';
+import {
+  init,
+  globalHandlersIntegration,
+  dedupeIntegration,
+  browserTracingIntegration,
+  captureRouterTransitionStart,
+  captureException,
+} from '@sentry/nextjs';
 import { monitoringConfig, monitoringOptions, normalizeRoute } from '@havefolio/monitoring';
 const config = monitoringConfig({
   GLITCHTIP_ENABLED: process.env.NEXT_PUBLIC_GLITCHTIP_ENABLED,
@@ -9,12 +16,12 @@ const config = monitoringConfig({
 });
 if (config.enabled) {
   try {
-    Sentry.init({
+    init({
       ...monitoringOptions(config, 'web-browser'),
       integrations: [
-        Sentry.globalHandlersIntegration(),
-        Sentry.dedupeIntegration(),
-        Sentry.browserTracingIntegration({
+        globalHandlersIntegration(),
+        dedupeIntegration(),
+        browserTracingIntegration({
           traceFetch: false,
           traceXHR: false,
           enableHTTPTimings: false,
@@ -32,11 +39,11 @@ if (config.enabled) {
   }
 }
 export function onRouterTransitionStart(
-  ...args: Parameters<typeof Sentry.captureRouterTransitionStart>
+  ...args: Parameters<typeof captureRouterTransitionStart>
 ): void {
   if (!config.enabled) return;
   try {
-    Sentry.captureRouterTransitionStart(...args);
+    captureRouterTransitionStart(...args);
   } catch {
     /* Monitoring cannot block navigation. */
   }
@@ -47,7 +54,7 @@ export function captureRenderError(error: Error & { digest?: string }): void {
   if (!config.enabled || error.digest || captured.has(error)) return;
   try {
     captured.add(error);
-    Sentry.captureException(error, { tags: { code: 'RENDER_FAILED', operation: 'render' } });
+    captureException(error, { tags: { code: 'RENDER_FAILED', operation: 'render' } });
   } catch {
     /* Retain the user-friendly boundary. */
   }
