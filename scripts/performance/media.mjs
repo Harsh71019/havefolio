@@ -76,8 +76,17 @@ const inspectImages = () =>
         visible: r.top < innerHeight && r.bottom > 0 && r.width > 0,
         slotWidth: Math.round(r.width),
         slotHeight: Math.round(r.height),
-        naturalWidth: img.naturalWidth,
-        naturalHeight: img.naturalHeight,
+        // naturalWidth is density-corrected under `w` descriptors, so read the selected
+        // candidate's declared pixel width and the photo's aspect ratio instead.
+        pixelWidth:
+          Object.fromEntries(
+            (img.srcset || '')
+              .split(',')
+              .map((c) => c.trim().split(/\s+/))
+              .filter((c) => c.length === 2 && c[1].endsWith('w'))
+              .map(([u, w]) => [new URL(u, document.baseURI).href, Number.parseInt(w, 10)]),
+          )[img.currentSrc] ?? img.naturalWidth,
+        aspect: Number(img.getAttribute('width')) / Math.max(1, Number(img.getAttribute('height'))),
         lazy: img.loading === 'lazy',
         highPriority: img.fetchPriority === 'high',
         complete: img.complete && img.naturalWidth > 0,
@@ -187,7 +196,18 @@ function summarise(network) {
   return variants;
 }
 
+// A readiness timeout is kept as an explicit censored observation instead of aborting the audit.
 async function observe(browser, page, network, profile, navigate, view) {
+  try {
+    return await measure(browser, page, network, profile, navigate, view);
+  } catch (error) {
+    if (error.name !== 'TimeoutError') throw error;
+    await browser.stopTracing().catch(() => undefined);
+    return { readyMs: null, censored: true, variants: summarise(network), errors: network.errors };
+  }
+}
+
+async function measure(browser, page, network, profile, navigate, view) {
   network.requests.clear();
   await browser.startTracing(page, {
     categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline'],
@@ -215,10 +235,7 @@ async function observe(browser, page, network, profile, navigate, view) {
   const owner = images.filter((i) => !i.placeholder);
   const visible = owner.filter((i) => i.visible);
   // Device pixels needed to fill the slot; `cover` crops to the larger axis ratio.
-  const needed = (i) =>
-    Math.ceil(
-      Math.max(i.slotWidth, (i.slotHeight * i.naturalWidth) / Math.max(1, i.naturalHeight)) * dpr,
-    );
+  const needed = (i) => Math.ceil(Math.max(i.slotWidth, i.slotHeight * i.aspect) * dpr);
   return {
     readyMs,
     visibleMediaMs,
@@ -237,13 +254,13 @@ async function observe(browser, page, network, profile, navigate, view) {
       // Ratio > 1 means more pixels arrived than the slot can show; < 1 means upscaled.
       visibleSupplyRatio: visible
         .filter((i) => i.complete)
-        .map((i) => Number((i.naturalWidth / Math.max(1, needed(i))).toFixed(3))),
+        .map((i) => Number((i.pixelWidth / Math.max(1, needed(i))).toFixed(3))),
       visibleSlotCssWidths: [...new Set(visible.map((i) => i.slotWidth))],
       decodedMegapixels: Number(
         (
           owner
             .filter((i) => i.complete)
-            .reduce((n, i) => n + i.naturalWidth * i.naturalHeight, 0) / 1e6
+            .reduce((n, i) => n + (i.pixelWidth * i.pixelWidth) / i.aspect, 0) / 1e6
         ).toFixed(3),
       ),
     },
@@ -292,13 +309,41 @@ export async function mediaAudit({ origin, fixture, runs, metadata }) {
             if (density === 'comfortable' && sidebar === 'expanded') {
               // Client-side return to the Store: are protected covers fetched again?
               stage = `${profile.name}/revisit`;
+              const start = performance.now();
+              let itemOpenMs = null;
+              try {
+                await page
+                  .getByRole('region', { name: 'Your items', exact: true })
+                  .locator('a[href^="/items/"]')
+                  .first()
+                  .click();
+                await ready.item(page);
+                itemOpenMs = performance.now() - start;
+              } catch (error) {
+                if (error.name !== 'TimeoutError') throw error;
+              }
+              const itemOpenLowerBoundMs = itemOpenMs ?? performance.now() - start;
+              const inFlightAtOpen = [...network.requests.values()].filter((r) => !r.done).length;
+              if (itemOpenMs === null) {
+                output.push({
+                  profile: profile.name,
+                  view: 'revisit',
+                  density,
+                  sidebar,
+                  repeat,
+                  readyMs: null,
+                  censored: true,
+                  itemOpenMs,
+                  itemOpenLowerBoundMs,
+                  inFlightAtOpen,
+                });
+                await context.close();
+                continue;
+              }
+              // Bounded settle: on throttled mobile the page may never reach network idle.
               await page
-                .getByRole('region', { name: 'Your items', exact: true })
-                .locator('a[href^="/items/"]')
-                .first()
-                .click();
-              await ready.item(page);
-              await page.waitForLoadState('networkidle');
+                .waitForFunction(visibleComplete, undefined, { timeout: 15000, polling: 50 })
+                .catch(() => undefined);
               const revisit = await observe(
                 browser,
                 page,
@@ -313,6 +358,8 @@ export async function mediaAudit({ origin, fixture, runs, metadata }) {
                 density,
                 sidebar,
                 repeat,
+                itemOpenMs,
+                inFlightAtOpen,
                 ...revisit,
               });
             }

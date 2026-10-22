@@ -21,6 +21,7 @@ export function options(args) {
     else if (arg === '--profile=mobile') result.profile = 'mobile';
     else if (arg === '--calibration') result.calibration = true;
     else if (arg === '--media-audit') result.mediaAudit = true;
+    else if (/^--runs=[1-5]$/.test(arg)) result.runs = Number(arg.slice(7));
     else if (arg === '--browser-only') result.api = false;
     else if (arg === '--api-only') result.browser = false;
     else if (arg === '--no-instrument') result.instrument = false;
