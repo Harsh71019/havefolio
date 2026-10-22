@@ -43,6 +43,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ['@havefolio/contracts', '@havefolio/domain', '@havefolio/ui'],
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@havefolio/ui'],
+  },
 };
 
 const upload = process.env.GLITCHTIP_UPLOAD_SOURCE_MAPS === 'true';
@@ -77,4 +80,10 @@ export default withSentryConfig(nextConfig, {
   },
   webpack: { autoInstrumentServerFunctions: false, autoInstrumentMiddleware: false },
   reactComponentAnnotation: { enabled: false },
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+    excludeReplayIframe: true,
+    excludeReplayShadowDom: true,
+    excludeReplayWorker: true,
+  },
 });
