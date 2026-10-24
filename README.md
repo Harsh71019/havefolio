@@ -314,3 +314,46 @@ no importer/Chrome process is using the profile before removing its
 pnpm test:amazon-import
 pnpm typecheck:amazon-import
 ```
+
+### Batch-import missing Amazon photos (PER-103)
+
+Uses the same protected `.env` configuration and headed Chrome profile as the
+single-product importer. Existing items only: it does not create products. First
+review the inventory preview, then execute it:
+
+```sh
+npx tsx scripts/amazon-batch-to-havefolio.ts
+npx tsx scripts/amazon-batch-to-havefolio.ts --apply
+```
+
+The preview makes authenticated read-only inventory/photo requests, records all
+ownership statuses, and skips every item that already has photos or lacks an
+unambiguous Amazon source. Saved Amazon URLs are preferred; explicit ASINs in
+specifications or models can use Amazon India when no URL exists. Conflicting
+identifiers and non-Amazon purchase URLs are skipped rather than guessed from
+product names. The private report is `tmp/amazon-batch/report.json`; use
+`--report <path>` for another report. Rerun the same command to resume that plan.
+To include newly added inventory, generate a new preview/report path after the
+previous run finishes.
+
+Apply mode processes one product at a time, reuses validated downloads for
+repeated ASINs, paces photo POSTs at least 4.5 seconds apart (below the existing
+20/minute owner limit), and uses the single-item durable retry ledger. Before
+each item it rechecks current photos and original item fields, skipping any item
+that acquired photos after the preview. An interrupted operation resumes only
+its own recorded upload IDs. Completed imports are skipped, and removed imported
+photos require inspecting state before a replacement operation.
+
+CAPTCHA/sign-in walls stay open for manual completion in Chrome; press Enter in
+the terminal afterward. Authorization, rate-limit, provider-availability and
+protected-field failures checkpoint and pause the batch. Other per-product
+failures are recorded and the batch continues. Every success verifies saved
+photo IDs, authenticated thumbnail delivery and unchanged purchase/user data;
+final verification checks pre-existing photo IDs and completed photo ordering.
+This requires the live authenticated API and local Google Chrome. No CAPTCHA
+solver, new backend endpoint, migration or background scheduler is used.
+
+Successful runs remove their cached downloads unless `--keep` is passed. Reports
+and failed-page diagnostics remain private and Git-ignored. A run with failed
+items exits non-zero and lists their reasons in the report. Full data completion
+means the verified successful records, not just products that were attempted.

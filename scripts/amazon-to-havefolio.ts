@@ -10,6 +10,7 @@ import {
   jpegImage,
   NetworkError,
   retry,
+  type Product,
 } from './lib/amazon/core.js';
 import { Havefolio, uploadImages } from './lib/amazon/havefolio.js';
 
@@ -70,6 +71,88 @@ async function download(context: BrowserContext, url: string): Promise<Buffer> {
     }
   });
 }
+export interface DownloadedProduct {
+  title: string;
+  asin: string;
+  productUrl: string;
+  imageUrls: string[];
+  files: string[];
+}
+export async function downloadProduct(
+  context: BrowserContext,
+  page: Page,
+  product: Product,
+  directory: string,
+  onStage: (step: string) => void = () => undefined,
+): Promise<DownloadedProduct> {
+  onStage('open Amazon');
+  console.log(`Opening ${product.url}`);
+  await delay();
+  await retry(async () => {
+    try {
+      await page.goto(product.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    } catch {
+      throw new NetworkError('Amazon navigation failed.');
+    }
+  });
+  await ready(page);
+  // Never silently scrape images from a redirected, different product.
+  if (amazonProduct(page.url()).asin !== product.asin)
+    throw new Error('Amazon redirected to a different ASIN.');
+  onStage('extract');
+  await delay();
+  const title = (await page.locator('span#productTitle').innerText()).replace(/\s+/g, ' ').trim();
+  if (!title) throw new Error('Empty product title.');
+  const sources = await page.evaluate(() => ({
+    scripts: Array.from(document.scripts)
+      .map((s) => s.textContent ?? '')
+      .filter((s) => s.includes('colorImages')),
+    hires: document.querySelector('#landingImage')?.getAttribute('data-old-hires') ?? null,
+    dynamic: document.querySelector('#landingImage')?.getAttribute('data-a-dynamic-image') ?? null,
+    thumbnails: Array.from(document.querySelectorAll('#altImages li.imageThumbnail img'))
+      .filter(
+        (img) =>
+          !img.closest('.videoThumbnail, .a-video, .videoBlock') &&
+          !/video|360|spin|sprite|placeholder|grey|gray/i.test(
+            (img.getAttribute('alt') ?? '') + ' ' + (img.parentElement?.className ?? ''),
+          ),
+      )
+      .map((img) => img.getAttribute('src') ?? ''),
+  }));
+  const candidates = imageCandidates(sources);
+  if (!candidates.length) throw new Error('No eligible Amazon product images found.');
+  onStage('download');
+  const files: string[] = [],
+    urls: string[] = [];
+  for (const candidate of candidates) {
+    if (files.length === 3) break;
+    await delay();
+    try {
+      const bytes = await download(context, candidate);
+      const file = join(directory, `${product.asin}-${files.length + 1}.jpg`);
+      await writeFile(file, bytes, { mode: 0o600 });
+      files.push(file);
+      urls.push(candidate);
+    } catch (error) {
+      console.warn(
+        `Rejected image candidate: ${error instanceof Error ? error.message : 'validation failed'}`,
+      );
+    }
+  }
+  if (!files.length) throw new Error('No candidate passed image download/validation.');
+  if (files.length < 3)
+    console.warn(
+      `Only ${files.length} valid product image(s) found; continuing with available images.`,
+    );
+  console.log(
+    JSON.stringify(
+      { title, asin: product.asin, productUrl: product.url, imageUrls: urls, files },
+      null,
+      2,
+    ),
+  );
+  return { title, asin: product.asin, productUrl: product.url, imageUrls: urls, files };
+}
 export async function main(): Promise<void> {
   try {
     process.loadEnvFile(resolve('.env'));
@@ -121,73 +204,10 @@ export async function main(): Promise<void> {
       locale: 'en-IN',
     });
     page = context.pages()[0] ?? (await context.newPage());
-    stage = 'open Amazon';
-    console.log(`Opening ${product.url}`);
-    await delay();
-    await retry(async () => {
-      try {
-        await page!.goto(product.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-      } catch {
-        throw new NetworkError('Amazon navigation failed.');
-      }
+    const downloaded = await downloadProduct(context, page, product, directory, (step) => {
+      stage = step;
     });
-    await ready(page);
-    // Never silently scrape images from a redirected, different product.
-    if (amazonProduct(page.url()).asin !== product.asin)
-      throw new Error('Amazon redirected to a different ASIN.');
-    stage = 'extract';
-    await delay();
-    const title = (await page.locator('span#productTitle').innerText()).replace(/\s+/g, ' ').trim();
-    if (!title) throw new Error('Empty product title.');
-    const sources = await page.evaluate(() => ({
-      scripts: Array.from(document.scripts)
-        .map((s) => s.textContent ?? '')
-        .filter((s) => s.includes('colorImages')),
-      hires: document.querySelector('#landingImage')?.getAttribute('data-old-hires') ?? null,
-      dynamic:
-        document.querySelector('#landingImage')?.getAttribute('data-a-dynamic-image') ?? null,
-      thumbnails: Array.from(document.querySelectorAll('#altImages li.imageThumbnail img'))
-        .filter(
-          (img) =>
-            !img.closest('.videoThumbnail, .a-video, .videoBlock') &&
-            !/video|360|spin|sprite|placeholder|grey|gray/i.test(
-              (img.getAttribute('alt') ?? '') + ' ' + (img.parentElement?.className ?? ''),
-            ),
-        )
-        .map((img) => img.getAttribute('src') ?? ''),
-    }));
-    const candidates = imageCandidates(sources);
-    if (!candidates.length) throw new Error('No eligible Amazon product images found.');
-    stage = 'download';
-    const files: string[] = [],
-      urls: string[] = [];
-    for (const candidate of candidates) {
-      if (files.length === 3) break;
-      await delay();
-      try {
-        const bytes = await download(context, candidate);
-        const file = join(directory, `${product.asin}-${files.length + 1}.jpg`);
-        await writeFile(file, bytes, { mode: 0o600 });
-        files.push(file);
-        urls.push(candidate);
-      } catch (error) {
-        console.warn(
-          `Rejected image candidate: ${error instanceof Error ? error.message : 'validation failed'}`,
-        );
-      }
-    }
-    if (!files.length) throw new Error('No candidate passed image download/validation.');
-    if (files.length < 3)
-      console.warn(
-        `Only ${files.length} valid product image(s) found; continuing with available images.`,
-      );
-    console.log(
-      JSON.stringify(
-        { title, asin: product.asin, productUrl: product.url, imageUrls: urls, files },
-        null,
-        2,
-      ),
-    );
+    const { title, files } = downloaded;
     if (args.values['dry-run']) {
       console.log('Dry run complete. No Havefolio requests or writes were made; files retained.');
       return;
