@@ -205,3 +205,63 @@ void test('automatic creation uses persistent commandId for ambiguous response a
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+void test('inventory pagination follows the deployed after cursor across complete result sets', async () => {
+  const savedEnv = { ...process.env };
+  const ids = ['12345678-1234-4234-8234-123456789012', '12345678-1234-4234-8234-123456789013'];
+  const seen: string[] = [];
+  const server = createServer((req, res) => {
+    const url = new URL(req.url ?? '', 'http://localhost');
+    res.setHeader('Content-Type', 'application/json');
+    if (url.pathname === '/api/v1/items') {
+      if (url.searchParams.has('cursor')) {
+        res.statusCode = 400;
+        res.end('{}');
+        return;
+      }
+      const after = url.searchParams.get('after');
+      seen.push(after ?? 'first');
+      res.end(
+        JSON.stringify({
+          items: [{ id: after ? ids[1] : ids[0] }],
+          hasMore: !after,
+          nextCursor: after ? null : 'opaque-next-token',
+        }),
+      );
+      return;
+    }
+    const found = ids.find((id) => url.pathname === `/api/v1/items/${id}`);
+    if (found) {
+      res.end(
+        JSON.stringify({
+          id: found,
+          name: 'Product',
+          revision: 1,
+          purchaseUrl: 'https://www.amazon.in/dp/B07V78GMXS',
+          specifications: null,
+        }),
+      );
+      return;
+    }
+    res.statusCode = 404;
+    res.end('{}');
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  assert(address && typeof address === 'object');
+  process.env.HAVEFOLIO_API_URL = `http://127.0.0.1:${address.port}/api/v1`;
+  process.env.HAVEFOLIO_TOKEN = 'a'.repeat(43);
+  delete process.env.HAVEFOLIO_COOKIE_NAME;
+  let api: Havefolio | undefined;
+  try {
+    api = await Havefolio.connect();
+    const collected = [];
+    for await (const entry of api.inventory()) collected.push(entry.id);
+    assert.deepEqual(collected, ids);
+    assert.deepEqual(seen, ['first', 'opaque-next-token']);
+  } finally {
+    await api?.close();
+    await new Promise<void>((resolve, reject) => server.close((e) => (e ? reject(e) : resolve())));
+    process.env = savedEnv;
+  }
+});

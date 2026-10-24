@@ -10,3 +10,6 @@ pnpm-lock.yaml
 packages/db/migrations/
 test-results/
 playwright-report/
+
+# Private operator reports, downloads and diagnostics
+tmp/

@@ -16,6 +16,7 @@ function id(input: unknown): string {
   return input;
 }
 export interface Item {
+  data: Record<string, unknown>;
   id: string;
   revision: number;
   name: string;
@@ -28,6 +29,7 @@ export function item(input: unknown): Item {
   if (typeof r.revision !== 'number' || typeof r.name !== 'string')
     throw new Error('Invalid item response.');
   return {
+    data: r,
     id: id(r.id),
     revision: r.revision,
     name: r.name,
@@ -135,25 +137,57 @@ export class Havefolio {
   async getItem(value: string): Promise<Item> {
     return item(await this.call(`items/${id(value)}`));
   }
-  async find(product: Product): Promise<Item[]> {
-    const matches: Item[] = [];
+  async *inventory(): AsyncGenerator<Item> {
     let cursor: string | null = null;
+    const seen = new Set<string>();
     for (let page = 0; page < 100; page++) {
       const query = new URLSearchParams({ limit: '100', sort: 'id' });
-      if (cursor) query.set('cursor', cursor);
+      if (cursor) query.set('after', cursor);
       const result = record(await this.call(`items?${query}`));
       if (!Array.isArray(result.items)) throw new Error('Invalid inventory page.');
-      // List entries intentionally omit purchaseUrl/specifications; fetch owner-authorized details.
       for (const summary of result.items) {
-        const entry = await this.getItem(id(record(summary).id));
-        if (knownAsins(entry).includes(product.asin)) matches.push(entry);
+        const itemId = id(record(summary).id);
+        if (seen.has(itemId)) throw new Error('Repeated inventory item; scan aborted.');
+        seen.add(itemId);
+        yield await this.getItem(itemId);
       }
-      if (!result.hasMore) return matches;
+      if (!result.hasMore) return;
       if (typeof result.nextCursor !== 'string' || result.nextCursor === cursor)
         throw new Error('Invalid inventory cursor.');
       cursor = result.nextCursor;
     }
-    throw new Error('Inventory exceeds scan bound; use --item.');
+    throw new Error('Inventory exceeds the bounded 10,000-item scan.');
+  }
+  async find(product: Product): Promise<Item[]> {
+    const matches: Item[] = [];
+    for await (const entry of this.inventory())
+      if (knownAsins(entry).includes(product.asin)) matches.push(entry);
+    return matches;
+  }
+  async verifyPhoto(itemId: string, photoId: string): Promise<void> {
+    await retry(async () => {
+      let response;
+      try {
+        response = await this.client.get(
+          `${this.base}/items/${id(itemId)}/photos/${id(photoId)}/content/thumbnail`,
+          { maxRedirects: 0 },
+        );
+      } catch {
+        throw new NetworkError('Havefolio image delivery network failure.');
+      }
+      try {
+        if ([429, 500, 502, 503, 504].includes(response.status()))
+          throw new NetworkError(`Havefolio image HTTP ${response.status()}.`);
+        if (
+          response.status() !== 200 ||
+          !response.headers()['content-type']?.startsWith('image/') ||
+          !(await response.body()).length
+        )
+          throw new Error(`Photo content verification failed: HTTP ${response.status()}.`);
+      } finally {
+        await response.dispose();
+      }
+    });
   }
   async photos(itemId: string): Promise<Snapshot> {
     return snapshot(await this.call(`items/${id(itemId)}/photos`));
@@ -183,6 +217,7 @@ export async function uploadImages(
   files: string[],
   requestedItem?: string,
   stateDirectory = join(homedir(), '.havefolio-scraper-state'),
+  beforeUpload: () => Promise<void> = () => Promise.resolve(),
 ): Promise<string> {
   const directory = stateDirectory;
   await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -352,6 +387,7 @@ export async function uploadImages(
       }
       entry.attempted = true;
       await save();
+      await beforeUpload();
       const result = record(
         await api.call(`items/${target.id}/photos`, {
           method: 'POST',

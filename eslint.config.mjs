@@ -15,6 +15,7 @@ export default tseslint.config(
       '**/coverage/**',
       '**/dist/**',
       '**/node_modules/**',
+      '**/tmp/**',
       'apps/web/next-env.d.ts',
       '**/test-results/**',
       '**/playwright-report/**',
