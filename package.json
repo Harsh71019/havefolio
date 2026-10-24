@@ -17,8 +17,8 @@
     "format:check": "prettier --check .",
     "lint": "pnpm build:packages && eslint .",
     "test": "pnpm test:unit && pnpm test:components",
-    "typecheck": "pnpm build:packages && pnpm --filter './apps/**' -r --if-present typecheck",
-    "test:infra": "pnpm build:packages && python3 -m unittest discover -s scripts/shared-services -p \"test_*.py\" && python3 -m unittest discover -s scripts/monitoring -p \"test_*.py\" && node --test scripts/shared-services/config.test.mjs && pnpm perf:test",
+    "typecheck": "pnpm build:packages && pnpm --filter './apps/**' -r --if-present typecheck && pnpm typecheck:amazon-import",
+    "test:infra": "pnpm build:packages && python3 -m unittest discover -s scripts/shared-services -p \"test_*.py\" && python3 -m unittest discover -s scripts/monitoring -p \"test_*.py\" && node --test scripts/shared-services/config.test.mjs && pnpm perf:test && pnpm test:amazon-import",
     "test:unit": "pnpm test:infra && pnpm --filter @havefolio/enrichment test && pnpm --filter @havefolio/logging test && pnpm --filter @havefolio/contracts test && pnpm --filter @havefolio/domain test && pnpm --filter @havefolio/db test && pnpm --filter @havefolio/test-utils test && pnpm --filter @havefolio/api test:unit && pnpm --filter @havefolio/worker test:unit && pnpm --filter @havefolio/monitoring test",
     "test:integration": "pnpm build:packages && pnpm --filter @havefolio/api test:integration && pnpm --filter @havefolio/worker test:integration",
     "test:components": "pnpm build:packages && pnpm --filter @havefolio/web test:components",
@@ -29,15 +29,21 @@
     "test:proxy": "pnpm build:packages && node scripts/testing/production-proxy.mjs",
     "perf:build": "node scripts/performance/build.mjs",
     "perf:baseline": "node scripts/performance/run.mjs",
-    "perf:test": "node --test scripts/performance/core.test.mjs"
+    "perf:test": "node --test scripts/performance/core.test.mjs",
+    "test:amazon-import": "tsx --test scripts/lib/amazon/*.test.ts",
+    "typecheck:amazon-import": "tsc -p scripts/tsconfig.json"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
+    "@types/node": "26.6.3",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.7",
     "eslint-config-prettier": "10.1.8",
     "globals": "17.12.0",
+    "playwright": "1.63.0",
     "prettier": "3.9.9",
+    "sharp": "0.35.5",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.0"
   }
