@@ -240,3 +240,75 @@ All contributors and AI agents must follow the canonical rules defined in [`AGEN
 ## License
 
 Private and proprietary. All rights reserved.
+
+## Amazon product images (local CLI, PER-102)
+
+Requires Node 24+, `pnpm install --frozen-lockfile`, and Google Chrome installed
+on the Mac. Uses headed Chrome with a dedicated persistent profile at
+`~/.havefolio-scraper-profile`; it never uses your everyday Chrome profile.
+
+```sh
+# Extract/download only: no Havefolio credentials or writes.
+npx tsx scripts/amazon-to-havefolio.ts 'https://www.amazon.in/dp/B07V78GMXS' --dry-run
+
+# Upload to a specific existing item; preserve its title, purchase details and cover.
+npx tsx scripts/amazon-to-havefolio.ts 'https://www.amazon.in/dp/B07V78GMXS' --item ITEM_UUID
+
+# Reuse a unique ASIN match, or create from the Amazon title when no match exists.
+npx tsx scripts/amazon-to-havefolio.ts 'https://www.amazon.in/dp/B07V78GMXS' --keep
+```
+
+For uploads, add `HAVEFOLIO_API_URL` and `HAVEFOLIO_TOKEN` to an ignored `.env`
+(see `.env.example`). The token is the **value of your existing owner session
+cookie**, available in Chrome DevTools → Application → Cookies after signing in;
+it is not an Authorization/Bearer token. Do not paste it into CLI arguments,
+screenshots or tickets. HTTPS defaults to `__Host-havefolio_session`; localhost
+uses `havefolio_session`. Trusted LAN HTTP requires `HAVEFOLIO_ALLOW_HTTP=true`
+and the app's existing LAN auth configuration; its cookie is
+`havefolio_lan_session`. Havefolio credentials are sent only to the configured
+Havefolio origin through a separate API request context, never to Amazon.
+
+The CLI canonicalizes the Amazon URL, extracts the gallery's high-resolution
+images (then landing-image/thumbnail fallbacks), excludes non-product media,
+deduplicates image IDs, and downloads the first three valid images with the main
+image first. Images must exceed 5 KiB, have a long edge of at least 500 pixels,
+and fit the existing 24-megapixel/8192-pixel and 10 MiB upload limits. Downloads
+are converted to JPEG with metadata stripped. Fewer available images produce a
+warning. Amazon actions are delayed 1–3 seconds; network steps retry twice with
+backoff. CAPTCHA/sign-in walls pause for you to clear them manually in Chrome,
+then press Enter in the terminal. There is no challenge solver or bypass.
+
+Without `--item`, the CLI reads bounded, paginated inventory details to match the
+Amazon URL/ASIN across every ownership status. Multiple matches require an
+explicit `--item`; no matching item creates one with unknown price, purchase
+date, acquisition type, condition and usage, provisional Owned status, and the
+configured `HAVEFOLIO_CURRENCY` (default INR). No Amazon catalogue price becomes
+actual spending. Existing item names, prices, dates, URLs and specifications are
+preserved; captured `Amazon title` and `Amazon ASIN` fields are merged into
+specifications. A conflicting ASIN is rejected. No schema change is needed.
+
+Photos use the existing `POST /api/v1/items/:id/photos` multipart `photos` field
+with a stable UUID `Upload-Id` for each sequential file. The app supports JPEG,
+PNG and WebP (10 MiB/file, 4 files/request, 21 MiB/request, 8 photos/item). Existing
+photos and cover stay first; the new main image leads the appended group. The CLI
+verifies saved photo IDs and order before declaring success. New items use the
+existing stable `commandId` creation contract; the deployed API must support it.
+No new backend endpoints or providers are introduced.
+
+Downloads live in ignored `./tmp/<ASIN>/`. Dry-runs retain them; successful uploads
+remove them unless `--keep` is supplied. Failures retain a screenshot, page HTML
+and failed-step marker under `tmp/<ASIN>/debug/` (a browser-launch failure cannot
+capture a page). These may include account/location information: keep them
+private. Persistent retry state in `~/.havefolio-scraper-state/` retains item IDs,
+creation commands, image hashes and upload/photo IDs without session tokens.
+Rerunning the same target safely resumes or verifies its existing photos; changed
+images or deleted imported photos require inspecting this state before starting
+a new operation. Do not delete state blindly after a partial upload. Imports use
+a profile lock to run one at a time; after an unclean termination, first confirm
+no importer/Chrome process is using the profile before removing its
+`havefolio-import.lock`. Never commit profiles, state, downloaded files or debug HTML.
+
+```sh
+pnpm test:amazon-import
+pnpm typecheck:amazon-import
+```
