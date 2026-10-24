@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { Havefolio, uploadImages } from './havefolio.js';
 import { amazonProduct } from './core.js';
 const itemId = '12345678-1234-4234-8234-123456789012';
-void test('API upload replays lost response safely, preserves existing cover and skips reruns', async () => {
+void test('API upload resumes pending responses with retained bytes, preserves cover and skips completed reruns', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'havefolio-amazon-test-'));
   const file = join(dir, 'image.jpg');
   await writeFile(file, Buffer.alloc(6000));
@@ -62,9 +62,10 @@ void test('API upload replays lost response safely, preserves existing cover and
           photos = [...photos, newPhoto];
           revision++;
           lost = true;
-          req.socket.destroy();
+          res.end(JSON.stringify({ results: [{ index: 0, error: 'PHOTO_UPLOAD_PENDING' }] }));
           return;
         }
+        assert(bytes.includes(Buffer.alloc(6000)), 'Pending retry must reuse original JPEG bytes');
         res.statusCode = 201;
         res.end(JSON.stringify({ results: [{ index: 0, photo: { id: newPhoto } }] }));
         return;
@@ -90,6 +91,11 @@ void test('API upload replays lost response safely, preserves existing cover and
   try {
     api = await Havefolio.connect();
     const product = amazonProduct('https://www.amazon.in/dp/B07V78GMXS');
+    await assert.rejects(
+      uploadImages(api, product, 'Amazon product title', [file], itemId, join(dir, 'state')),
+      /Photo not ready/,
+    );
+    await writeFile(file, Buffer.alloc(6001, 1));
     assert.equal(
       await uploadImages(api, product, 'Amazon product title', [file], itemId, join(dir, 'state')),
       itemId,
@@ -102,10 +108,8 @@ void test('API upload replays lost response safely, preserves existing cover and
     await uploadImages(api, product, 'Amazon product title', [file], itemId, join(dir, 'state'));
     assert.equal(posts, 2);
     await writeFile(file, Buffer.alloc(6001));
-    await assert.rejects(
-      uploadImages(api, product, 'Amazon product title', [file], itemId, join(dir, 'state')),
-      /Images changed/,
-    );
+    await uploadImages(api, product, 'Amazon product title', [file], itemId, join(dir, 'state'));
+    assert.deepEqual(photos, [oldPhoto, newPhoto]);
     assert.equal(posts, 2);
   } finally {
     await api?.close();

@@ -174,6 +174,7 @@ interface State {
   itemId?: string;
   createPayload?: Record<string, unknown>;
   uploads: Upload[];
+  completed?: boolean;
 }
 export async function uploadImages(
   api: Havefolio,
@@ -288,29 +289,67 @@ export async function uploadImages(
         method: 'PATCH',
         data: { revision: target.revision, specifications: specs },
       });
+    const initial = await api.photos(target.id);
+    const knownPhotoIds = state.uploads.flatMap((u) => (u.photoId ? [u.photoId] : []));
+    if (knownPhotoIds.some((p) => !initial.photos.some((x) => x.id === p)))
+      throw new Error('A previously imported photo was removed. Inspect state before reimporting.');
+    const confirm = async (): Promise<string> => {
+      const imported = state.uploads.map((u) => u.photoId!);
+      const current = await api.photos(target.id);
+      if (imported.some((p) => !current.photos.some((x) => x.id === p)))
+        throw new Error('Persisted photo verification failed.');
+      // Once complete, retain any subsequent owner changes to cover/order.
+      const order = state.completed
+        ? current.photos.map((p) => p.id)
+        : [...current.photos.filter((p) => !imported.includes(p.id)).map((p) => p.id), ...imported];
+      if (order.some((p, i) => current.photos[i]?.id !== p))
+        await api.call(`items/${target.id}/photos/order`, {
+          method: 'PATCH',
+          data: { revision: current.revision, photoIds: order },
+        });
+      const confirmed = await api.photos(target.id);
+      if (JSON.stringify(confirmed.photos.map((p) => p.id)) !== JSON.stringify(order))
+        throw new Error('Photo ordering verification failed.');
+      state.completed = true;
+      await save();
+      console.log(
+        `Verified ${imported.length} imported photos on item ${target.id}. Existing cover/photos preserved. State: ${path}`,
+      );
+      return target.id;
+    };
+    // CDN encodings can change between requests. Confirm ready IDs without uploading again.
+    if (state.uploads.length && state.uploads.every((u) => u.photoId)) return await confirm();
     const buffers = await Promise.all(files.map((file) => readFile(file)));
     const hashes = buffers.map((bytes) => createHash('sha256').update(bytes).digest('hex'));
-    if (
-      state.uploads.length &&
-      (state.uploads.length !== hashes.length || state.uploads.some((u, i) => u.hash !== hashes[i]))
-    )
+    if (state.uploads.length && state.uploads.length !== hashes.length)
       throw new Error(
-        'Images changed since the previous attempt. Inspect saved state before starting a different upload.',
+        'Image count changed during an unfinished upload. Resume with the original download set.',
       );
     if (!state.uploads.length) {
       state.uploads = hashes.map((hash) => ({ hash, uploadId: randomUUID() }));
       await save();
     }
-    const initial = await api.photos(target.id);
-    const knownPhotoIds = state.uploads.flatMap((u) => (u.photoId ? [u.photoId] : []));
-    if (knownPhotoIds.some((p) => !initial.photos.some((x) => x.id === p)))
-      throw new Error('A previously imported photo was removed. Inspect state before reimporting.');
     const remaining = state.uploads.filter((u) => !u.photoId && !u.attempted).length;
     if (initial.photos.length + remaining > 8)
       throw new Error('Not enough photo slots (8 per item); no photos removed.');
     for (let index = 0; index < state.uploads.length; index++) {
       const entry = state.uploads[index]!;
       if (entry.photoId) continue;
+      const cache = join(directory, `${id(entry.uploadId)}.jpg`);
+      try {
+        const saved = await readFile(cache);
+        if (createHash('sha256').update(saved).digest('hex') !== entry.hash)
+          throw new Error('Retained upload bytes do not match the saved hash.');
+        buffers[index] = saved;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+        if (entry.attempted && hashes[index] !== entry.hash)
+          throw new Error(
+            'Original bytes unavailable for an unfinished upload. Inspect saved state before retrying.',
+          );
+        entry.hash = hashes[index]!;
+        await writeFile(cache, buffers[index]!, { mode: 0o600 });
+      }
       entry.attempted = true;
       await save();
       const result = record(
@@ -335,28 +374,9 @@ export async function uploadImages(
         );
       entry.photoId = id(record(row.photo).id);
       await save();
+      await rm(cache, { force: true });
     }
-    // Keep existing cover/order, with the imported main image first within the new group.
-    const imported = state.uploads.map((u) => u.photoId!);
-    const current = await api.photos(target.id);
-    if (imported.some((p) => !current.photos.some((x) => x.id === p)))
-      throw new Error('Persisted photo verification failed.');
-    const order = [
-      ...current.photos.filter((p) => !imported.includes(p.id)).map((p) => p.id),
-      ...imported,
-    ];
-    if (order.some((p, i) => current.photos[i]?.id !== p))
-      await api.call(`items/${target.id}/photos/order`, {
-        method: 'PATCH',
-        data: { revision: current.revision, photoIds: order },
-      });
-    const confirmed = await api.photos(target.id);
-    if (JSON.stringify(confirmed.photos.map((p) => p.id)) !== JSON.stringify(order))
-      throw new Error('Photo ordering verification failed.');
-    console.log(
-      `Verified ${imported.length} imported photos on item ${target.id}. Existing cover/photos preserved. State: ${path}`,
-    );
-    return target.id;
+    return await confirm();
   } finally {
     await rm(lockPath, { recursive: true });
   }

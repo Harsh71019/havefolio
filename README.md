@@ -300,10 +300,12 @@ remove them unless `--keep` is supplied. Failures retain a screenshot, page HTML
 and failed-step marker under `tmp/<ASIN>/debug/` (a browser-launch failure cannot
 capture a page). These may include account/location information: keep them
 private. Persistent retry state in `~/.havefolio-scraper-state/` retains item IDs,
-creation commands, image hashes and upload/photo IDs without session tokens.
-Rerunning the same target safely resumes or verifies its existing photos; changed
-images or deleted imported photos require inspecting this state before starting
-a new operation. Do not delete state blindly after a partial upload. Imports use
+creation commands, image hashes and upload/photo IDs without session tokens. Exact JPEG
+bytes are retained privately only while an upload is unfinished, then removed.
+Rerunning the same target verifies its saved photos even if Amazon changes the
+image encoding; pending retries reuse the retained original bytes. Deleted
+imported photos or changed image counts during a partial operation require
+inspecting the state before starting a new operation. Do not delete state blindly after a partial upload. Imports use
 a profile lock to run one at a time; after an unclean termination, first confirm
 no importer/Chrome process is using the profile before removing its
 `havefolio-import.lock`. Never commit profiles, state, downloaded files or debug HTML.
