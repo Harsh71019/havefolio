@@ -102,10 +102,14 @@ const card = (name: string): HTMLElement =>
   screen.getByRole('link', { name: new RegExp(`^${name}\\b`) });
 
 beforeEach(() => {
+  window.history.replaceState({}, '', '/store');
   window.localStorage.clear();
   delete document.documentElement.dataset.storeDensity;
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('price, date and use presentation', () => {
   it('keeps known, zero, unknown and gift prices distinct without floating point', () => {
@@ -485,6 +489,138 @@ describe('My Store page', () => {
     expect(card('Lamp')).toBeVisible();
   });
 
+  function observeEnd(): { enter: () => void; disconnect: ReturnType<typeof vi.fn> } {
+    const callbacks: IntersectionObserverCallback[] = [];
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: IntersectionObserverCallback) {
+          callbacks.push(callback);
+        }
+        observe = vi.fn();
+        disconnect = disconnect;
+      },
+    );
+    return {
+      enter: () =>
+        act(() => {
+          callbacks.forEach((callback) =>
+            callback(
+              [{ isIntersecting: true } as IntersectionObserverEntry],
+              {} as IntersectionObserver,
+            ),
+          );
+        }),
+      disconnect,
+    };
+  }
+
+  it.each(['', `?categoryId=${kitchen}`, '?sort=name&direction=asc'])(
+    'automatically continues %s and stops when exhausted without moving focus',
+    async (search) => {
+      window.history.replaceState({}, '', `/store${search}`);
+      const observer = observeEnd();
+      const fake = source([
+        page([item(1, { categoryId: kitchen })], uuid(1)),
+        page([item(2, { name: 'Next', categoryId: kitchen })]),
+      ]);
+      render(<MyStore source={fake} />);
+      const first = await screen.findByRole('link', { name: /^Item 1/ });
+      first.focus();
+      observer.enter();
+      await screen.findByRole('link', { name: /^Next/ });
+      expect(document.activeElement).toBe(first);
+      expect(screen.queryByTestId('store-continuation')).toBeNull();
+      observer.enter();
+      expect(fake.loadPage).toHaveBeenCalledTimes(2);
+      expect(observer.disconnect).toHaveBeenCalled();
+      expect(screen.getByRole('status')).toHaveTextContent('All items loaded.');
+    },
+  );
+
+  it('guards repeated notifications, pauses after failure and retries explicitly', async () => {
+    const observer = observeEnd();
+    const fake = source([page([item(1)], uuid(1))]);
+    let reject!: (error: Error) => void;
+    fake.loadPage
+      .mockImplementationOnce(() => Promise.resolve(page([item(1)], uuid(1))))
+      .mockImplementationOnce(
+        () =>
+          new Promise((_, fail) => {
+            reject = fail;
+          }),
+      );
+    render(<MyStore source={fake} />);
+    await screen.findByRole('link', { name: /^Item 1/ });
+    observer.enter();
+    observer.enter();
+    expect(fake.loadPage).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      reject(new Error('offline'));
+      await Promise.resolve();
+    });
+    await screen.findByRole('alert');
+    observer.enter();
+    expect(fake.loadPage).toHaveBeenCalledTimes(2);
+    fake.loadPage.mockResolvedValueOnce(page([item(2)]));
+    await userEvent.click(screen.getByRole('button', { name: 'Try loading more again' }));
+    expect(await screen.findByRole('link', { name: /^Item 2/ })).toBeVisible();
+  });
+
+  it('pauses the observer offline and resumes on reconnect', async () => {
+    const observer = observeEnd();
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const fake = source([page([item(1)], uuid(1)), page([item(2)])]);
+    render(<MyStore source={fake} />);
+    await screen.findByRole('link', { name: /^Item 1/ });
+    observer.enter();
+    expect(fake.loadPage).toHaveBeenCalledTimes(1);
+    online.mockReturnValue(true);
+    act(() => {
+      window.dispatchEvent(new Event('online'));
+    });
+    observer.enter();
+    expect(await screen.findByRole('link', { name: /^Item 2/ })).toBeVisible();
+  });
+
+  it.each(['query', 'refresh', 'unmount'])(
+    'ignores continuation after %s changes',
+    async (change) => {
+      const observer = observeEnd();
+      const fake = source([page([item(1)], uuid(1))]);
+      let resolve!: (value: ItemsPage) => void;
+      fake.loadPage
+        .mockImplementationOnce(() => Promise.resolve(page([item(1)], uuid(1))))
+        .mockImplementationOnce(
+          () =>
+            new Promise((done) => {
+              resolve = done;
+            }),
+        )
+        .mockResolvedValueOnce(page([item(3, { name: 'Fresh' })]));
+      const view = render(<MyStore source={fake} />);
+      await screen.findByRole('link', { name: /^Item 1/ });
+      observer.enter();
+      if (change === 'query') {
+        act(() => {
+          window.history.pushState({}, '', '/store?q=fresh');
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        });
+      } else if (change === 'refresh') {
+        act(() => {
+          window.dispatchEvent(new Event('havefolio-inventory-changed'));
+        });
+      } else view.unmount();
+      if (change !== 'unmount') await screen.findByRole('link', { name: /^Fresh/ });
+      await act(async () => {
+        resolve(page([item(2, { name: 'Stale' })]));
+        await Promise.resolve();
+      });
+      expect(screen.queryByRole('link', { name: /^Stale/ })).toBeNull();
+    },
+  );
+
   it('continues bounded pages with the API cursor, announcing and de-duplicating', async () => {
     const fake = source([
       page([item(1, { name: 'Alpha' }), item(2, { name: 'Beta' })], uuid(2)),
@@ -492,18 +628,18 @@ describe('My Store page', () => {
     ]);
     render(<MyStore source={fake} />);
     expect(await screen.findByText('Showing 2 items so far.')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Show more items' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Load more items' }));
     expect(await screen.findByRole('link', { name: /^Gamma/ })).toBeVisible();
     expect(fake.loadPage).toHaveBeenLastCalledWith({ cursor: uuid(2) });
     expect(screen.getAllByRole('link', { name: /^Beta/ })).toHaveLength(1);
-    expect(screen.getByRole('status')).toHaveTextContent('Loaded 2 more items.');
-    expect(screen.queryByRole('button', { name: 'Show more items' })).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent('Loaded 2 more items. All items loaded.');
+    expect(screen.queryByRole('button', { name: 'Load more items' })).toBeNull();
   });
 
   it('keeps loaded items when a continuation fails and lets the owner retry', async () => {
     const fake = source([page([item(1, { name: 'Alpha' })], uuid(1))]);
     render(<MyStore source={fake} />);
-    await userEvent.click(await screen.findByRole('button', { name: 'Show more items' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Load more items' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Items already shown are unchanged.',
     );
@@ -519,13 +655,13 @@ describe('My Store page', () => {
       window.dispatchEvent(new Event('offline'));
     });
     expect(screen.getByText(/You are offline\./)).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Show more items' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Load more items' })).toBeDisabled();
     online.mockReturnValue(true);
     act(() => {
       window.dispatchEvent(new Event('online'));
     });
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Show more items' })).toBeEnabled(),
+      expect(screen.getByRole('button', { name: 'Load more items' })).toBeEnabled(),
     );
   });
 
@@ -653,7 +789,7 @@ describe('desktop density preference', () => {
       expect(card('Zero')).toHaveAccessibleDescription('Kitchen');
       expect(card('Unknown')).toHaveAccessibleName('Unknown Sold, no longer owned');
       expect(screen.getByText(/Books. They appear/)).toBeVisible();
-      await userEvent.click(screen.getByRole('button', { name: 'Show more items' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Load more items' }));
       await screen.findByRole('link', { name: /^Next/ });
       expect(fake.loadPage).toHaveBeenCalledTimes(2);
       expect(fake.loadTaxonomy).toHaveBeenCalledTimes(1);
@@ -720,7 +856,7 @@ describe('desktop density preference', () => {
       act(() => {
         window.dispatchEvent(new Event('offline'));
       });
-      expect(screen.getByRole('button', { name: 'Show more items' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Load more items' })).toBeDisabled();
       view.unmount();
       render(<MyStore source={source([page([])])} />);
       await screen.findByText('Nothing recorded yet');

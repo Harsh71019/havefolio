@@ -173,6 +173,17 @@ export function MyStore({
     () => '',
   );
   const query = useMemo(() => readInventoryQuery(new URLSearchParams(search)), [search]);
+  // Each query/refresh owns its continuation lifecycle. Old requests may finish, but
+  // cannot append cards or release the busy guard for a newer inventory view.
+  const requests = useRef<{
+    active: boolean;
+    ready: boolean;
+    busy: boolean;
+    cursor: string | null;
+    query: InventoryQuery;
+    source: InventorySource;
+    refresh: number;
+  } | null>(null);
   const returnTo = storeReturnPath(search);
   const online = useSyncExternalStore(
     subscribeOnline,
@@ -218,8 +229,21 @@ export function MyStore({
 
   useEffect(() => {
     let active = true;
+    const requestScope = {
+      active: true,
+      ready: false,
+      busy: false,
+      cursor: null as string | null,
+      query,
+      source,
+      refresh,
+    };
+    requests.current = requestScope;
     void fetchFirst().then((next) => {
       if (!active) return;
+      requestScope.ready = next.kind === 'ready';
+      requestScope.cursor = next.kind === 'ready' ? next.nextCursor : null;
+      setMore({ busy: false });
       setLoad((current) => {
         // PER-88: preserve usable items on background refresh failures
         if (current.kind === 'ready' && next.kind === 'failed') {
@@ -231,39 +255,77 @@ export function MyStore({
     });
     return () => {
       active = false;
+      requestScope.active = false;
     };
-  }, [fetchFirst, refresh]);
+  }, [fetchFirst, query, source, refresh]);
 
   const retry = (): void => {
+    const requestScope = requests.current;
+    if (!requestScope) return;
     setLoad({ kind: 'loading' });
-    void fetchFirst().then(setLoad);
+    void fetchFirst().then((next) => {
+      if (!requestScope.active) return;
+      requestScope.ready = next.kind === 'ready';
+      requestScope.cursor = next.kind === 'ready' ? next.nextCursor : null;
+      setMore({ busy: false });
+      setLoad(next);
+    });
   };
 
-  async function loadMore(cursor: string): Promise<void> {
-    setMore({ busy: true });
-    try {
-      const isClean = Object.keys(query).length === 0;
-      const cleanQuery: InventoryQuery = { ...query, after: cursor };
-      delete (cleanQuery as { cursor?: unknown }).cursor;
-      const page = await source.loadPage(isClean ? { cursor } : cleanQuery);
-      setLoad((current) => {
-        if (current.kind !== 'ready') return current;
-        // Keyset pages are live views; drop any item already shown.
-        const seen = new Set(current.items.map((i) => i.id));
-        return {
-          ...current,
-          items: [...current.items, ...page.items.filter((i) => !seen.has(i.id))],
-          nextCursor: page.nextCursor,
-        };
-      });
-      setAnnouncement(
-        `Loaded ${page.items.length} more item${page.items.length === 1 ? '' : 's'}.`,
-      );
-      setMore({ busy: false });
-    } catch (error) {
-      setMore({ busy: false, error: asRequestError(error).message });
-    }
-  }
+  const loadMore = useCallback(
+    async (cursor: string): Promise<void> => {
+      const requestScope = requests.current;
+      if (
+        !requestScope ||
+        requestScope.query !== query ||
+        requestScope.source !== source ||
+        requestScope.refresh !== refresh ||
+        !online ||
+        !requestScope.active ||
+        !requestScope.ready ||
+        requestScope.busy ||
+        requestScope.cursor !== cursor
+      )
+        return;
+      requestScope.busy = true;
+      setAnnouncement('Loading more items.');
+      setMore({ busy: true });
+      try {
+        const isClean = Object.keys(query).length === 0;
+        const cleanQuery: InventoryQuery = { ...query, after: cursor };
+        delete (cleanQuery as { cursor?: unknown }).cursor;
+        const page = await source.loadPage(isClean ? { cursor } : cleanQuery);
+        if (!requestScope.active) return;
+        if (page.nextCursor === cursor)
+          throw new InventoryRequestError(
+            500,
+            'The next page could not advance. Please try again.',
+          );
+        requestScope.cursor = page.nextCursor;
+        setLoad((current) => {
+          if (current.kind !== 'ready') return current;
+          // Keyset pages are live views; drop any item already shown.
+          const seen = new Set(current.items.map((i) => i.id));
+          return {
+            ...current,
+            items: [...current.items, ...page.items.filter((i) => !seen.has(i.id))],
+            nextCursor: page.nextCursor,
+          };
+        });
+        setAnnouncement(
+          `Loaded ${page.items.length} more item${page.items.length === 1 ? '' : 's'}.${page.nextCursor ? '' : ' All items loaded.'}`,
+        );
+        setMore({ busy: false });
+      } catch (error) {
+        if (!requestScope.active) return;
+        setMore({ busy: false, error: asRequestError(error).message });
+        setAnnouncement('More items could not load. Try loading more again.');
+      } finally {
+        requestScope.busy = false;
+      }
+    },
+    [online, query, refresh, source],
+  );
 
   const taxonomy = load.kind === 'ready' ? load.taxonomy : undefined;
   const facets = load.kind === 'ready' ? load.facets : undefined;
@@ -379,22 +441,99 @@ export function MyStore({
           {load.kind === 'loading' ? <StoreSkeleton /> : null}
           {load.kind === 'failed' ? <LoadFailure error={load.error} onRetry={retry} /> : null}
           {load.kind === 'ready' ? (
-            <StoreContent
-              density={density}
-              load={load}
-              more={more}
-              online={online}
-              returnTo={returnTo}
-              query={query}
-              onResetFilters={handleReset}
-              onLoadMore={(cursor) => void loadMore(cursor)}
-            />
+            <>
+              <StoreContent
+                density={density}
+                load={load}
+                returnTo={returnTo}
+                query={query}
+                onResetFilters={handleReset}
+              />
+              {load.nextCursor ? (
+                <StoreContinuation
+                  cursor={load.nextCursor}
+                  more={more}
+                  online={online}
+                  onLoadMore={loadMore}
+                />
+              ) : null}
+            </>
           ) : null}
         </div>
       </div>
     </section>
   );
 }
+
+// Store-specific composition: existing registry Button provides keyboard fallback;
+// no scroll listener, new primitive or dependency is needed.
+function StoreContinuation({
+  cursor,
+  more,
+  online,
+  onLoadMore,
+}: {
+  cursor: string;
+  more: { busy: boolean; error?: string };
+  online: boolean;
+  onLoadMore: (cursor: string) => Promise<void>;
+}): React.JSX.Element {
+  const sentinel = useRef<HTMLDivElement>(null);
+  const automatic = useSyncExternalStore(
+    subscribeObserverSupport,
+    () => typeof IntersectionObserver !== 'undefined',
+    () => false,
+  );
+  useEffect(() => {
+    if (!automatic || !online || more.busy || more.error || !sentinel.current) return;
+    let active = true;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (active && entries.some((entry) => entry.isIntersecting)) void onLoadMore(cursor);
+      },
+      { rootMargin: '0px 0px 240px 0px' },
+    );
+    observer.observe(sentinel.current);
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
+  }, [automatic, cursor, more.busy, more.error, online, onLoadMore]);
+  return (
+    <div
+      ref={sentinel}
+      data-testid="store-continuation"
+      className="flex min-h-11 flex-col items-start gap-2"
+    >
+      <p className="text-sm text-muted-foreground" aria-hidden="true">
+        {more.busy
+          ? 'Loading more items…'
+          : !online
+            ? 'Reconnect to load more items.'
+            : more.error
+              ? 'More items could not load.'
+              : 'More items load as you scroll.'}
+      </p>
+      <Button
+        variant="outline"
+        className={
+          automatic && !more.error ? 'sr-only focus:not-sr-only focus:min-h-11' : 'min-h-11'
+        }
+        disabled={more.busy || !online}
+        onClick={() => void onLoadMore(cursor)}
+      >
+        {more.busy ? 'Loading more…' : more.error ? 'Try loading more again' : 'Load more items'}
+      </Button>
+      {more.error ? (
+        <p role="alert" className="text-sm">
+          {more.error} Items already shown are unchanged.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+const subscribeObserverSupport = (): (() => void) => () => {};
 
 function StoreSkeleton(): React.JSX.Element {
   // Hidden from assistive technology; the single status message above announces loading once.
@@ -475,9 +614,6 @@ function resolveItemContext(
 function StoreContent({
   density,
   load,
-  more,
-  onLoadMore,
-  online,
   returnTo,
   query,
   onResetFilters,
@@ -485,9 +621,6 @@ function StoreContent({
   density: StoreDensity;
   load: Extract<Load, { kind: 'ready' }>;
   returnTo: string;
-  more: { busy: boolean; error?: string };
-  onLoadMore: (cursor: string) => void;
-  online: boolean;
   query: InventoryQuery;
   onResetFilters: () => void;
 }): React.JSX.Element {
@@ -579,27 +712,6 @@ function StoreContent({
         {grouped?.emptyCategories.length ? (
           <EmptyCategories names={grouped.emptyCategories} />
         ) : null}
-        {load.nextCursor ? (
-          <div className="flex flex-col items-start gap-2">
-            <Button
-              variant="outline"
-              className="min-h-11"
-              disabled={more.busy || !online}
-              onClick={() => load.nextCursor && onLoadMore(load.nextCursor)}
-            >
-              {more.busy
-                ? 'Loading more…'
-                : more.error
-                  ? 'Try loading more again'
-                  : 'Show more items'}
-            </Button>
-            {more.error ? (
-              <p role="alert" className="text-sm">
-                {more.error} Items already shown are unchanged.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
       </>
     );
   }
@@ -652,27 +764,6 @@ function StoreContent({
         </section>
       ))}
       {emptyCategories.length ? <EmptyCategories names={emptyCategories} /> : null}
-      {load.nextCursor ? (
-        <div className="flex flex-col items-start gap-2">
-          <Button
-            variant="outline"
-            className="min-h-11"
-            disabled={more.busy || !online}
-            onClick={() => load.nextCursor && onLoadMore(load.nextCursor)}
-          >
-            {more.busy
-              ? 'Loading more…'
-              : more.error
-                ? 'Try loading more again'
-                : 'Show more items'}
-          </Button>
-          {more.error ? (
-            <p role="alert" className="text-sm">
-              {more.error} Items already shown are unchanged.
-            </p>
-          ) : null}
-        </div>
-      ) : null}
     </>
   );
 }

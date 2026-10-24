@@ -609,6 +609,10 @@ test('PER-58 invalid and obsolete preferences fall back, resilient states align 
       animations: 'disabled',
     });
   }
+  // Exercise the visible fallback in browsers without IntersectionObserver.
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(window, 'IntersectionObserver');
+  });
   await page.route('**/api/v1/taxonomy**', (route) =>
     route.fulfill({ status: 503, json: { message: 'UNAVAILABLE' } }),
   );
@@ -629,12 +633,12 @@ test('PER-58 invalid and obsolete preferences fall back, resilient states align 
     await page.getByRole('radio', { name: mode, exact: true }).click();
     await page.context().setOffline(true);
     await expect(page.getByText(/You are offline/)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Show more items' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Load more items' })).toBeDisabled();
     await expectNoOverflow(page);
     await page.context().setOffline(false);
-    await expect(page.getByRole('button', { name: 'Show more items' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Load more items' })).toBeEnabled();
   }
-  await page.getByRole('button', { name: 'Show more items' }).click();
+  await page.getByRole('button', { name: 'Load more items' }).click();
   await expect(
     page.getByText('Showing 12 items. Categories could not load, so items are not grouped.'),
   ).toBeVisible();
@@ -808,4 +812,59 @@ test('PER-59 sparse subcategories share one category grid at every width and den
     await expectNoOverflow(page);
   }
   expect(failures).toEqual([]);
+});
+
+test('PER-104 scroll loads bounded pages, retries errors and stops at the end', async ({
+  page,
+}, testInfo) => {
+  const first = Array.from({ length: 24 }, (_, i) => base(i + 1, { name: `Shelf item ${i + 1}` }));
+  await mock(page, first);
+  let continuations = 0;
+  await page.route(/\/api\/v1\/items(\?.*)?$/, (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    if (!query.has('after'))
+      return route.fulfill({ json: { items: first, nextCursor: 'scroll-next', hasMore: true } });
+    continuations++;
+    expect(query.get('after')).toBe(continuations < 3 ? 'scroll-next' : 'scroll-last');
+    if (continuations === 1)
+      return route.fulfill({ status: 503, json: { message: 'UNAVAILABLE' } });
+    if (continuations === 2)
+      return route.fulfill({
+        json: {
+          items: [base(25, { name: 'Next shelf item' })],
+          nextCursor: 'scroll-last',
+          hasMore: true,
+        },
+      });
+    return route.fulfill({
+      json: { items: [base(26, { name: 'Final shelf item' })], nextCursor: null, hasMore: false },
+    });
+  });
+  await page.goto('/store');
+  await expect(page.getByRole('link', { name: 'Shelf item 1 Owned', exact: true })).toBeVisible();
+  expect(continuations).toBe(0);
+  await page.screenshot({
+    path: `../../docs/screenshots/per-104-${testInfo.project.name}-before.png`,
+  });
+  await page.context().setOffline(true);
+  await expect(page.getByText(/You are offline/)).toBeVisible();
+  await page.getByTestId('store-continuation').scrollIntoViewIfNeeded();
+  expect(continuations).toBe(0);
+  await page.context().setOffline(false);
+  await expect(page.getByRole('button', { name: 'Try loading more again' })).toBeVisible();
+  expect(continuations).toBe(1);
+  await page.screenshot({
+    path: `../../docs/screenshots/per-104-${testInfo.project.name}-retry.png`,
+  });
+  await page.getByRole('button', { name: 'Try loading more again' }).click();
+  await expect(page.getByRole('link', { name: /^Next shelf item/ })).toBeAttached();
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(page.getByRole('link', { name: /^Final shelf item/ })).toBeVisible();
+  await expect(page.getByTestId('store-continuation')).toHaveCount(0);
+  await expect(page.getByRole('status').filter({ hasText: 'All items loaded.' })).toBeAttached();
+  expect(continuations).toBe(3);
+  await expectNoOverflow(page);
+  await page.screenshot({
+    path: `../../docs/screenshots/per-104-${testInfo.project.name}-after.png`,
+  });
 });
