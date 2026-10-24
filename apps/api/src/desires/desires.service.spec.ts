@@ -101,6 +101,7 @@ describe('DesiresService application rules', () => {
 
   it('commits durable waiting intent even when immediate Valkey dispatch is unavailable', async () => {
     const startedAt = new Date('2026-10-16T10:00:00.000Z');
+    service.setClock(() => startedAt);
     const reviewAt = new Date('2026-10-23T10:00:00.000Z');
     const row = {
       id: 'd0000000-0000-4000-8000-000000000002',
